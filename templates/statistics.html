@@ -9,6 +9,7 @@
 
         <div class="stats-section">
             <h2>Top 10 Highest Scoring Games</h2>
+            {% if highest_games is defined and highest_games is not none and not highest_games.empty %}
             <table>
                 <thead>
                     <tr>
@@ -35,6 +36,9 @@
                     {% endfor %}
                 </tbody>
             </table>
+            {% else %}
+            <p><em>{{ error or "No games data available." }}</em></p>
+            {% endif %}
         </div>
 
         <div class="stats-section">

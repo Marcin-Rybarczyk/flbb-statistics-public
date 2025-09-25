@@ -48,7 +48,9 @@ def index():
 def statistics():
     """Statistics page with comprehensive data analysis"""
     if data.empty:
-        return render_template('statistics.html', error="No data available")
+        return render_template('statistics.html', 
+                             error="No data available",
+                             divisions=divisions)
     
     # Get overall statistics
     highest_games = get_highest_scoring_games(data, 10)

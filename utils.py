@@ -607,8 +607,10 @@ def get_highest_scoring_games(data, top_n=10):
     Returns:
     DataFrame: Games with highest scores
     """
-    data['TotalScore'] = data['FinalHomeScore'] + data['FinalAwayScore']
-    highest_games = data.nlargest(top_n, 'TotalScore')
+    # Create a copy to avoid modifying the original data
+    data_copy = data.copy()
+    data_copy['TotalScore'] = data_copy['FinalHomeScore'] + data_copy['FinalAwayScore']
+    highest_games = data_copy.nlargest(top_n, 'TotalScore')
     return highest_games[['GameId', 'HomeTeamName', 'AwayTeamName', 'FinalHomeScore', 'FinalAwayScore', 'TotalScore', 'GameDivisionDisplay']]
 
 def extract_referee_stats(data):
@@ -946,20 +948,43 @@ def load_game_data():
     """
     Load game data from CSV file or generate from JSON files if needed.
     """
-    if os.path.exists(CSV_FILEPATH):
-        return pd.read_csv(CSV_FILEPATH)
-    else:
-        # If CSV doesn't exist, try to generate from JSON files
-        root_dir = os.path.join(os.getcwd(), FULL_GAME_STATS_OUTPUT_DIR)
-        if os.path.exists(root_dir):
-            all_data = load_data_from_directories(root_dir) 
+    # Check if we should force CSV regeneration from JSON data
+    root_dir = os.path.join(os.getcwd(), FULL_GAME_STATS_OUTPUT_DIR)
+    
+    if FORCE_TO_CREATE_CSV and os.path.exists(root_dir):
+        # Force regeneration of CSV from JSON data
+        all_data = load_data_from_directories(root_dir) 
+        if all_data:  # Only proceed if we have JSON data
             data = pd.DataFrame(all_data)
             flatten_df(data)
-            data.to_csv(CSV_FILEPATH)
+            data.to_csv(CSV_FILEPATH, index=False)
             return data
-        else:
-            # Return empty DataFrame if no data available
-            return pd.DataFrame()
+    
+    # Try to load existing CSV file
+    if os.path.exists(CSV_FILEPATH):
+        try:
+            data = pd.read_csv(CSV_FILEPATH)
+            # Check if the CSV has data
+            if not data.empty:
+                return data
+            else:
+                print(f"Warning: {CSV_FILEPATH} exists but is empty")
+        except (pd.errors.EmptyDataError, pd.errors.ParserError) as e:
+            print(f"Warning: Error reading {CSV_FILEPATH}: {e}")
+        except Exception as e:
+            print(f"Warning: Unexpected error reading {CSV_FILEPATH}: {e}")
+    
+    # If CSV doesn't exist or failed to load, try to generate from JSON files
+    if os.path.exists(root_dir):
+        all_data = load_data_from_directories(root_dir) 
+        if all_data:  # Only proceed if we have JSON data
+            data = pd.DataFrame(all_data)
+            flatten_df(data)
+            data.to_csv(CSV_FILEPATH, index=False)
+            return data
+    
+    # Return empty DataFrame if no data available
+    return pd.DataFrame()
 
 # =============================================================================
 # DEEPER GAME ANALYSIS FUNCTIONS

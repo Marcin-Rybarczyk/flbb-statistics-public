@@ -280,13 +280,13 @@
         </div>
 
         <div class="navigation">
-            <a href="/" {% if request.endpoint == 'index' %}class="active"{% endif %}>🏠 Home</a>
-            <a href="/fixtures" {% if request.endpoint == 'fixtures' %}class="active"{% endif %}>📅 Fixtures</a>
-            <a href="/statistics" {% if request.endpoint == 'statistics' %}class="active"{% endif %}>📊 Statistics</a>
-            <a href="/player-stats" {% if request.endpoint == 'player_stats' %}class="active"{% endif %}>👤 Player Stats</a>
-            <a href="/team-stats" {% if request.endpoint == 'team_stats' %}class="active"{% endif %}>🏆 Team Stats</a>
-            <a href="/deeper-analysis" {% if request.endpoint == 'deeper_analysis' %}class="active"{% endif %}>🔍 Deep Analysis</a>
-            <a href="/admin" {% if request.endpoint == 'admin' %}class="active"{% endif %}>⚙️ Admin</a>
+            <a href="/" {% if request and request.endpoint == 'index' %}class="active"{% endif %}>🏠 Home</a>
+            <a href="/fixtures" {% if request and request.endpoint == 'fixtures' %}class="active"{% endif %}>📅 Fixtures</a>
+            <a href="/statistics" {% if request and request.endpoint == 'statistics' %}class="active"{% endif %}>📊 Statistics</a>
+            <a href="/player-stats" {% if request and request.endpoint == 'player_stats' %}class="active"{% endif %}>👤 Player Stats</a>
+            <a href="/team-stats" {% if request and request.endpoint == 'team_stats' %}class="active"{% endif %}>🏆 Team Stats</a>
+            <a href="/deeper-analysis" {% if request and request.endpoint == 'deeper_analysis' %}class="active"{% endif %}>🔍 Deep Analysis</a>
+            <a href="/admin" {% if request and request.endpoint == 'admin' %}class="active"{% endif %}>⚙️ Admin</a>
         </div>
 
         {% if error %}
