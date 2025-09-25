@@ -1,17 +1,17 @@
 {
-  "eventName": "FLBB Basketball Season 2024-2025",
-  "seasonId": "2024-2025",
+  "eventName": "FLBB Basketball Season 2025-2026",
+  "seasonId": "2025-2026",
   "dataSource": {
     "baseUrl": "https://www.luxembourg.basketball",
     "allCompetitionsUrl": "https://www.luxembourg.basketball/c/categorie/all"
   },
   "processing": {
     "divisionsIncluded": [
-      "Division:1 - Hommes",
-      "Division:2 - Hommes", 
-      "Division:3 - Hommes",
-      "Division:4 - Hommes",
-      "Division:Nationale - Dames",
+      "Division 1 Hommes",
+      "Division 2 Hommes", 
+      "Division 3 Hommes",
+      "Division 4 Hommes",
+      "Enovos League Hommes",
       "Division:1 - Dames",
       "Division:2 - Dames"
     ],
