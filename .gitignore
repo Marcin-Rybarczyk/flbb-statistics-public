@@ -1,0 +1,13 @@
+full-game-stats-raw/**
+game-schedule-raw/**
+full-game-stats-output/**
+gamesDB.json
+gameScheduleDB.json
+full-game-stats.csv
+google-drive-sync/**
+__pycache__/**
+logs/**
+*.log
+/_unrelated-projects/2021
+/_unrelated-projects/before_2020
+raw-data-*.zip

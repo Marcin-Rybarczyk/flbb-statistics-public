@@ -1,0 +1,19 @@
+# Render.com Deployment Configuration
+# This file configures the Flask app for deployment on Render.com (FREE tier available)
+# 
+# Render.com offers:
+# - 750 hours/month free (enough for continuous running)
+# - Automatic SSL certificates
+# - Git-based deployments
+# - Environment variable management
+
+# Build Command (use this in Render dashboard):
+pip install -r requirements.txt
+
+# Start Command (use this in Render dashboard):
+gunicorn --bind 0.0.0.0:$PORT wsgi:application
+
+# Environment Variables to set in Render dashboard:
+# PORT=10000 (Render will set this automatically)
+# SECRET_KEY=your-secret-key-here
+# FLASK_ENV=production

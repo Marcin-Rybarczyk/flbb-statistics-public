@@ -1,0 +1,848 @@
+{% extends "base.html" %}
+
+{% block title %}Player Statistics - FLBB Statistics{% endblock %}
+
+{% block page_title %}👤 Player Statistics{% endblock %}
+{% block page_description %}Individual player performance analysis and scoring statistics{% endblock %}
+
+{% block extra_styles %}
+        .tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px 10px 0 0;
+            overflow: hidden;
+            margin-bottom: 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            text-align: center;
+            font-weight: 600;
+            color: #555;
+            transition: all 0.3s ease;
+            border-right: 1px solid #e0e0e0;
+        }
+
+        .tab:last-child {
+            border-right: none;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .tab:hover:not(.active) {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .tab-content {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .stat-card .number {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-card small {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+{% endblock %}
+
+{% block content %}
+        {% if top_scorers is not none and not top_scorers.empty %}
+        
+        <div class="stat-summary">
+            <div class="stat-card">
+                <h3>Total Players</h3>
+                <div class="number">{{ top_scorers.shape[0] }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Top Scorer</h3>
+                <div class="number">{{ top_scorers.iloc[0]['TotalPoints'] }}</div>
+                <small>{{ top_scorers.iloc[0]['PlayerName'] }}</small>
+            </div>
+            {% if highest_single_scores is not none and not highest_single_scores.empty %}
+            <div class="stat-card">
+                <h3>Highest Single Game</h3>
+                <div class="number">{{ highest_single_scores.iloc[0]['TotalPoints'] }}</div>
+                <small>{{ highest_single_scores.iloc[0]['PlayerName'] }}</small>
+            </div>
+            {% endif %}
+            <div class="stat-card">
+                <h3>Avg Points/Game</h3>
+                <div class="number">{{ "%.1f"|format(top_scorers['AvgPointsPerGame'].mean()) }}</div>
+            </div>
+        </div>
+
+        <!-- Tabbed Interface -->
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('scorers')">Top Scorers</div>
+            <div class="tab" onclick="showTab('three-pointers')">3-Point Leaders</div>
+            <div class="tab" onclick="showTab('fouls')">Most Fouls</div>
+            <div class="tab" onclick="showTab('single-game')">Single Game Records</div>
+            <div class="tab" onclick="showTab('shooting-efficiency')">Shooting Efficiency</div>
+            <div class="tab" onclick="showTab('double-digit')">Double-Digit Scorers</div>
+            <div class="tab" onclick="showTab('consistency')">Most Consistent</div>
+            <div class="tab" onclick="showTab('starter-bench')">Starters vs Bench</div>
+        </div>
+
+        <!-- Top Scorers Tab -->
+        <div id="scorers" class="tab-content active">
+            <div class="stats-section">
+                <h2>Top 50 Scorers - Overall League Statistics</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Team</th>
+                            <th>Games</th>
+                            <th>Total Points</th>
+                            <th>Avg Points/Game</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for index, row in top_scorers.iterrows() %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td>{{ row['Team'] }}</td>
+                            <td>{{ row['GamesPlayed'] }}</td>
+                            <td><strong>{{ row['TotalPoints'] }}</strong></td>
+                            <td>{{ "%.1f"|format(row['AvgPointsPerGame']) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 3-Point Leaders Tab -->
+        <div id="three-pointers" class="tab-content">
+            <div class="stats-section">
+                <h2>Top 3-Point Shooters</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Team</th>
+                            <th>Total 3-Pointers</th>
+                            <th>Games</th>
+                            <th>3-Pointers per Game</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for index, row in top_three_pointers.iterrows() %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td>{{ row['Team'] }}</td>
+                            <td><strong>{{ row['3PMadeShots'] }}</strong></td>
+                            <td>{{ row['GamesPlayed'] }}</td>
+                            <td>{{ "%.1f"|format(row['AvgThreePointsPerGame']) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Most Fouls Tab -->
+        <div id="fouls" class="tab-content">
+            <div class="stats-section">
+                <h2>Players with Most Fouls</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Team</th>
+                            <th>Total Fouls</th>
+                            <th>Games</th>
+                            <th>Fouls per Game</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for index, row in top_foulers.iterrows() %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td>{{ row['Team'] }}</td>
+                            <td><strong>{{ row['TotalFouls'] }}</strong></td>
+                            <td>{{ row['GamesPlayed'] }}</td>
+                            <td>{{ "%.1f"|format(row['AvgFoulsPerGame']) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Single Game Records Tab -->
+        <div id="single-game" class="tab-content">
+            <div class="stats-section">
+                <h2>Single Game Scoring Records</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Team</th>
+                            <th>Points</th>
+                            <th>Game Date</th>
+                            <th>Game ID</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if highest_single_scores is not none and not highest_single_scores.empty %}
+                        {% for index, row in highest_single_scores.iterrows() %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td>{{ row['Team'] }}</td>
+                            <td><strong>{{ row['TotalPoints'] }}</strong></td>
+                            <td>{{ row.get('GameDate', 'N/A') }}</td>
+                            <td>{{ row.get('GameId', 'N/A') }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Shooting Efficiency Tab -->
+        <div id="shooting-efficiency" class="tab-content">
+            <div class="stats-section">
+                <h2>Shooting Efficiency Leaders</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Team</th>
+                            <th>Avg Points</th>
+                            <th>Min Games</th>
+                            <th>Efficiency Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if shooting_efficiency is not none and not shooting_efficiency.empty %}
+                        {% for index, row in shooting_efficiency.iterrows() %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td>{{ row['Team'] }}</td>
+                            <td>{{ "%.1f"|format(row['AvgPointsPerGame']) }}</td>
+                            <td>{{ row['GamesPlayed'] }}</td>
+                            <td><strong>{{ "%.2f"|format(row['PointsPerShot']) }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Double-Digit Scorers Tab -->
+        <div id="double-digit" class="tab-content">
+            <div class="stats-section">
+                <h2>Double-Digit Scoring Games</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Team</th>
+                            <th>Double-Digit Games</th>
+                            <th>Total Games</th>
+                            <th>Double-Digit %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if double_digit_scorers is not none and not double_digit_scorers.empty %}
+                        {% for index, row in double_digit_scorers.iterrows() %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td>{{ row['Team'] }}</td>
+                            <td><strong>{{ row['DoubleDigitGames'] }}</strong></td>
+                            <td>{{ row['TotalGames'] }}</td>
+                            <td>{{ "%.1f"|format(row['DoubleDigitPercentage']) }}%</td>
+                        </tr>
+                        {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Consistency Tab -->
+        <div id="consistency" class="tab-content">
+            <div class="stats-section">
+                <h2>Most Consistent Scorers</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Team</th>
+                            <th>Avg Points</th>
+                            <th>Std Deviation</th>
+                            <th>Consistency Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if consistent_scorers is not none and not consistent_scorers.empty %}
+                        {% for index, row in consistent_scorers.iterrows() %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td>{{ row['Team'] }}</td>
+                            <td>{{ "%.1f"|format(row['AvgPoints']) }}</td>
+                            <td>{{ "%.1f"|format(row['StdDevPoints']) }}</td>
+                            <td><strong>{{ "%.2f"|format(row['ConsistencyScore']) }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Starters vs Bench Tab -->
+        <div id="starter-bench" class="tab-content">
+            <div class="stats-section">
+                <h2>Starting Five vs Bench Performance</h2>
+                {% if starter_bench_stats is not none %}
+                <div class="stat-summary">
+                    <div class="stat-card">
+                        <h3>Starters Avg</h3>
+                        <div class="number">{{ "%.1f"|format(starter_bench_stats.get('starters_avg', 0)) }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Bench Avg</h3>
+                        <div class="number">{{ "%.1f"|format(starter_bench_stats.get('bench_avg', 0)) }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Difference</h3>
+                        <div class="number">{{ "%.1f"|format(starter_bench_stats.get('difference', 0)) }}</div>
+                    </div>
+                </div>
+                
+                {% if starter_bench_stats.get('starters') is not none %}
+                <h3>Top Starting Five Performance</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Team</th>
+                            <th>Avg Points</th>
+                            <th>Games</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for index, row in starter_bench_stats['starters'].iterrows() %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td>{{ row['Team'] }}</td>
+                            <td>{{ "%.1f"|format(row['AvgPointsPerGame']) }}</td>
+                            <td>{{ row['GamesPlayed'] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+
+                {% if starter_bench_stats.get('bench') is not none %}
+                <h3>Top Bench Performance</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Team</th>
+                            <th>Avg Points</th>
+                            <th>Games</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for index, row in starter_bench_stats['bench'].iterrows() %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td>{{ row['Team'] }}</td>
+                            <td>{{ "%.1f"|format(row['AvgPointsPerGame']) }}</td>
+                            <td>{{ row['GamesPlayed'] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        function showTab(tabName) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+    </script>
+{% endblock %}
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            color: #495057;
+            font-size: 1.1em;
+        }
+        .stat-card .number {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .top-performer {
+            background-color: #d4edda;
+            font-weight: bold;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        .tab {
+            padding: 10px 20px;
+            margin-right: 5px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            cursor: pointer;
+            border-radius: 5px 5px 0 0;
+        }
+        .tab.active {
+            background-color: white;
+            border-bottom: 1px solid white;
+            margin-bottom: -1px;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FLBB Basketball Statistics - Player Stats</h1>
+        
+        <div class="navigation">
+            <a href="/">Standings</a>
+            <a href="/statistics">Statistics</a>
+            <a href="/team-stats">Team Stats</a>
+            <a href="/player-stats" class="active">Player Stats</a>
+            <a href="/deeper-analysis">Deep Analysis</a>
+        </div>
+
+        {% if error %}
+        <div class="error">
+            <p>{{ error }}</p>
+        </div>
+        {% else %}
+
+        {% if top_scorers is not none and not top_scorers.empty %}
+        
+        <div class="stat-summary">
+            <div class="stat-card">
+                <h3>Total Players</h3>
+                <div class="number">{{ top_scorers.shape[0] }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Top Scorer</h3>
+                <div class="number">{{ top_scorers.iloc[0]['TotalPoints'] }}</div>
+                <small>{{ top_scorers.iloc[0]['PlayerName'] }}</small>
+            </div>
+            {% if highest_single_scores is not none and not highest_single_scores.empty %}
+            <div class="stat-card">
+                <h3>Highest Single Game</h3>
+                <div class="number">{{ highest_single_scores.iloc[0]['TotalPoints'] }}</div>
+                <small>{{ highest_single_scores.iloc[0]['PlayerName'] }}</small>
+            </div>
+            {% endif %}
+            <div class="stat-card">
+                <h3>Avg Points/Game</h3>
+                <div class="number">{{ "%.1f"|format(top_scorers['AvgPointsPerGame'].mean()) }}</div>
+            </div>
+        </div>
+
+        <!-- Tabbed Interface -->
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('scorers')">Top Scorers</div>
+            <div class="tab" onclick="showTab('three-pointers')">3-Point Leaders</div>
+            <div class="tab" onclick="showTab('fouls')">Most Fouls</div>
+            <div class="tab" onclick="showTab('single-game')">Single Game Records</div>
+            <div class="tab" onclick="showTab('shooting-efficiency')">Shooting Efficiency</div>
+            <div class="tab" onclick="showTab('double-digit')">Double-Digit Scorers</div>
+            <div class="tab" onclick="showTab('consistency')">Most Consistent</div>
+            <div class="tab" onclick="showTab('starter-bench')">Starters vs Bench</div>
+        </div>
+
+        <!-- Top Scorers Tab -->
+        <div id="scorers" class="tab-content active">
+            <div class="stats-section">
+                <h2>Top 50 Scorers - Overall League Statistics</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Team</th>
+                            <th>Games</th>
+                            <th>Total Points</th>
+                            <th>Avg Points/Game</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for index, row in top_scorers.iterrows() %}
+                        <tr {% if loop.index <= 3 %}class="top-performer"{% endif %}>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td>{{ row['Team'] }}</td>
+                            <td>{{ row['GamesPlayed'] }}</td>
+                            <td><strong>{{ row['TotalPoints'] }}</strong></td>
+                            <td>{{ "%.1f"|format(row['AvgPointsPerGame']) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <p><em>Top 3 performers are highlighted in green</em></p>
+            </div>
+        </div>
+
+        <!-- 3-Point Leaders Tab -->
+        <div id="three-pointers" class="tab-content">
+            <div class="stats-section">
+                <h2>Top 3-Point Shooters</h2>
+                {% if top_three_pointers is not none and not top_three_pointers.empty %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Team</th>
+                            <th>Games</th>
+                            <th>3-Pointers Made</th>
+                            <th>Avg 3P/Game</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for index, row in top_three_pointers.iterrows() %}
+                        <tr {% if loop.index <= 3 %}class="top-performer"{% endif %}>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td>{{ row['Team'] }}</td>
+                            <td>{{ row['GamesPlayed'] }}</td>
+                            <td><strong>{{ row['3PMadeShots'] }}</strong></td>
+                            <td>{{ "%.1f"|format(row['AvgThreePointsPerGame']) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p><em>No 3-point shooting data available.</em></p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Most Fouls Tab -->
+        <div id="fouls" class="tab-content">
+            <div class="stats-section">
+                <h2>Players with Most Fouls</h2>
+                {% if top_foulers is not none and not top_foulers.empty %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Team</th>
+                            <th>Games</th>
+                            <th>Total Fouls</th>
+                            <th>Avg Fouls/Game</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for index, row in top_foulers.iterrows() %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td>{{ row['Team'] }}</td>
+                            <td>{{ row['GamesPlayed'] }}</td>
+                            <td><strong>{{ row['TotalFouls'] }}</strong></td>
+                            <td>{{ "%.1f"|format(row['AvgFoulsPerGame']) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p><em>No foul data available.</em></p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Single Game Records Tab -->
+        <div id="single-game" class="tab-content">
+            <div class="stats-section">
+                <h2>Top 10 Single Game Scoring Performances</h2>
+                {% if highest_single_scores is not none and not highest_single_scores.empty %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Team</th>
+                            <th>Points</th>
+                            <th>Game ID</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for index, row in highest_single_scores.iterrows() %}
+                        <tr {% if loop.index <= 3 %}class="top-performer"{% endif %}>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td>{{ row['Team'] }}</td>
+                            <td><strong>{{ row['TotalPoints'] }}</strong></td>
+                            <td>{{ row['GameId'] }}</td>
+                            <td>{{ row['GameDate'] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p><em>No single game scoring data available.</em></p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Shooting Efficiency Tab -->
+        <div id="shooting-efficiency" class="tab-content">
+            <div class="stats-section">
+                <h2>Top 20 Most Efficient Shooters</h2>
+                <p><em>Players with at least 5 games played and 10 total shots</em></p>
+                {% if shooting_efficiency is not none and not shooting_efficiency.empty %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Team</th>
+                            <th>Games</th>
+                            <th>Total Points</th>
+                            <th>Total Shots</th>
+                            <th>Points/Shot</th>
+                            <th>Avg Points/Game</th>
+                            <th>Shots/Game</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for index, row in shooting_efficiency.iterrows() %}
+                        <tr {% if loop.index <= 3 %}class="top-performer"{% endif %}>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td>{{ row['Team'] }}</td>
+                            <td>{{ row['GamesPlayed'] }}</td>
+                            <td>{{ row['TotalPoints'] }}</td>
+                            <td>{{ row['TotalFieldGoals'] }}</td>
+                            <td><strong>{{ row['PointsPerShot'] }}</strong></td>
+                            <td>{{ row['AvgPointsPerGame'] }}</td>
+                            <td>{{ row['ShotsPerGame'] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p><em>No shooting efficiency data available.</em></p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Double Digit Scorers Tab -->
+        <div id="double-digit" class="tab-content">
+            <div class="stats-section">
+                <h2>Top Double-Digit Scorers (10+ Points)</h2>
+                {% if double_digit_scorers is not none and not double_digit_scorers.empty %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Team</th>
+                            <th>Double-Digit Games</th>
+                            <th>Total Games</th>
+                            <th>DD%</th>
+                            <th>Avg in DD Games</th>
+                            <th>Highest Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for index, row in double_digit_scorers.iterrows() %}
+                        <tr {% if loop.index <= 3 %}class="top-performer"{% endif %}>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td>{{ row['Team'] }}</td>
+                            <td><strong>{{ row['DoubleDigitGames'] }}</strong></td>
+                            <td>{{ row['TotalGamesActual'] }}</td>
+                            <td>{{ row['DoubleDigitPercentage'] }}%</td>
+                            <td>{{ row['AvgInDoubleDigitGames'] }}</td>
+                            <td>{{ row['HighestScore'] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p><em>No double-digit scoring data available.</em></p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Most Consistent Tab -->
+        <div id="consistency" class="tab-content">
+            <div class="stats-section">
+                <h2>Most Consistent Scorers</h2>
+                <p><em>Players with at least 5 games played. Higher consistency score = more reliable scoring</em></p>
+                {% if consistent_scorers is not none and not consistent_scorers.empty %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Team</th>
+                            <th>Games</th>
+                            <th>Avg Points</th>
+                            <th>Min</th>
+                            <th>Max</th>
+                            <th>Std Dev</th>
+                            <th>Consistency Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for index, row in consistent_scorers.iterrows() %}
+                        <tr {% if loop.index <= 3 %}class="top-performer"{% endif %}>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td>{{ row['Team'] }}</td>
+                            <td>{{ row['GamesPlayed'] }}</td>
+                            <td>{{ row['AvgPoints'] }}</td>
+                            <td>{{ row['MinPoints'] }}</td>
+                            <td>{{ row['MaxPoints'] }}</td>
+                            <td>{{ row['StdDevPoints'] }}</td>
+                            <td><strong>{{ row['ConsistencyScore'] }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p><em>No consistency data available.</em></p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Starters vs Bench Tab -->
+        <div id="starter-bench" class="tab-content">
+            <div class="stats-section">
+                <h2>Starting Five vs Bench Players Comparison</h2>
+                {% if starter_bench_stats %}
+                <div style="display: flex; gap: 40px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 300px;">
+                        <h3>Starting Five</h3>
+                        <table>
+                            <tbody>
+                                <tr><td><strong>Total Players:</strong></td><td>{{ starter_bench_stats.get('starters_total_players', 'N/A') }}</td></tr>
+                                <tr><td><strong>Total Game Appearances:</strong></td><td>{{ starter_bench_stats.get('starters_total_games', 'N/A') }}</td></tr>
+                                <tr><td><strong>Average Points per Game:</strong></td><td>{{ starter_bench_stats.get('starters_avg_points', 'N/A') }}</td></tr>
+                                <tr><td><strong>Total Points:</strong></td><td>{{ starter_bench_stats.get('starters_total_points', 'N/A') }}</td></tr>
+                                <tr><td><strong>Average Fouls per Game:</strong></td><td>{{ starter_bench_stats.get('starters_avg_fouls', 'N/A') }}</td></tr>
+                                <tr><td><strong>Total Shots Made:</strong></td><td>{{ starter_bench_stats.get('starters_total_shots', 'N/A') }}</td></tr>
+                                <tr><td><strong>Average Shots per Game:</strong></td><td>{{ starter_bench_stats.get('starters_avg_shots_per_game', 'N/A') }}</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="flex: 1; min-width: 300px;">
+                        <h3>Bench Players</h3>
+                        <table>
+                            <tbody>
+                                <tr><td><strong>Total Players:</strong></td><td>{{ starter_bench_stats.get('bench_total_players', 'N/A') }}</td></tr>
+                                <tr><td><strong>Total Game Appearances:</strong></td><td>{{ starter_bench_stats.get('bench_total_games', 'N/A') }}</td></tr>
+                                <tr><td><strong>Average Points per Game:</strong></td><td>{{ starter_bench_stats.get('bench_avg_points', 'N/A') }}</td></tr>
+                                <tr><td><strong>Total Points:</strong></td><td>{{ starter_bench_stats.get('bench_total_points', 'N/A') }}</td></tr>
+                                <tr><td><strong>Average Fouls per Game:</strong></td><td>{{ starter_bench_stats.get('bench_avg_fouls', 'N/A') }}</td></tr>
+                                <tr><td><strong>Total Shots Made:</strong></td><td>{{ starter_bench_stats.get('bench_total_shots', 'N/A') }}</td></tr>
+                                <tr><td><strong>Average Shots per Game:</strong></td><td>{{ starter_bench_stats.get('bench_avg_shots_per_game', 'N/A') }}</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% else %}
+                <p><em>No starter vs bench comparison data available.</em></p>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% endif %}
+        {% endif %}
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

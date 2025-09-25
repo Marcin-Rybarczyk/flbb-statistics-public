@@ -1,0 +1,39 @@
+title: FLBB Basketball Statistics
+description: Comprehensive basketball statistics for Luxembourg Basketball Federation
+baseurl: "/flbb-statistics"
+url: "https://marcin-rybarczyk.github.io"
+
+# Build settings
+markdown: kramdown
+theme: minima
+
+# Plugins
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+
+# Exclude files from processing
+exclude:
+  - node_modules/
+  - vendor/
+  - "*.ps1"
+  - "*.csv"
+  - "*.json"
+  - "download-controller.ps1"
+  - "extract-game.ps1"
+  - "Net40/"
+  - ".git*"
+  - "full-game-stats-*"
+  - "game-schedule-*"
+  - "gamesDB.json"
+  - "gameScheduleDB.json"
+
+# Include files
+include:
+  - _pages
+
+# Collections
+collections:
+  pages:
+    output: true
+    permalink: /:name/

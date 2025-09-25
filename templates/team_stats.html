@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Team Performance - FLBB Statistics{% endblock %}
+
+{% block page_title %}🏆 Team Performance{% endblock %}
+{% block page_description %}Comprehensive team statistics and performance analysis{% endblock %}
+
+{% block content %}
+
+        <!-- Team Selection Form -->
+        <div class="stats-section">
+            <h2>Select Team for Detailed Analysis</h2>
+            <form method="post">
+                <select name="team" onchange="this.form.submit()" style="padding: 8px; font-size: 16px; margin-right: 10px;">
+                    <option value="">-- Select a Team --</option>
+                    {% for team in all_teams %}
+                    <option value="{{ team }}" {% if selected_team == team %}selected{% endif %}>{{ team }}</option>
+                    {% endfor %}
+                </select>
+                <noscript><input type="submit" value="Select Team" style="padding: 8px; font-size: 16px;"></noscript>
+            </form>
+        </div>
+
+        {% if selected_team and team_specific_stats %}
+        <!-- Selected Team Detailed Analysis -->
+        <div class="stats-section">
+            <h2>{{ selected_team }} - Detailed Team Analysis</h2>
+            
+            <div class="stat-summary">
+                <div class="stat-card">
+                    <h3>Win Percentage</h3>
+                    <div class="number">{{ team_specific_stats['WinPercentage'] }}%</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Games</h3>
+                    <div class="number">{{ team_specific_stats['TotalGames'] }}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Avg Points Scored</h3>
+                    <div class="number">{{ "%.1f"|format(team_specific_stats['AvgPointsScored']) }}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Point Differential</h3>
+                    <div class="number">{{ "%.1f"|format(team_specific_stats['PointsDifferential']) }}</div>
+                </div>
+            </div>
+
+            <!-- Game-by-Game Results -->
+            {% if team_games is not none and not team_games.empty %}
+            <h3>Game-by-Game Results</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Game ID</th>
+                        <th>Date</th>
+                        <th>Venue</th>
+                        <th>Opponent</th>
+                        <th>Score</th>
+                        <th>Result</th>
+                        <th>Margin</th>
+                        <th>Division</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for index, row in team_games.iterrows() %}
+                    <tr class="{% if row['Result'] == 'W' %}highlight{% endif %}">
+                        <td>{{ row['GameId'] }}</td>
+                        <td>{{ row['DateTime'][:10] if row['DateTime'] else 'N/A' }}</td>
+                        <td>{{ 'Home' if row['IsHome'] else 'Away' }}</td>
+                        <td>{{ row['Opponent'] }}</td>
+                        <td><strong>{{ row['TeamScore'] }} - {{ row['OpponentScore'] }}</strong></td>
+                        <td><strong>{{ row['Result'] }}</strong></td>
+                        <td>{{ '+' if row['Margin'] > 0 else '' }}{{ row['Margin'] }}</td>
+                        <td>{{ row['GameDivisionDisplay'] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p><em>Wins are highlighted in yellow</em></p>
+
+            <!-- Performance Charts (Simple Text-Based) -->
+            <h3>Performance Evolution</h3>
+            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px;">
+                <h4>Scoring Trend:</h4>
+                <div style="font-family: monospace; line-height: 1.4;">
+                {% for index, row in team_games.head(10).iterrows() %}
+                    Game {{ loop.index }}: {{ row['TeamScore'] }} pts {{ '█' * (row['TeamScore'] // 10) }}<br>
+                {% endfor %}
+                {% if team_games.shape[0] > 10 %}
+                    <small>... and {{ team_games.shape[0] - 10 }} more games</small>
+                {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if team_stats is not none and not team_stats.empty %}
+        
+        <div class="stat-summary">
+            <div class="stat-card">
+                <h3>Total Teams</h3>
+                <div class="number">{{ team_stats.shape[0] }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Games</h3>
+                <div class="number">{{ (team_stats['TotalGames'].sum() / 2) | int }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Highest Team Score</h3>
+                <div class="number">{{ team_stats['HighestScore'].max() }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Avg Points/Game</h3>
+                <div class="number">{{ "%.1f"|format(team_stats['AvgPointsScored'].mean()) }}</div>
+            </div>
+        </div>
+
+        <div class="stats-section">
+            <h2>Complete Team Performance Statistics</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Team</th>
+                        <th>Games</th>
+                        <th>Wins</th>
+                        <th>Losses</th>
+                        <th>Win %</th>
+                        <th>Home Games</th>
+                        <th>Away Games</th>
+                        <th>Avg Scored</th>
+                        <th>Avg Allowed</th>
+                        <th>Point Diff</th>
+                        <th>Highest Score</th>
+                        <th>Lowest Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for index, row in team_stats.iterrows() %}
+                    <tr {% if row['WinPercentage'] >= 60 %}class="highlight"{% endif %}>
+                        <td>{{ loop.index }}</td>
+                        <td><strong>{{ row['Team'] }}</strong></td>
+                        <td>{{ row['TotalGames'] }}</td>
+                        <td>{{ row['Wins'] }}</td>
+                        <td>{{ row['Losses'] }}</td>
+                        <td><strong>{{ row['WinPercentage'] }}%</strong></td>
+                        <td>{{ row['HomeGames'] }}</td>
+                        <td>{{ row['AwayGames'] }}</td>
+                        <td>{{ "%.1f"|format(row['AvgPointsScored']) }}</td>
+                        <td>{{ "%.1f"|format(row['AvgPointsAllowed']) }}</td>
+                        <td>{{ "%.1f"|format(row['PointsDifferential']) }}</td>
+                        <td>{{ row['HighestScore'] }}</td>
+                        <td>{{ row['LowestScore'] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p><em>Teams with 60%+ win rate are highlighted in yellow</em></p>
+        </div>
+
+        <div class="stats-section">
+            <h2>Top Offensive Teams</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Team</th>
+                        <th>Avg Points Scored</th>
+                        <th>Highest Single Game</th>
+                        <th>Total Games</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for index, row in team_stats.sort_values('AvgPointsScored', ascending=False).head(10).iterrows() %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ row['Team'] }}</td>
+                        <td><strong>{{ "%.1f"|format(row['AvgPointsScored']) }}</strong></td>
+                        <td>{{ row['HighestScore'] }}</td>
+                        <td>{{ row['TotalGames'] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="stats-section">
+            <h2>Top Defensive Teams (Lowest Points Allowed)</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Team</th>
+                        <th>Avg Points Allowed</th>
+                        <th>Point Differential</th>
+                        <th>Total Games</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for index, row in team_stats.sort_values('AvgPointsAllowed', ascending=True).head(10).iterrows() %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ row['Team'] }}</td>
+                        <td><strong>{{ "%.1f"|format(row['AvgPointsAllowed']) }}</strong></td>
+                        <td>{{ "%.1f"|format(row['PointsDifferential']) }}</td>
+                        <td>{{ row['TotalGames'] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        {% endif %}
+{% endblock %}

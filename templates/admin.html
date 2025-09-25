@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Administration - FLBB Statistics{% endblock %}
+
+{% block page_title %}⚙️ Administration{% endblock %}
+{% block page_description %}Data statistics and system information{% endblock %}
+
+{% block content %}
+        <div class="stats-section">
+            <h2>📊 Data Overview</h2>
+            <div class="stat-summary">
+                <div class="stat-card">
+                    <h3>Total Games</h3>
+                    <p>{{ data_stats.total_games }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Teams</h3>
+                    <p>{{ data_stats.total_teams }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Players</h3>
+                    <p>{{ data_stats.total_players }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Divisions</h3>
+                    <p>{{ data_stats.total_divisions }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-section">
+            <h2>🏀 Game Statistics</h2>
+            <div class="stat-summary">
+                <div class="stat-card">
+                    <h3>Avg Home Score</h3>
+                    <p>{% if data_stats.avg_home_score != 'N/A' %}{{ "%.1f"|format(data_stats.avg_home_score) }}{% else %}N/A{% endif %}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Avg Away Score</h3>
+                    <p>{% if data_stats.avg_away_score != 'N/A' %}{{ "%.1f"|format(data_stats.avg_away_score) }}{% else %}N/A{% endif %}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Highest Scoring Game</h3>
+                    <p>{{ data_stats.highest_scoring_game }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Data Points</h3>
+                    <p>{{ data_stats.total_data_points }}</p>
+                </div>
+            </div>
+        </div>
+
+        {% if data_stats.date_range_start != 'N/A' %}
+        <div class="stats-section">
+            <h2>📅 Date Range</h2>
+            <div class="stat-summary">
+                <div class="stat-card">
+                    <h3>First Game</h3>
+                    <p>{{ data_stats.date_range_start }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Latest Game</h3>
+                    <p>{{ data_stats.date_range_end }}</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if data_stats.division_games %}
+        <div class="stats-section">
+            <h2>🏆 Games by Division</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Division</th>
+                        <th>Number of Games</th>
+                        <th>Percentage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for division, count in data_stats.division_games.items() %}
+                    <tr>
+                        <td><strong>{{ division }}</strong></td>
+                        <td>{{ count }}</td>
+                        <td>{{ "%.1f"|format((count / data_stats.total_games) * 100) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <div class="stats-section">
+            <h2>💾 File System Information</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>File</th>
+                        <th>Status</th>
+                        <th>Size (bytes)</th>
+                        <th>Last Modified</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for filename, info in file_stats.items() %}
+                    <tr>
+                        <td><strong>{{ filename }}</strong></td>
+                        <td>
+                            {% if info %}
+                                <span style="color: #27ae60;">✓ Available</span>
+                            {% else %}
+                                <span style="color: #e74c3c;">✗ Not Found</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if info %}
+                                {{ "{:,}".format(info.size) }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if info %}
+                                {{ info.modified | int | round | int }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="stats-section">
+            <h2>🔧 System Information</h2>
+            <div class="stat-summary">
+                <div class="stat-card">
+                    <h3>Data Columns</h3>
+                    <p>{{ data_stats.data_columns }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Memory Usage</h3>
+                    <p>{% if data_stats.total_data_points > 0 %}{{ "%.2f"|format((data_stats.total_data_points * 8) / 1024 / 1024) }} MB{% else %}N/A{% endif %}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Status</h3>
+                    <p style="color: #27ae60;">✓ Active</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-section">
+            <h2>📋 Available Endpoints</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Page</th>
+                        <th>Endpoint</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Home</strong></td>
+                        <td>/</td>
+                        <td>Division standings and team rankings</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Statistics</strong></td>
+                        <td>/statistics</td>
+                        <td>Comprehensive game and player statistics</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Player Stats</strong></td>
+                        <td>/player-stats</td>
+                        <td>Individual player performance analysis</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Team Stats</strong></td>
+                        <td>/team-stats</td>
+                        <td>Team performance and detailed analysis</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Deep Analysis</strong></td>
+                        <td>/deeper-analysis</td>
+                        <td>Advanced insights and impact analysis</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Administration</strong></td>
+                        <td>/admin</td>
+                        <td>System information and data statistics</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+{% endblock %}

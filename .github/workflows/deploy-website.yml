@@ -1,0 +1,77 @@
+name: Deploy Flask Website
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+  schedule:
+    # Run daily at 2 AM UTC to update data
+    - cron: "0 2 * * *"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        pip install pandas flask pytest
+        
+    - name: Test Flask application
+      run: |
+        python -c "from app import app; from utils import load_game_data; print('Flask app loads successfully')"
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        pip install pandas flask gunicorn
+        
+    - name: Generate static pages for GitHub Pages
+      run: |
+        python generate_static.py
+        
+    - name: Upload to GitHub Pages
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: 'static_site/'
+        
+  github-pages:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    permissions:
+      pages: write
+      id-token: write
+      
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+      
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4

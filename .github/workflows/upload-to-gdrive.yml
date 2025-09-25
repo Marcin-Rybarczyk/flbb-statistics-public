@@ -1,0 +1,20 @@
+name: Upload CSV to Google Drive
+
+on:
+  push:
+    paths:
+      - '**.csv11' # Trigger the action on CSV file changes
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    - name: Upload to Google Drive
+      uses: google-github-actions/upload-cloud-storage@v0.5.0
+      with:
+        path: file.csv
+        destination: /
+        credentials: ${{ secrets.GDRIVE_CREDENTIALS }}

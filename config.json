@@ -1,0 +1,49 @@
+{
+  "eventName": "FLBB Basketball Season 2024-2025",
+  "seasonId": "2024-2025",
+  "dataSource": {
+    "baseUrl": "https://www.luxembourg.basketball",
+    "allCompetitionsUrl": "https://www.luxembourg.basketball/c/categorie/all"
+  },
+  "processing": {
+    "divisionsIncluded": [
+      "Division:1 - Hommes",
+      "Division:2 - Hommes", 
+      "Division:3 - Hommes",
+      "Division:4 - Hommes",
+      "Division:Nationale - Dames",
+      "Division:1 - Dames",
+      "Division:2 - Dames"
+    ],
+    "parallelDownloads": 10,
+    "forceDownloadGameSchedule": true,
+    "forceDownloadFullGameStats": true
+  },
+  "directories": {
+    "gameScheduleRaw": "game-schedule-raw",
+    "fullGameStatsRaw": "full-game-stats-raw",
+    "fullGameStatsOutput": "full-game-stats-output"
+  },
+  "files": {
+    "playerMap": "player-map.json",
+    "eventActionPatterns": "event-action-patterns.json",
+    "gamesDb": "gamesDB.json",
+    "gameScheduleDb": "gameScheduleDB.json",
+    "outputCsv": "full-game-stats.csv"
+  },
+  "googleDrive": {
+    "enabled": true,
+    "folderId": "1Z4Z3Z2Z1Z0Z9Z8Z7Z6Z5Z4Z3Z2Z1Z0Z9Z8Z7Z6Z5",
+    "serviceAccountFile": "flbb-statistics-e9ab0e2a8b4c.json"
+  },
+  "website": {
+    "title": "FLBB Basketball Statistics",
+    "description": "Comprehensive basketball statistics for Luxembourg Basketball Federation",
+    "features": {
+      "showStandings": true,
+      "showTopPlayers": true,
+      "showHighestScoringGames": true,
+      "showPlayerStatistics": true
+    }
+  }
+}

@@ -1,0 +1,116 @@
+{
+    "CHANGE_OF_LICENSE_NUMBER": {
+        "EN": "^License number changed.*",
+        "FR": ".*?ro licence chang.*?",
+        "DE": "^Lizenznummer ge.*?ndert.*",
+        "LU": "Lizenznummer ge.*?nnert:.*"
+    },
+    "DELETED_FROM_STARTING_LINEUP": {
+        "DE": "^Aus Start.*? gel.*?scht: Spiller (.*?)\\((.*?)\\)",
+        "EN": "^Deleted from starting line-up: Player (.*?)\\((.*?)\\)",
+        "FR": "^Supprim.*? de la composition de d.*?but: Joueur (.*?)\\((.*?)\\)",
+        "LU": "^Aus Startaufstellung entfernt: Spieler (.*?)\\((.*?)\\)"
+    },
+    "FOUL_ADDED": {
+        "DE": "^Fehler.*? (P|P1|P2|P3|U1|U2|U3|UC|T1|T2|TC|GD|B1|C1|D|D2|F|PC) Spieler (.*?)\\((.*?)\\)",
+        "EN": "^Foul added (P|P1|P2|P3|U1|U2|U3|UC|T1|T2|TC|GD|B1|C1|D|D2|F|PC) Player (.*?)\\((.*?)\\)",
+        "FR": "^Faute.*? (P|P1|P2|P3|U1|U2|U3|UC|T1|T2|TC|GD|B1|C1|D|D2|F|PC) Joueur (.*?)\\((.*?)\\)",
+        "LU": "^Fehler.*? (P|P1|P2|P3|U1|U2|U3|UC|T1|T2|TC|GD|B1|C1|D|D2|F|PC) Spiller (.*?)\\((.*?)\\)",
+        "DE2": "^Fehler.*? (P|P1|P2|P3|U1|U2|U3|UC|T1|T2|TC|GD|B1|C1|D|D2|F|PC) (.*?) \\(C \\)\\((.*?)\\)",
+        "EN2": "^Foul added (P|P1|P2|P3|U1|U2|U3|UC|T1|T2|TC|GD|B1|C1|D|D2|F|PC) (.*?) \\(C \\)\\((.*?)\\)",
+        "FR2": "^Faute.*? (P|P1|P2|P3|U1|U2|U3|UC|T1|T2|TC|GD|B1|C1|D|D2|F|PC) (.*?) \\(C \\)\\((.*?)\\)",
+        "LU2": "^Fehler.*? (P|P1|P2|P3|U1|U2|U3|UC|T1|T2|TC|GD|B1|C1|D|D2|F|PC) (.*?) \\(C \\)\\((.*?)\\)",
+        "LU3": "^Fehler.*?: (P|P1|P2|P3|U1|U2|U3|UC|T1|T2|TC|GD|B1|C1|D|D2|F|PC) Spiller (.*?)\\((.*?)\\)",
+        "LU4": "^Fehler.*?: (P|P1|P2|P3|U1|U2|U3|UC|T1|T2|TC|GD|B1|C1|D|D2|F|PC) (.*?) \\((.*?)\\)"
+    },
+    "FOUL_DELETED": {
+        "DE": "^Fehler entfernt: (.*?) Player (.*?)\\((.*?)\\)",
+        "DE2": "^Fehler entfernt: (.*?) Spieler (.*?)\\((.*?)\\)",
+        "EN": "^Foul deleted (.*?) Player (.*?)\\((.*?)\\)",
+        "FR": "^Fehler entfernt: (.*?) Joueur (.*?)\\((.*?)\\)",
+        "LU": "^Feeler gel.*?scht (.*?) Spiller (.*?)\\((.*?)\\)"
+    },
+    "LAST_POINTS_FOR_DIFFERENT_PLAYER": {
+        "DE": "^Letzte Punkte f.*?r anderen Spieler (.*?)\\((.*?)\\)",
+        "EN": "^Last points for different player (.*?)\\((.*?)\\)",
+        "FR": "^Derniers points pour autre joueur (.*?)\\((.*?)\\)",
+        "LU": "^L.*?scht Punkten fir aneren Spiller (.*?)\\((.*?)\\)"
+    },
+    "PLAYER_IN_IN_QUARTER": {
+        "DE": "^Spieleinsatz im (\\d+).Viertel: Spieler (.*?)\\((.*?)\\)",
+        "EN": "^Player in in (\\d+)\\.Quarter: Player (.*?)\\((.*?)\\)",
+        "EN2": "Player in in (\\d+)\\. Overtime: Player (.*?)\\((.*?)\\)",
+        "EN3": "Player in in (\\d+).*? quarter: Player (.*?)\\((.*?)\\)",
+        "FR": "^Joueur en jeu dans le (\\d+).Quart: Joueur (.*?)\\((.*?)\\)",
+        "FR2": "^Joueur en jeu dans la (\\d+)\\. Prolongation: Joueur (.*?)\\((.*?)\\)",
+        "FR3": "Joueur en jeu dans le (\\d+)e quart: Joueur (.*?)\\((.*?)\\)",
+        "LU": "^Spillerasaz am (\\d+).*?: Spiller (.*?)\\((.*?)\\)"
+    },
+    "PLAYER_IN_IN_QUARTER_DELETED":{
+        "EN": "Player in in (\\d+)\\.Quarter deleted: player (.*?)\\((.*?)\\)",
+        "EN2": "Player in in (\\d+).*? quarter deleted: Player (.*?)\\((.*?)\\)",
+        "FR": "^Joueur en jeu dans le (\\d+)\\.Quart .*?: joueur (.*?)\\((.*?)\\)",
+        "FR2": "Joueur en jeu dans le (\\d+)e quart supprim.*?: joueur (.*?)\\((.*?)\\)",
+        "DE": "Spieleinsatz im (\\d+)\\.Viertel entfernt: Spieler (.*?)\\((.*?)\\)"
+    },
+    "PLAYER_ADDED_":{
+        "FR":"5 majeur .*?: joueur (.*?)\\((.*?)\\)"
+    },
+    "POINTS_ADDED": {
+        "DE": "^Punkte:(\\d+) - Spieler (.*?)\\((.*?)\\)",
+        "EN": "^Points:(\\d+) - Player (.*?)\\((.*?)\\)",
+        "FR": "^Points:(\\d+) - Joueur (.*?)\\((.*?)\\)",
+        "LU": "^Punkten:(\\d+) - Spiller (.*?)\\((.*?)\\)"
+    },
+    "POINTS_DELETED": {
+        "DE": "^Punkte entfernt: (\\d+) - Spieler (.*?)\\((.*?)\\)",
+        "EN": "^Points deleted: (\\d+) - Player (.*?)\\((.*?)\\)",
+        "FR": "^Points supprim.*?s: (\\d+) - Joueur (.*?)\\((.*?)\\)",
+        "LU": "^Punkten gel.*?scht: (\\d+) - Spiller (.*?)\\((.*?)\\)"
+    },
+    "SIGNAL_END_OF_GAME": {
+        "DE": "Signal Spielende",
+        "EN": "Signal end of game",
+        "FR": "Signal fin du match",
+        "LU": "Signal Enn vum Match"
+    },
+    "STARTING_LINEUP_ADDED": {
+        "DE": "^Zu.*? Start.*?: Spieler (.*?)\\((.*?)\\)",
+        "EN": "^Starting line-up added: player (.*?)\\((.*?)\\)",
+        "FR": "^Composition.*?:.*joueur (.*?)\\((.*?)\\)",
+        "LU": "^Bei Startopstellung.*?: Spiller (.*?)\\((.*?)\\)",
+        "LU2": "Ufank Match: (\\d+) Spiller (.*?)\\((.*?)\\)"
+        
+    },
+    "TIMEOUT_ADDED": {
+        "DE": "^.*? Minute:.*? Auszeit \\(.*?\\)\\((.*?)\\)",
+        "EN": "^.*? minute:.*? time out \\(.*?\\)\\((.*?)\\)",
+        "FR": "^.*? minute:.*? temps mort \\(.*?\\)\\((.*?)\\)",
+        "LU": "^.*? Minutt:.*? temps mort \\(.*?\\)\\((.*?)\\)"
+    },
+    "TIMEOUT_DELETED": {
+        "EN": "^.*? Time-out .*? deleted \\(.*?\\)\\((.*?)\\)",
+        "FR": ".*?\\. Temps mort \\((\\d+).*?\\) .*? \\(.*?\\)\\((.*?)\\)",
+        "DE": "(\\d+)\\. Auszeit \\((\\d+)\\. Halbzeit\\) .*? \\((\\d+) \\.Minute\\)\\((.*?)\\)"
+    },
+    "TIMEOUT_LOST": {
+        "DE": "(\\d+). Auszeit verwirkt\\((.*?)\\)",
+        "EN": "(\\d+).*?. time-out lost.\\((.*?)\\)",
+        "FR": "(\\d+).*?. temps mort perdu.\\((.*?)\\)",
+        "LU": "(\\d+). Temps mort verluer.\\((.*?)\\)",
+        "LU2": "Temps mort \\((\\d+)\\. .*?\\) .*? \\((\\d+)\\.Minutt\\)\\((.*?)\\)",
+        "FR2": "(\\d+)\\. Temps mort \\(2e mi-temps\\) .*? \\((\\d+) \\.minute\\)\\((.*?)\\)",
+        "DE2": "Auszeit \\((\\d+)\\. .*?\\) .*? \\((\\d+)\\.Minute\\)\\((.*?)\\)",
+        "DE3": "(\\d+)\\. Auszeit \\((\\d+)\\. Halbzeit\\) gel.*scht \\((\\d+)\\.Minute\\)\\((.*?)\\)"
+    },
+    "PROTEST_AFTER_GAME":{
+        "EN": "Protest after end of game in time limit of 15'",
+        "FR": "Protestation apr.*?s fin du match dans d.*?lai de 15'"
+    },
+    "OTHER": {
+        "DE": ".*?Periode (\\d+) \\(neu\\) bestimmt",
+        "EN": "Start of quarter\\/period (\\d+) \\(re\\)determined",
+        "FR2":"D.*but du quart.*ode (\\d+) \\(re\\).*?termin.*?",
+        "LU": ".*?Period (\\d+) \\(nei\\) best.*?mmt.*?"
+    }
+}

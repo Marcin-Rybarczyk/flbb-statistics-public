@@ -1,0 +1,457 @@
+{% extends "base.html" %}
+
+{% block title %}Fixtures - FLBB Statistics{% endblock %}
+
+{% block page_title %}📅 Fixtures{% endblock %}
+{% block page_description %}All games and fixtures at a glance{% endblock %}
+
+{% block extra_styles %}
+        .fixtures-table {
+            margin-top: 20px;
+        }
+
+        .fixture-row {
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .fixture-row:hover {
+            background-color: rgba(102, 126, 234, 0.15);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .score-highlight {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #2c3e50;
+        }
+
+        .top-scorer {
+            font-size: 0.9em;
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        .date-time {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+
+        .teams {
+            font-weight: 600;
+        }
+
+        .home-team {
+            color: #2980b9;
+        }
+
+        .away-team {
+            color: #e67e22;
+        }
+
+        .vs {
+            color: #95a5a6;
+            margin: 0 8px;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: #2c3e50;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            z-index: 1000;
+            min-width: 200px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .tooltip::before {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #2c3e50 transparent transparent transparent;
+        }
+
+        .fixture-row:hover .tooltip {
+            opacity: 1;
+        }
+
+        .division-badge {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+
+        .location {
+            color: #8e44ad;
+            font-size: 0.9em;
+        }
+
+        .unfinished {
+            font-style: italic;
+            color: #f39c12;
+        }
+
+        .stats-summary {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 10px;
+        }
+
+        .stats-summary h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+
+        /* Matrix Table Styles */
+        .matrix-container {
+            margin-top: 30px;
+            overflow-x: auto;
+        }
+
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            font-size: 0.85em;
+        }
+
+        .matrix-table th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9em;
+            border: 1px solid #ddd;
+            min-width: 100px;
+        }
+
+        .matrix-table th.team-header {
+            writing-mode: vertical-lr;
+            text-orientation: mixed;
+            min-width: 30px;
+            width: 30px;
+        }
+
+        .matrix-table td {
+            border: 1px solid #ddd;
+            padding: 4px;
+            text-align: center;
+            vertical-align: top;
+            min-height: 60px;
+            max-width: 100px;
+            overflow: hidden;
+        }
+
+        .matrix-table .team-name {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #2c3e50;
+            text-align: center;
+            padding: 8px;
+        }
+
+        .matrix-table .empty-cell {
+            background: #f8f9fa;
+        }
+
+        .game-info {
+            font-size: 0.75em;
+            line-height: 1.2;
+            margin: 2px 0;
+        }
+
+        .game-score {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 0.9em;
+        }
+
+        .game-date {
+            color: #7f8c8d;
+            font-size: 0.7em;
+        }
+
+        .game-location {
+            color: #8e44ad;
+            font-size: 0.65em;
+        }
+
+        .game-top-scorer {
+            color: #e74c3c;
+            font-size: 0.65em;
+            font-weight: 600;
+        }
+
+        .filter-section {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .filter-section select {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            background: white;
+            font-size: 14px;
+            margin: 0 10px;
+        }
+
+        .filter-section label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-right: 8px;
+        }
+
+        .view-toggle {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .view-toggle button {
+            padding: 8px 16px;
+            margin: 0 5px;
+            border: 1px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .view-toggle button.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .view-toggle button:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .traditional-view,
+        .matrix-view {
+            display: none;
+        }
+
+        .traditional-view.active,
+        .matrix-view.active {
+            display: block;
+        }
+{% endblock %}
+
+{% block content %}
+    {% if matrix_data and matrix_data.teams %}
+    <div class="stats-summary">
+        <h3>📊 Season Overview</h3>
+        <p>Teams: {{ matrix_data.teams|length }} | 
+           Division: {{ matrix_data.current_division }}
+        </p>
+    </div>
+
+    <!-- Division Filter -->
+    {% if matrix_data.divisions|length > 1 %}
+    <div class="filter-section">
+        <label for="division-filter">Filter by Division:</label>
+        <select id="division-filter" onchange="filterByDivision(this.value)">
+            <option value="">All Divisions</option>
+            {% for division in matrix_data.divisions %}
+                <option value="{{ division }}" 
+                        {% if division == matrix_data.current_division %}selected{% endif %}>
+                    {{ division }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
+
+    <!-- View Toggle -->
+    <div class="view-toggle">
+        <button id="matrix-btn" class="active" onclick="showMatrixView()">🔲 Matrix View</button>
+        <button id="list-btn" onclick="showListView()">📋 List View</button>
+    </div>
+
+    <!-- Matrix View -->
+    <div class="matrix-view active">
+        <div class="stats-section">
+            <h2>Fixtures Matrix</h2>
+            <div class="matrix-container">
+                <table class="matrix-table">
+                    <thead>
+                        <tr>
+                            <th class="team-header">Teams</th>
+                            {% for away_team in matrix_data.teams %}
+                                <th class="team-header">{{ away_team }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for home_team in matrix_data.teams %}
+                        <tr>
+                            <td class="team-name">{{ home_team }}</td>
+                            {% for away_team in matrix_data.teams %}
+                                {% set games = matrix_data.matrix[home_team][away_team] %}
+                                <td class="{% if home_team == away_team %}empty-cell{% endif %}">
+                                    {% if home_team != away_team and games %}
+                                        {% for game in games %}
+                                        <div class="game-info">
+                                            {% if game.is_finished %}
+                                                <div class="game-score">{{ game.home_score }} - {{ game.away_score }}</div>
+                                            {% else %}
+                                                <div class="game-score">vs</div>
+                                            {% endif %}
+                                            <div class="game-date">{{ game.date[:10] if game.date != 'TBD' else 'TBD' }}</div>
+                                            <div class="game-location">{{ game.location }}</div>
+                                            {% if game.top_scorer.name %}
+                                                <div class="game-top-scorer">{{ game.top_scorer.name }} ({{ game.top_scorer.points }}pts)</div>
+                                            {% endif %}
+                                        </div>
+                                        {% if not loop.last %}<hr style="margin: 4px 0; border: 0; border-top: 1px solid #eee;">{% endif %}
+                                        {% endfor %}
+                                    {% elif home_team == away_team %}
+                                        <!-- Empty cell for same team -->
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Traditional List View -->
+    <div class="traditional-view">
+        <div class="stats-section fixtures-table">
+            <h2>All Fixtures</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Game ID</th>
+                        <th>Date & Time</th>
+                        <th>Teams</th>
+                        <th>Score</th>
+                        <th>Top Scorer</th>
+                        <th>Division</th>
+                        <th>Location</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for index, row in fixtures.iterrows() %}
+                    <tr class="fixture-row">
+                        <td>{{ row['GameId'] }}</td>
+                        <td class="date-time">
+                            {% if row['DateTime'] %}
+                                {{ row['DateTime'][:16].replace('T', ' ') if 'T' in (row['DateTime'] or '') else row['DateTime'][:16] }}
+                            {% else %}
+                                TBD
+                            {% endif %}
+                        </td>
+                        <td class="teams">
+                            <span class="home-team">{{ row['HomeTeam'] }}</span>
+                            <span class="vs">vs</span>
+                            <span class="away-team">{{ row['AwayTeam'] }}</span>
+                        </td>
+                        <td>
+                            {% if row['IsFinished'] and row['HomeScore'] is not none and row['AwayScore'] is not none %}
+                                <span class="score-highlight">{{ row['HomeScore'] }} - {{ row['AwayScore'] }}</span>
+                            {% else %}
+                                <span class="unfinished">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if row['IsFinished'] and row['TopScorerName'] and row['TopScorerName'] != 'N/A' %}
+                                <div class="top-scorer">
+                                    {{ row['TopScorerName'] }}
+                                    {% if row['TopScorerPoints'] > 0 %}
+                                        ({{ row['TopScorerPoints'] }}pts)
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <span class="unfinished">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="division-badge">{{ row['Division'] }}</span>
+                        </td>
+                        <td class="location">{{ row['Location'] or 'TBD' }}</td>
+                        
+                        <!-- Hover tooltip for finished games -->
+                        {% if row['IsFinished'] %}
+                        <div class="tooltip">
+                            <div><strong>🏆 Final Score:</strong> {{ row['HomeTeam'] }} {{ row['HomeScore'] }} - {{ row['AwayScore'] }} {{ row['AwayTeam'] }}</div>
+                            {% if row['TopScorerName'] and row['TopScorerName'] != 'N/A' %}
+                            <div><strong>⭐ Top Scorer:</strong> {{ row['TopScorerName'] }} ({{ row['TopScorerPoints'] }}pts, {{ row['TopScorerTeam'] }})</div>
+                            {% endif %}
+                            {% if row['Referees'] and row['Referees']|length > 0 %}
+                            <div><strong>👨‍💼 Referees:</strong> 
+                                {% for ref in row['Referees'] %}
+                                    {{ ref }}{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <div><strong>📍 Venue:</strong> {{ row['Location'] }}</div>
+                            <div><strong>🏀 Division:</strong> {{ row['Division'] }}</div>
+                        </div>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% else %}
+        <div class="error">
+            No fixtures data available.
+        </div>
+    {% endif %}
+
+    <script>
+        function showMatrixView() {
+            document.querySelector('.matrix-view').classList.add('active');
+            document.querySelector('.traditional-view').classList.remove('active');
+            document.getElementById('matrix-btn').classList.add('active');
+            document.getElementById('list-btn').classList.remove('active');
+        }
+
+        function showListView() {
+            document.querySelector('.traditional-view').classList.add('active');
+            document.querySelector('.matrix-view').classList.remove('active');
+            document.getElementById('list-btn').classList.add('active');
+            document.getElementById('matrix-btn').classList.remove('active');
+        }
+
+        function filterByDivision(division) {
+            const params = new URLSearchParams(window.location.search);
+            if (division) {
+                params.set('division', division);
+            } else {
+                params.delete('division');
+            }
+            window.location.search = params.toString();
+        }
+    </script>
+{% endblock %}

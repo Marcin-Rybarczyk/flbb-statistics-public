@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Division Standings - FLBB Statistics{% endblock %}
+
+{% block page_title %}🏠 Division Standings{% endblock %}
+{% block page_description %}View team standings and results by division{% endblock %}
+
+{% block content %}
+
+        <form method="post">
+            <label for="division">Select a Division:</label>
+            <select name="division" onchange="this.form.submit()">
+                <option value="">-- Choose Division --</option>
+                {% for division in divisions %}
+                <option value="{{ division }}" {% if selected_division == division %}selected{% endif %}>{{ division }}</option>
+                {% endfor %}
+            </select>
+        </form>
+
+        {% if standings is not none %}
+        <div class="stats-section">
+            <h2>Standings for {{ selected_division }}</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Team Name</th>
+                        <th>Games</th>
+                        <th>Wins</th>
+                        <th>Losses</th>
+                        <th>Points For</th>
+                        <th>Points Against</th>
+                        <th>Points Diff</th>
+                        <th>League Points</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for index, row in standings.iterrows() %}
+                    <tr>
+                        <td>{{ index }}</td>
+                        <td>{{ row['Team Name'] }}</td>
+                        <td>{{ row['Games'] }}</td>
+                        <td>{{ row['W'] }}</td>
+                        <td>{{ row['L'] }}</td>
+                        <td>{{ row['F'] }}</td>
+                        <td>{{ row['A'] }}</td>
+                        <td>{{ row['Points Diff'] }}</td>
+                        <td>{{ row['Points'] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        {% if highest_games is not none and not highest_games.empty %}
+        <div class="stats-section">
+            <h2>Highest Scoring Games in {{ selected_division }}</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Game ID</th>
+                        <th>Home Team</th>
+                        <th>Away Team</th>
+                        <th>Home Score</th>
+                        <th>Away Score</th>
+                        <th>Total Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for index, row in highest_games.iterrows() %}
+                    <tr>
+                        <td>{{ row['GameId'] }}</td>
+                        <td>{{ row['HomeTeamName'] }}</td>
+                        <td>{{ row['AwayTeamName'] }}</td>
+                        <td>{{ row['FinalHomeScore'] }}</td>
+                        <td>{{ row['FinalAwayScore'] }}</td>
+                        <td><strong>{{ row['TotalScore'] }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        
+        {% if divisions|length == 0 %}
+        <div class="error">
+            <p>No data available. Please ensure the data files are properly loaded.</p>
+        </div>
+        {% endif %}
+{% endblock %}

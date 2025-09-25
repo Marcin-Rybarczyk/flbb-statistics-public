@@ -1,0 +1,29 @@
+# Railway.app Deployment Configuration
+# Railway.app offers free hosting with generous limits
+# 
+# Railway.app offers:
+# - $5/month free credits
+# - Automatic deployments from Git
+# - Built-in databases
+# - Environment variable management
+
+# This file can be used with Railway CLI or web interface
+
+# Build settings:
+[build]
+  builder = "nixpacks"
+
+# Start command:
+[start]
+  cmd = "gunicorn --bind 0.0.0.0:$PORT wsgi:application"
+
+# Environment variables (set in Railway dashboard):
+# PORT (Railway sets automatically)
+# SECRET_KEY=your-secret-key-here
+# FLASK_ENV=production
+
+# Deploy with Railway CLI:
+# 1. Install: npm install -g @railway/cli
+# 2. Login: railway login
+# 3. Create project: railway new
+# 4. Deploy: railway up
