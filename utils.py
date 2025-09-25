@@ -607,8 +607,10 @@ def get_highest_scoring_games(data, top_n=10):
     Returns:
     DataFrame: Games with highest scores
     """
-    data['TotalScore'] = data['FinalHomeScore'] + data['FinalAwayScore']
-    highest_games = data.nlargest(top_n, 'TotalScore')
+    # Create a copy to avoid modifying the original data
+    data_copy = data.copy()
+    data_copy['TotalScore'] = data_copy['FinalHomeScore'] + data_copy['FinalAwayScore']
+    highest_games = data_copy.nlargest(top_n, 'TotalScore')
     return highest_games[['GameId', 'HomeTeamName', 'AwayTeamName', 'FinalHomeScore', 'FinalAwayScore', 'TotalScore', 'GameDivisionDisplay']]
 
 def extract_referee_stats(data):
