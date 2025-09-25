@@ -210,8 +210,8 @@ def main():
     
     print_colored("🏀 FLBB Statistics - Flask Deployment Assistant", Colors.BOLD)
     
-    # Check requirements first
-    if not check_requirements():
+    # Check requirements first (skip for GitHub Pages as it handles missing data gracefully)
+    if args.platform != 'github' and not check_requirements():
         print_colored("\n❌ Requirements check failed. Please fix issues before deploying.", Colors.RED)
         return 1
     
@@ -225,6 +225,11 @@ def main():
         choice = input("\nSelect platform (1-4) or enter name: ").strip()
         platform_map = {'1': 'render', '2': 'railway', '3': 'github', '4': 'local'}
         args.platform = platform_map.get(choice, choice)
+        
+        # Re-check requirements if not GitHub Pages and not already checked
+        if args.platform != 'github' and not check_requirements():
+            print_colored("\n❌ Requirements check failed. Please fix issues before deploying.", Colors.RED)
+            return 1
     
     # Deploy to selected platform
     if args.platform == 'render':
