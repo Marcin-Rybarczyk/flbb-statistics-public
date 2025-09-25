@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comprehensive Statistics - FLBB Statistics</title>
+    <title>Division Standings - FLBB Statistics</title>
     <style>
         * {
             margin: 0;
@@ -275,8 +275,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📊 Comprehensive Statistics</h1>
-            <p>Detailed statistical analysis of games, players, and performance</p>
+            <h1>🏠 Division Standings</h1>
+            <p>View team standings and results by division</p>
         </div>
 
         <div class="navigation">
@@ -294,176 +294,132 @@
         <div class="content">
             
 
+        <form method="post">
+            <label for="division">Select a Division:</label>
+            <select name="division" onchange="this.form.submit()">
+                <option value="">-- Choose Division --</option>
+                
+                <option value="Division:1 - Hommes" >Division:1 - Hommes</option>
+                
+                <option value="Division:2 - Hommes" >Division:2 - Hommes</option>
+                
+                <option value="Division:Nationale - Dames" selected>Division:Nationale - Dames</option>
+                
+            </select>
+        </form>
+
+        
         <div class="stats-section">
-            <h2>Top 10 Highest Scoring Games</h2>
-            
+            <h2>Standings for Division:Nationale - Dames</h2>
             <table>
                 <thead>
                     <tr>
                         <th>Rank</th>
-                        <th>Game ID</th>
-                        <th>Home Team</th>
-                        <th>Away Team</th>
-                        <th>Score</th>
-                        <th>Total Points</th>
-                        <th>Division</th>
+                        <th>Team Name</th>
+                        <th>Games</th>
+                        <th>Wins</th>
+                        <th>Losses</th>
+                        <th>Points For</th>
+                        <th>Points Against</th>
+                        <th>Points Diff</th>
+                        <th>League Points</th>
                     </tr>
                 </thead>
                 <tbody>
                     
                     <tr>
                         <td>1</td>
-                        <td>G004</td>
-                        <td>Sharks Club</td>
-                        <td>Dolphins BC</td>
-                        <td>101 - 95</td>
-                        <td><strong>196</strong></td>
-                        <td>Division:1 - Hommes</td>
+                        <td>Cardinals FC</td>
+                        <td>1</td>
+                        <td>1</td>
+                        <td>0</td>
+                        <td>86</td>
+                        <td>79</td>
+                        <td>7</td>
+                        <td>2</td>
                     </tr>
                     
                     <tr>
                         <td>2</td>
-                        <td>G008</td>
                         <td>Sparrows United</td>
-                        <td>Robins BC</td>
-                        <td>94 - 91</td>
-                        <td><strong>185</strong></td>
-                        <td>Division:Nationale - Dames</td>
+                        <td>1</td>
+                        <td>1</td>
+                        <td>0</td>
+                        <td>94</td>
+                        <td>91</td>
+                        <td>3</td>
+                        <td>2</td>
                     </tr>
                     
                     <tr>
                         <td>3</td>
-                        <td>G002</td>
-                        <td>Panthers United</td>
-                        <td>Tigers FC</td>
-                        <td>92 - 89</td>
-                        <td><strong>181</strong></td>
-                        <td>Division:1 - Hommes</td>
+                        <td>Robins BC</td>
+                        <td>1</td>
+                        <td>0</td>
+                        <td>1</td>
+                        <td>91</td>
+                        <td>94</td>
+                        <td>-3</td>
+                        <td>1</td>
                     </tr>
                     
                     <tr>
                         <td>4</td>
-                        <td>G006</td>
-                        <td>Falcons BC</td>
-                        <td>Owls Athletic</td>
-                        <td>88 - 84</td>
-                        <td><strong>172</strong></td>
-                        <td>Division:2 - Hommes</td>
-                    </tr>
-                    
-                    <tr>
-                        <td>5</td>
-                        <td>G007</td>
                         <td>Ravens Club</td>
-                        <td>Cardinals FC</td>
-                        <td>79 - 86</td>
-                        <td><strong>165</strong></td>
-                        <td>Division:Nationale - Dames</td>
-                    </tr>
-                    
-                    <tr>
-                        <td>6</td>
-                        <td>G001</td>
-                        <td>Lions Basketball</td>
-                        <td>Eagles BC</td>
-                        <td>85 - 78</td>
-                        <td><strong>163</strong></td>
-                        <td>Division:1 - Hommes</td>
-                    </tr>
-                    
-                    <tr>
-                        <td>7</td>
-                        <td>G003</td>
-                        <td>Wolves Athletic</td>
-                        <td>Bears Basketball</td>
-                        <td>76 - 82</td>
-                        <td><strong>158</strong></td>
-                        <td>Division:1 - Hommes</td>
-                    </tr>
-                    
-                    <tr>
-                        <td>8</td>
-                        <td>G005</td>
-                        <td>Phoenix Team</td>
-                        <td>Hawks United</td>
-                        <td>67 - 73</td>
-                        <td><strong>140</strong></td>
-                        <td>Division:2 - Hommes</td>
+                        <td>1</td>
+                        <td>0</td>
+                        <td>1</td>
+                        <td>79</td>
+                        <td>86</td>
+                        <td>-7</td>
+                        <td>1</td>
                     </tr>
                     
                 </tbody>
             </table>
-            
         </div>
-
-        <div class="stats-section">
-            <h2>Available Divisions</h2>
-            <ul>
-                
-                <li><a href="/?division=Division:1 - Hommes">Division:1 - Hommes</a></li>
-                
-                <li><a href="/?division=Division:2 - Hommes">Division:2 - Hommes</a></li>
-                
-                <li><a href="/?division=Division:Nationale - Dames">Division:Nationale - Dames</a></li>
-                
-            </ul>
-        </div>
-
         
 
+        
         <div class="stats-section">
-            <h2>Player Statistics</h2>
-            
-            <!-- Top 20 Scorers -->
-            <h3>Top 20 Scorers</h3>
-            
-            <p><em>No player scoring data available.</em></p>
-            
-
-            <!-- Highest Single Game Score -->
-            <h3>Highest Single Game Score</h3>
-            
-
-            <!-- Top 10 Three-Pointers -->
-            <h3>Top 10 Three-Point Shooters</h3>
-            
-
-            <!-- Top Foulers -->
-            <h3>Top 10 Foulers</h3>
-            
+            <h2>Highest Scoring Games in Division:Nationale - Dames</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Game ID</th>
+                        <th>Home Team</th>
+                        <th>Away Team</th>
+                        <th>Home Score</th>
+                        <th>Away Score</th>
+                        <th>Total Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td>G008</td>
+                        <td>Sparrows United</td>
+                        <td>Robins BC</td>
+                        <td>94</td>
+                        <td>91</td>
+                        <td><strong>185</strong></td>
+                    </tr>
+                    
+                    <tr>
+                        <td>G007</td>
+                        <td>Ravens Club</td>
+                        <td>Cardinals FC</td>
+                        <td>79</td>
+                        <td>86</td>
+                        <td><strong>165</strong></td>
+                    </tr>
+                    
+                </tbody>
+            </table>
         </div>
-
-        <div class="stats-section">
-            <h2>Referee Statistics</h2>
-            
-            <!-- Fouls Called Per Game -->
-            <h3>Referees by Fouls Called Per Game</h3>
-            
-
-            <!-- Least Fouls Per Game -->
-            <h3>Referees with Least Fouls Per Game (Min 2 Games)</h3>
-            
-        </div>
-
-        <div class="stats-section">
-            <h2>Game Statistics</h2>
-            
-            <!-- Most Tie Scores -->
-            <h3>Games with Most Tie Scores</h3>
-            
-
-            <!-- Most Lead Changes -->
-            <h3>Games with Most Lead Changes</h3>
-            
-
-            <!-- Biggest Leads -->
-            <h3>Games with Biggest Leads</h3>
-            
-
-            <!-- Biggest Wins -->
-            <h3>Biggest Win Margins</h3>
-            
-        </div>
+        
+        
+        
 
         </div>
     </div>
