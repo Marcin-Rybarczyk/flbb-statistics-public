@@ -1,0 +1,48 @@
+name: List Google Drive Files
+
+on:
+  workflow_dispatch:
+    inputs:
+      folder_id:
+        description: 'Google Drive folder ID (optional, uses secret if not provided)'
+        required: false
+      name_pattern:
+        description: 'File name pattern to filter by (optional)'
+        required: false
+
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: List files in Google Drive
+      run: |
+        FOLDER_ID="${{ github.event.inputs.folder_id || secrets.GOOGLE_DRIVE_FOLDER_ID }}"
+        PATTERN="${{ github.event.inputs.name_pattern }}"
+        
+        echo "Listing files in folder ID: $FOLDER_ID"
+        if [ -n "$PATTERN" ]; then
+          echo "Filtering by pattern: $PATTERN"
+          python3 google_drive_helper.py list \
+            --folder-id "$FOLDER_ID" \
+            --pattern "$PATTERN"
+        else
+          python3 google_drive_helper.py list \
+            --folder-id "$FOLDER_ID"
+        fi
+      env:
+        GOOGLE_DRIVE_CREDENTIALS: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}
+        GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
