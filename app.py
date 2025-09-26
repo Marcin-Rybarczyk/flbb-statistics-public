@@ -178,20 +178,29 @@ def player_stats():
 def deeper_analysis():
     """Deep game analysis page with advanced metrics"""
     if data.empty:
-        return render_template('deeper_analysis.html', error="No data available")
+        return render_template('deeper_analysis.html', error="No data available", divisions=divisions)
     
-    # Get comprehensive deeper analysis
-    player_impact = get_player_game_impact_analysis(data, 20)
-    foul_impact = get_player_foul_impact_analysis(data, 15) 
-    player_combinations = get_best_player_combinations(data, 3)
-    referee_impact = get_referee_game_impact_analysis(data)
+    # Get division filter from query parameters
+    division_filter = request.args.get('division')
+    
+    # Apply division filter if provided
+    filtered_data = data.copy()
+    if division_filter:
+        filtered_data = filtered_data[filtered_data['GameDivisionDisplay'] == division_filter]
+    
+    # Get comprehensive deeper analysis with filtered data
+    player_impact = get_player_game_impact_analysis(filtered_data, 20)
+    foul_impact = get_player_foul_impact_analysis(filtered_data, 15) 
+    player_combinations = get_best_player_combinations(filtered_data, 3)
+    referee_impact = get_referee_game_impact_analysis(filtered_data)
     
     return render_template('deeper_analysis.html',
                          player_impact=player_impact,
                          foul_impact=foul_impact,
                          player_combinations=player_combinations,
                          referee_impact=referee_impact,
-                         divisions=divisions)
+                         divisions=divisions,
+                         selected_division=division_filter)
 
 @app.route('/fixtures')
 def fixtures():
