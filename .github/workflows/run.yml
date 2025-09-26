@@ -1,31 +1,118 @@
-name: Extract Game Data
+name: Generate CSV and Upload to Google Drive
 
 on:
-  # schedule:
-  #   - cron: "0 0 * * *"
-
-  # Triggers the workflow on push or pull request events but only for the "main" branch
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  # Schedule to run daily at midnight UTC
+  schedule:
+    - cron: "0 0 * * *"
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 jobs:
-  extract_data:
+  generate_csv:
     runs-on: windows-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Run multiple-downloads
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
         run: |
-          echo pwsh -File download-controller.ps1
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
+      - name: Create service account credentials file
+        run: |
+          echo '${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}' > flbb-statistics-e9ab0e2a8b4c.json
+        env:
+          GOOGLE_DRIVE_CREDENTIALS: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}
 
-      # - name: Run extract-game.ps1
-      #   run: |
-      #     pwsh -File extract-game.ps1
+      - name: Run download-controller.ps1
+        id: download
+        run: |
+          try {
+            Write-Host "Starting download-controller.ps1..."
+            pwsh -File download-controller.ps1
+            Write-Host "download-controller.ps1 completed successfully"
+            echo "download_success=true" >> $env:GITHUB_OUTPUT
+          } catch {
+            Write-Warning "download-controller.ps1 failed: $($_.Exception.Message)"
+            echo "download_success=false" >> $env:GITHUB_OUTPUT
+          }
+        shell: pwsh
+        continue-on-error: true
+
+      - name: Run extract-game.ps1
+        id: extract
+        run: |
+          try {
+            Write-Host "Starting extract-game.ps1..."
+            pwsh -File extract-game.ps1
+            Write-Host "extract-game.ps1 completed successfully" 
+            echo "extract_success=true" >> $env:GITHUB_OUTPUT
+          } catch {
+            Write-Warning "extract-game.ps1 failed: $($_.Exception.Message)"
+            echo "extract_success=false" >> $env:GITHUB_OUTPUT
+          }
+        shell: pwsh
+        continue-on-error: true
+
+      - name: Generate CSV manually if needed
+        if: steps.download.outputs.download_success == 'false' || steps.extract.outputs.extract_success == 'false'
+        run: |
+          Write-Host "PowerShell scripts failed, attempting manual CSV generation..."
+          python post_process.py --skip-upload
+        shell: pwsh
+        continue-on-error: true
+
+      - name: Upload CSV to Google Drive
+        if: success() || failure()
+        run: |
+          if (Test-Path "full-game-stats.csv") {
+            Write-Host "CSV file found, uploading to Google Drive..."
+            python google_drive_helper.py upload --file "full-game-stats.csv" --folder-id "${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}"
+          } else {
+            Write-Host "CSV file not found, skipping upload"
+          }
+        shell: pwsh
+        env:
+          GOOGLE_DRIVE_CREDENTIALS: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}
+          GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+
+      - name: Upload archive to Google Drive
+        if: success() || failure()
+        run: |
+          $zipFile = Get-ChildItem -Path . -Filter "*.zip" | Select-Object -First 1
+          if ($zipFile) {
+            Write-Host "Archive file found: $($zipFile.Name), uploading to Google Drive..."
+            python google_drive_helper.py upload --file "$($zipFile.Name)" --folder-id "${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}"
+          } else {
+            Write-Host "Archive file not found, skipping upload"
+          }
+        shell: pwsh
+        env:
+          GOOGLE_DRIVE_CREDENTIALS: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}
+          GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+
+      - name: Clean up credentials
+        if: always()
+        run: |
+          if (Test-Path "flbb-statistics-e9ab0e2a8b4c.json") {
+            Remove-Item "flbb-statistics-e9ab0e2a8b4c.json"
+          }
+        shell: pwsh
+
+      - name: Upload artifacts
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-files
+          path: |
+            full-game-stats.csv
+            *.zip
+          retention-days: 30
