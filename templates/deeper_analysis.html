@@ -108,6 +108,40 @@
             color: #f39c12;
         }
 
+        .filter-section {
+            margin-bottom: 20px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-section select {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            background: white;
+            font-size: 14px;
+            margin: 0 10px;
+        }
+
+        .filter-section label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-right: 8px;
+        }
+
+        .division-info {
+            margin-bottom: 20px;
+            text-align: center;
+            background: rgba(102, 126, 234, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
         @media (max-width: 768px) {
             .metric-cards {
                 flex-direction: column;
@@ -125,6 +159,33 @@
 {% endblock %}
 
 {% block content %}
+        <!-- Division Filter -->
+        {% if divisions|length > 1 %}
+        <div class="filter-section">
+            <label for="division-filter">Filter by Division:</label>
+            <select id="division-filter" onchange="filterByDivision(this.value)">
+                <option value="">All Divisions</option>
+                {% for division in divisions %}
+                    <option value="{{ division }}" 
+                            {% if division == selected_division %}selected{% endif %}>
+                        {{ division }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
+        <!-- Division Info -->
+        {% if selected_division %}
+        <div class="division-info">
+            📊 Showing analysis for: <strong>{{ selected_division }}</strong>
+        </div>
+        {% else %}
+        <div class="division-info">
+            📊 Showing analysis for: <strong>All Divisions</strong>
+        </div>
+        {% endif %}
+
         <!-- Tabbed Interface -->
         <div class="tabs">
             <div class="tab active" onclick="showTab('player-impact')">🌟 Player Impact</div>
@@ -332,6 +393,16 @@
 
             // Add active class to clicked tab
             event.target.classList.add('active');
+        }
+
+        function filterByDivision(division) {
+            const params = new URLSearchParams(window.location.search);
+            if (division) {
+                params.set('division', division);
+            } else {
+                params.delete('division');
+            }
+            window.location.search = params.toString();
         }
     </script>
 {% endblock %}
