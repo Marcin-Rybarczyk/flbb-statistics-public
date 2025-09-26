@@ -1005,7 +1005,12 @@ def get_player_game_impact_analysis(data, top_n=20):
     player_stats = extract_all_player_stats(data)
     
     if player_stats.empty:
-        return pd.DataFrame()
+        # Return empty DataFrame with expected column structure
+        return pd.DataFrame(columns=[
+            'PlayerName', 'Team', 'GamesPlayed', 'WinRate', 'AvgPoints', 
+            'AvgFouls', 'Efficiency', 'PointDifferential', 'StartingRate', 
+            'ImpactScore', 'TotalPoints', 'Wins', 'Losses'
+        ])
     
     # Create game outcome mapping
     game_outcomes = {}
@@ -1117,7 +1122,12 @@ def get_player_foul_impact_analysis(data, top_n=20):
     player_stats = extract_all_player_stats(data)
     
     if player_stats.empty:
-        return pd.DataFrame()
+        # Return empty DataFrame with expected column structure
+        return pd.DataFrame(columns=[
+            'PlayerName', 'Team', 'GamesPlayed', 'TotalFouls', 'PersonalAvgFouls',
+            'TeamFoulsWithPlayer', 'TeamFoulsWithoutPlayer', 'FoulDifference', 
+            'FoulImpactPercentage', 'GamesWithPlayer', 'GamesWithoutPlayer', 'AbsImpact'
+        ])
     
     # Calculate team foul rates for each game
     team_game_fouls = {}
