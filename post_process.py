@@ -19,6 +19,38 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 
+# Check for required dependencies first
+def check_dependencies():
+    """Check if all required Python packages are installed."""
+    missing_packages = []
+    
+    try:
+        import pandas
+    except ImportError:
+        missing_packages.append('pandas')
+    
+    try:
+        from googleapiclient.discovery import build
+    except ImportError:
+        missing_packages.append('google-api-python-client')
+    
+    if missing_packages:
+        print("ERROR: Missing required Python packages:")
+        for package in missing_packages:
+            print(f"  - {package}")
+        print("\nTo fix this issue, run:")
+        print("  pip install -r requirements.txt")
+        print("\nOr install individual packages:")
+        for package in missing_packages:
+            print(f"  pip install {package}")
+        return False
+    
+    return True
+
+# Check dependencies before importing other modules
+if not check_dependencies():
+    sys.exit(1)
+
 # Import our utilities
 from utils import create_csv_from_json_data
 from google_drive_helper import upload_file_to_drive

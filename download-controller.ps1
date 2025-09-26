@@ -273,7 +273,51 @@ function Invoke-GoogleDriveUpload($filepath, $folderId) {
     return $null
 }
 
+function Test-PythonDependencies() {
+    Write-Host "Checking Python environment..."
+    
+    # Test if Python is available
+    try {
+        $pythonVersion = python --version 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "Python is not installed or not in PATH"
+            return $false
+        }
+        Write-Host "Found Python: $pythonVersion"
+    }
+    catch {
+        Write-Warning "Python is not installed or not in PATH"
+        return $false
+    }
+    
+    # Test if required packages are installed
+    try {
+        $testResult = python -c "import pandas; import googleapiclient.discovery; print('Dependencies OK')" 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Python dependencies are installed correctly"
+            return $true
+        } else {
+            Write-Warning "Python dependencies are missing"
+            Write-Host "Error output: $testResult"
+            Write-Host ""
+            Write-Host "SOLUTION: Install Python dependencies by running:" -ForegroundColor Yellow
+            Write-Host "  pip install -r requirements.txt" -ForegroundColor Cyan
+            Write-Host ""
+            return $false
+        }
+    }
+    catch {
+        Write-Warning "Error checking Python dependencies: $($_.Exception.Message)"
+        return $false
+    }
+}
+
 function Main($appConfig) {
+    # Check Python dependencies early
+    if (-not (Test-PythonDependencies)) {
+        Write-Warning "Python dependencies are not properly configured. Post-processing will fall back to PowerShell-only mode."
+        Write-Host ""
+    }
     if (-not (Test-Path $appConfig.GamesDbFilepath) -or $appConfig.ForceDownloadFullGameStats) {
         $gameSchedules = Get-GameSchedules -appConfig $appConfig
 
@@ -312,6 +356,17 @@ function Main($appConfig) {
         } else {
             Write-Warning "Post-processing completed with errors (exit code: $LASTEXITCODE)"
             Write-Host $pythonResult
+            
+            # Check if this is a dependency issue
+            if ($pythonResult -match "Missing required Python packages" -or $pythonResult -match "ModuleNotFoundError") {
+                Write-Host ""
+                Write-Host "SOLUTION: This appears to be a Python dependency issue." -ForegroundColor Yellow
+                Write-Host "To fix this, run the following command:" -ForegroundColor Yellow
+                Write-Host "  pip install -r requirements.txt" -ForegroundColor Cyan
+                Write-Host ""
+            }
+            
+            Write-Host "Falling back to PowerShell archive creation..."
         }
     }
     catch {

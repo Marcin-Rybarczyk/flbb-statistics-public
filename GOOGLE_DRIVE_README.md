@@ -131,10 +131,42 @@ The service account needs the following permissions:
 ## Dependencies
 
 Added to `requirements.txt`:
+- `pandas` (for CSV data processing)
 - `google-api-python-client`
 - `google-auth`
 - `google-auth-oauthlib`
 - `google-auth-httplib2`
+
+## Troubleshooting
+
+### Python Dependency Issues
+
+If you see errors like:
+```
+ModuleNotFoundError: No module named 'pandas'
+```
+or
+```
+WARNING: Post-processing completed with errors (exit code: 1)
+```
+
+**Solution**: Install the required Python packages:
+```bash
+pip install -r requirements.txt
+```
+
+The scripts now automatically detect missing dependencies and provide clear error messages with installation instructions.
+
+### Common Issues
+
+1. **Python not found**: Ensure Python 3.x is installed and available in your PATH
+2. **Permission errors**: Run `pip install --user -r requirements.txt` if you get permission errors
+3. **Network issues**: If pip install fails due to network timeouts, try:
+   ```bash
+   pip install --timeout 300 -r requirements.txt
+   ```
+
+The PowerShell script (`download-controller.ps1`) now includes early dependency checking and will warn you about missing packages before attempting to run the Python post-processing script.
 
 ## Archive Naming
 
