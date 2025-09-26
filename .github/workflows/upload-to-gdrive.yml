@@ -1,20 +1,65 @@
-name: Upload CSV to Google Drive
+name: Download from Google Drive
 
 on:
-  push:
-    paths:
-      - '**.csv11' # Trigger the action on CSV file changes
+  workflow_dispatch:
+    inputs:
+      file_id:
+        description: 'Google Drive file ID to download'
+        required: true
+      output_path:
+        description: 'Output directory (optional, defaults to repository root)'
+        required: false
+        default: '.'
+      output_name:
+        description: 'Name for downloaded file (optional, uses original name if not provided)'
+        required: false
 
 jobs:
-  upload:
+  download:
     runs-on: ubuntu-latest
+    
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
-    - name: Upload to Google Drive
-      uses: google-github-actions/upload-cloud-storage@v0.5.0
+    - name: Set up Python
+      uses: actions/setup-python@v4
       with:
-        path: file.csv
-        destination: /
-        credentials: ${{ secrets.GDRIVE_CREDENTIALS }}
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Download file from Google Drive
+      run: |
+        FILE_ID="${{ github.event.inputs.file_id }}"
+        OUTPUT_PATH="${{ github.event.inputs.output_path || '.' }}"
+        OUTPUT_NAME="${{ github.event.inputs.output_name }}"
+        
+        echo "Downloading file ID: $FILE_ID"
+        echo "Output directory: $OUTPUT_PATH"
+        
+        # Create output directory if it doesn't exist
+        mkdir -p "$OUTPUT_PATH"
+        
+        if [ -n "$OUTPUT_NAME" ]; then
+          python3 google_drive_helper.py download \
+            --file-id "$FILE_ID" \
+            --output-path "$OUTPUT_PATH" \
+            --output-name "$OUTPUT_NAME"
+        else
+          python3 google_drive_helper.py download \
+            --file-id "$FILE_ID" \
+            --output-path "$OUTPUT_PATH"
+        fi
+      env:
+        GOOGLE_DRIVE_CREDENTIALS: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}
+
+    - name: Upload downloaded files as artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: downloaded-files
+        path: ${{ github.event.inputs.output_path || '.' }}/*
+        retention-days: 30

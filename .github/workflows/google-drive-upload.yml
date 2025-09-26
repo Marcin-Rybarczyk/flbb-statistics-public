@@ -1,27 +1,71 @@
 name: Upload to Google Drive
 
 on:
+  workflow_dispatch:
+    inputs:
+      file_path:
+        description: 'Path to file to upload'
+        required: true
+        default: 'full-game-stats.csv'
+      folder_id:
+        description: 'Google Drive folder ID (optional, uses secret if not provided)'
+        required: false
+      file_name:
+        description: 'Custom name for the uploaded file (optional)'
+        required: false
   push:
     paths:
-      - 'file.csv' # Adjust the file name you want to upload
+      - 'full-game-stats.csv'
+      - '*.zip'
 
 jobs:
   upload:
     runs-on: ubuntu-latest
-
+    
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
-    - name: Upload to Google Drive
-      env:
-        API_KEY: ${{ secrets.GOOGLE_DRIVE_API_KEY }}
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
       run: |
-        # Install gdrive (if not already installed)
-        wget -O gdrive https://github.com/glotlabs/gdrive/releases/tag/3.9.0/gdrive-linux-x64
-        chmod +x gdrive
-        sudo install gdrive /usr/local/bin/gdrive
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-        # Upload the file to Google Drive using gdrive
-        FILE_TO_UPLOAD="file.csv" # Adjust the file name
-        ./upload-to-drive.sh "${FILE_TO_UPLOAD}" "${API_KEY}"
+    - name: Create service account credentials file
+      run: |
+        echo '${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}' > service-account.json
+      env:
+        GOOGLE_DRIVE_CREDENTIALS: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}
+
+    - name: Upload file to Google Drive
+      run: |
+        FILE_PATH="${{ github.event.inputs.file_path || 'full-game-stats.csv' }}"
+        FOLDER_ID="${{ github.event.inputs.folder_id || secrets.GOOGLE_DRIVE_FOLDER_ID }}"
+        FILE_NAME="${{ github.event.inputs.file_name }}"
+        
+        echo "Uploading file: $FILE_PATH"
+        echo "Target folder ID: $FOLDER_ID"
+        
+        if [ -n "$FILE_NAME" ]; then
+          python3 google_drive_helper.py upload \
+            --file "$FILE_PATH" \
+            --folder-id "$FOLDER_ID" \
+            --file-name "$FILE_NAME"
+        else
+          python3 google_drive_helper.py upload \
+            --file "$FILE_PATH" \
+            --folder-id "$FOLDER_ID"
+        fi
+      env:
+        GOOGLE_DRIVE_CREDENTIALS: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}
+        GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+
+    - name: Clean up credentials
+      if: always()
+      run: |
+        rm -f service-account.json
