@@ -224,6 +224,7 @@ def main():
     parser.add_argument('action', choices=['upload', 'download', 'create-folder', 'list'], 
                        help='Action to perform')
     parser.add_argument('--file', '-f', help='File to upload')
+    parser.add_argument('--file-name', help='Custom name for uploaded file')
     parser.add_argument('--file-id', help='File ID for download')
     parser.add_argument('--output-path', '-o', help='Output directory for downloads')
     parser.add_argument('--output-name', help='Name for downloaded file')
@@ -242,7 +243,7 @@ def main():
             # Use environment variable for folder ID if not provided
             folder_id = args.folder_id or os.getenv('GOOGLE_DRIVE_FOLDER_ID')
             
-            file_id = upload_file_to_drive(args.file, folder_id)
+            file_id = upload_file_to_drive(args.file, folder_id, args.file_name)
             print(f"Upload completed. File ID: {file_id}")
         
         elif args.action == 'download':

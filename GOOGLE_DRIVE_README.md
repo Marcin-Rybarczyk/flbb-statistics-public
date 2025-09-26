@@ -2,6 +2,10 @@
 
 This document describes the Google Drive integration added to store raw information and generated CSV files in Google Drive.
 
+> **📖 For GitHub Actions and Secrets Setup**: See the detailed guides in the `doc/` directory:
+> - [`doc/GOOGLE_DRIVE_SECRETS_SETUP.md`](doc/GOOGLE_DRIVE_SECRETS_SETUP.md) - Complete setup guide for Google Cloud and GitHub Secrets
+> - [`doc/GITHUB_ACTIONS_USAGE.md`](doc/GITHUB_ACTIONS_USAGE.md) - How to use the GitHub Actions workflows
+
 ## Overview
 
 The system now automatically:
@@ -81,12 +85,26 @@ Direct Google Drive operations:
 # Upload a file
 python google_drive_helper.py upload --file myfile.zip --folder-id YOUR_FOLDER_ID
 
+# Upload with custom name
+python google_drive_helper.py upload --file data.csv --file-name backup-2024-01-15.csv
+
+# Download a file by ID
+python google_drive_helper.py download --file-id FILE_ID --output-path ./downloads
+
 # List files in a folder
 python google_drive_helper.py list --folder-id YOUR_FOLDER_ID
+
+# List files with name pattern
+python google_drive_helper.py list --folder-id YOUR_FOLDER_ID --pattern ".csv"
 
 # Create a folder
 python google_drive_helper.py create-folder --folder-name "Season 2024-25"
 ```
+
+**Environment Variables Support:**
+The helper now supports environment variables for CI/CD usage:
+- `GOOGLE_DRIVE_CREDENTIALS`: JSON service account credentials
+- `GOOGLE_DRIVE_FOLDER_ID`: Default folder ID for operations
 
 ## Files Included in Archive
 

@@ -55,7 +55,7 @@ jobs:
           python3 google_drive_helper.py upload \
             --file "$FILE_PATH" \
             --folder-id "$FOLDER_ID" \
-            --output-name "$FILE_NAME"
+            --file-name "$FILE_NAME"
         else
           python3 google_drive_helper.py upload \
             --file "$FILE_PATH" \
