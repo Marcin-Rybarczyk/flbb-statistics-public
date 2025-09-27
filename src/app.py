@@ -1,4 +1,5 @@
 import os
+import re
 from flask import Flask, render_template, request
 import pandas as pd
 from .utils import (calculate_standings_by_division, get_highest_scoring_games, 
@@ -12,7 +13,48 @@ from .utils import (calculate_standings_by_division, get_highest_scoring_games,
                    get_best_player_combinations, get_referee_game_impact_analysis, get_all_fixtures_data,
                    get_fixtures_matrix_data)
 
-app = Flask(__name__, template_folder='../templates')
+app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
+
+# Logo utility functions
+def normalize_team_name(team_name):
+    """Normalize team name for file naming"""
+    if not team_name:
+        return ""
+    normalized = re.sub(r'[^a-zA-Z0-9\s]', '', str(team_name))
+    normalized = normalized.lower().replace(' ', '-')
+    return normalized
+
+def get_team_logo_url(team_name):
+    """Get the logo URL for a given team name for use in templates"""
+    if not team_name:
+        return None
+        
+    normalized_name = normalize_team_name(team_name)
+    logos_dir = "logos"
+    
+    # Check for PNG files (our standard format)
+    png_file = f"{normalized_name}.png"
+    png_path = os.path.join(logos_dir, png_file)
+    if os.path.exists(png_path):
+        return f"/logos/{png_file}"
+    
+    # Check for other formats
+    for ext in ['.jpg', '.jpeg', '.gif', '.svg']:
+        logo_file = f"{normalized_name}{ext}"
+        logo_path = os.path.join(logos_dir, logo_file)
+        if os.path.exists(logo_path):
+            return f"/logos/{logo_file}"
+    
+    # Special case for Racing teams - check RAC.jpg
+    if 'racing' in normalized_name.lower():
+        rac_path = os.path.join(logos_dir, "RAC.jpg")
+        if os.path.exists(rac_path):
+            return "/logos/RAC.jpg"
+    
+    return None
+
+# Make logo function available to templates
+app.jinja_env.globals.update(get_team_logo_url=get_team_logo_url)
 
 # Load and process the data
 data = load_game_data()

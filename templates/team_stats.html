@@ -24,7 +24,13 @@
         {% if selected_team and team_specific_stats %}
         <!-- Selected Team Detailed Analysis -->
         <div class="stats-section">
-            <h2>{{ selected_team }} - Detailed Team Analysis</h2>
+            <h2>
+                {% set team_logo_url = get_team_logo_url(selected_team) %}
+                {% if team_logo_url %}
+                    <img src="{{ team_logo_url }}" alt="{{ selected_team }} logo" class="team-logo-large" style="width: 48px; height: 48px; object-fit: contain; vertical-align: middle; margin-right: 12px;">
+                {% endif %}
+                {{ selected_team }} - Detailed Team Analysis
+            </h2>
             
             <div class="stat-summary">
                 <div class="stat-card">
@@ -67,7 +73,13 @@
                         <td>{{ row['GameId'] }}</td>
                         <td>{{ row['DateTime'][:10] if row['DateTime'] else 'N/A' }}</td>
                         <td>{{ 'Home' if row['IsHome'] else 'Away' }}</td>
-                        <td>{{ row['Opponent'] }}</td>
+                        <td>
+                            {% set opponent_logo_url = get_team_logo_url(row['Opponent']) %}
+                            {% if opponent_logo_url %}
+                                <img src="{{ opponent_logo_url }}" alt="{{ row['Opponent'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                            {% endif %}
+                            {{ row['Opponent'] }}
+                        </td>
                         <td><strong>{{ row['TeamScore'] }} - {{ row['OpponentScore'] }}</strong></td>
                         <td><strong>{{ row['Result'] }}</strong></td>
                         <td>{{ '+' if row['Margin'] > 0 else '' }}{{ row['Margin'] }}</td>
