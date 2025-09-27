@@ -59,16 +59,39 @@ This is a data analytics and visualization platform that:
 - Keep functions focused and modular
 
 ### Data Handling
-- Primary data source is `full-game-stats.csv` 
-- All statistics calculations are in `utils.py`
+- Primary data source is `full-game-stats.csv` (loaded via `load_game_data()`)
+- JSON data processed from `full-game-stats-output/` directory if available
+- CSV regeneration controlled by `FORCE_TO_CREATE_CSV` constant in `utils.py`
+- Data loaded with UTF-8 BOM handling for international characters
+- All statistics calculations are in `utils.py` with descriptive function names
+- Key data columns: HomeTeamName, AwayTeamName, GameDivisionDisplay, FinalHomeScore, FinalAwayScore
 - Use pandas DataFrames for data manipulation
-- Handle missing data gracefully with appropriate defaults
+- Handle missing data gracefully with appropriate defaults and empty DataFrame fallback
 
-### Flask Application
-- Routes are organized by functionality in `app.py`
-- Use Jinja2 templates in `templates/` directory
+### Flask Application Routes
+The Flask application has the following main routes in `app.py`:
+- `/` (GET/POST) - Home page with division standings and filtering
+- `/statistics` (GET) - Comprehensive statistics overview page
+- `/team-stats` (GET/POST) - Team performance analysis with filtering 
+- `/player-stats` (GET) - Individual player statistics and rankings
+- `/deeper-analysis` (GET) - Advanced analytics and insights
+- `/fixtures` (GET) - Game fixtures and schedule information
+- `/admin` (GET) - Administrative tools and data management
+
+Templates are organized in `templates/` directory:
+- `base.html` - Base template with common layout
+- `index.html` - Home page template
+- `statistics.html` - Main statistics overview
+- `team_stats.html` - Team analysis page
+- `player_stats.html` - Player statistics page
+- `deeper_analysis.html` - Advanced analytics page
+- `fixtures.html` - Fixtures display page
+- `admin.html` - Administrative interface
+
+- Use Jinja2 templates with the established base template pattern
 - Static assets should go in `static/` (if created)
 - Error handling should provide user-friendly messages
+- Follow existing template structure for consistency
 
 ### Testing
 - Use `test_local_flask.py` for local testing and validation
