@@ -302,14 +302,26 @@
                         <tr>
                             <th class="team-header">Teams</th>
                             {% for away_team in matrix_data.teams %}
-                                <th class="team-header">{{ away_team }}</th>
+                                <th class="team-header">
+                                    {% set away_logo_url = get_team_logo_url(away_team) %}
+                                    {% if away_logo_url %}
+                                        <img src="{{ away_logo_url }}" alt="{{ away_team }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin-right: 2px;">
+                                    {% endif %}
+                                    {{ away_team }}
+                                </th>
                             {% endfor %}
                         </tr>
                     </thead>
                     <tbody>
                         {% for home_team in matrix_data.teams %}
                         <tr>
-                            <td class="team-name">{{ home_team }}</td>
+                            <td class="team-name">
+                                {% set home_logo_url = get_team_logo_url(home_team) %}
+                                {% if home_logo_url %}
+                                    <img src="{{ home_logo_url }}" alt="{{ home_team }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin-right: 4px;">
+                                {% endif %}
+                                {{ home_team }}
+                            </td>
                             {% for away_team in matrix_data.teams %}
                                 {% set games = matrix_data.matrix[home_team][away_team] %}
                                 <td class="{% if home_team == away_team %}empty-cell{% endif %}">
@@ -370,9 +382,21 @@
                             {% endif %}
                         </td>
                         <td class="teams">
-                            <span class="home-team">{{ row['HomeTeam'] }}</span>
+                            <span class="home-team">
+                                {% set home_logo_url = get_team_logo_url(row['HomeTeam']) %}
+                                {% if home_logo_url %}
+                                    <img src="{{ home_logo_url }}" alt="{{ row['HomeTeam'] }} logo" class="team-logo" style="width: 18px; height: 18px; object-fit: contain; vertical-align: middle; margin-right: 4px;">
+                                {% endif %}
+                                {{ row['HomeTeam'] }}
+                            </span>
                             <span class="vs">vs</span>
-                            <span class="away-team">{{ row['AwayTeam'] }}</span>
+                            <span class="away-team">
+                                {% set away_logo_url = get_team_logo_url(row['AwayTeam']) %}
+                                {% if away_logo_url %}
+                                    <img src="{{ away_logo_url }}" alt="{{ row['AwayTeam'] }} logo" class="team-logo" style="width: 18px; height: 18px; object-fit: contain; vertical-align: middle; margin-right: 4px;">
+                                {% endif %}
+                                {{ row['AwayTeam'] }}
+                            </span>
                         </td>
                         <td>
                             {% if row['IsFinished'] and row['HomeScore'] is not none and row['AwayScore'] is not none %}
