@@ -1,3 +1,4 @@
+
 # Copilot Instructions for FLBB Statistics
 
 This repository contains a Flask web application that analyzes and visualizes basketball statistics from the Luxembourg Basketball Federation (FLBB).
