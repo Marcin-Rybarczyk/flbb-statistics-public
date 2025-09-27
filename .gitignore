@@ -35,3 +35,6 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Logo placeholders  
+logos/*_placeholder.txt

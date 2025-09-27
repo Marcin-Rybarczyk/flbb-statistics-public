@@ -4,6 +4,41 @@ Team Logo Downloader for FLBB Statistics
 
 This script downloads team logos from the Luxembourg Basketball Federation (FLBB) website
 and stores them in the logos directory for use in the web application.
+
+Enhanced Features:
+- Supports FLBB theme directory pattern: /layout/themes/flbb/images/Logos/{CODE}.jpg
+- Intelligent team code generation for better logo matching
+- Multiple URL pattern strategies for comprehensive coverage
+- Force re-download option for updating existing logos
+- Verbose debugging mode with detailed URL attempt logging
+
+URL Patterns Supported:
+1. FLBB Theme Directory (from issue request):
+   - /layout/themes/flbb/images/Logos/{TEAM_CODE}.jpg
+   - /layout/themes/flbb/images/logos/{TEAM_CODE}.png
+   
+2. Standard Asset Directories:
+   - /assets/logos/{normalized_name}.png
+   - /images/logos/{normalized_name}.jpg
+   - /logos/{normalized_name}.png
+
+3. Team Page Extraction:
+   - /equipe/{normalized_name}
+   - /club/{normalized_name}
+   - /teams/{normalized_name}
+
+Team Code Generation:
+- First letters of significant words (ignoring A, B, C, D levels)
+- Full abbreviations including team levels
+- First word + team level combinations
+- First 3 letters of primary word
+- Common basketball team abbreviations (RAC, AMI, BBC, etc.)
+
+Usage Examples:
+    python3 download_team_logos.py                    # Normal mode
+    python3 download_team_logos.py --verbose          # Show detailed URL attempts
+    python3 download_team_logos.py --force            # Re-download existing logos
+    python3 download_team_logos.py --verbose --force  # Verbose + force mode
 """
 
 import os
@@ -50,6 +85,58 @@ def normalize_team_name(team_name):
     normalized = re.sub(r'[^a-zA-Z0-9\s]', '', team_name)
     normalized = normalized.lower().replace(' ', '-')
     return normalized
+
+def generate_team_codes(team_name):
+    """Generate possible team codes/abbreviations for logo URLs"""
+    codes = []
+    
+    # Clean team name for processing
+    clean_name = re.sub(r'[^a-zA-Z0-9\s]', '', team_name)
+    words = clean_name.split()
+    
+    # Strategy 1: First letter of each significant word
+    main_words = [w for w in words if w.upper() not in ['A', 'B', 'C', 'D', 'THE']]
+    if main_words:
+        codes.append(''.join([w[0].upper() for w in main_words]))
+    
+    # Strategy 2: All first letters including team level (A, B, C, D)
+    codes.append(''.join([w[0].upper() for w in words]))
+    
+    # Strategy 3: Full first word + level
+    if len(words) >= 2:
+        codes.append(words[0].upper() + words[-1].upper())
+    
+    # Strategy 4: First 3 letters of first word
+    if words:
+        codes.append(words[0][:3].upper())
+    
+    # Strategy 5: Common basketball abbreviations
+    team_mappings = {
+        'RACING': ['RAC', 'RACING'],
+        'AMICALE': ['AMI', 'AMIC'],
+        'BBC': ['BBC'],
+        'BASKETBALL': ['BAS', 'BB'],
+        'CONTERN': ['CON'],
+        'GRENGEWALD': ['GRE', 'GREN'],
+        'HOSTERT': ['HOS'],
+        'MAMER': ['MAM'],
+        'SCHIEREN': ['SCH'],
+        'SPARTA': ['SPA'],
+        'MESS': ['MES']
+    }
+    
+    for word in words:
+        word_upper = word.upper()
+        if word_upper in team_mappings:
+            codes.extend(team_mappings[word_upper])
+    
+    # Remove duplicates while preserving order
+    unique_codes = []
+    for code in codes:
+        if code and code not in unique_codes:
+            unique_codes.append(code)
+    
+    return unique_codes
 
 def search_team_logo_on_flbb(team_name, session, verbose=False):
     """
@@ -132,7 +219,32 @@ def search_team_logo_on_flbb(team_name, session, verbose=False):
             continue
     
     # Strategy 3: Try to find logos in common asset directories
-    asset_patterns = [
+    asset_patterns = []
+    
+    # Generate possible team codes
+    team_codes = generate_team_codes(team_name)
+    if verbose:
+        print(f"    Generated team codes: {team_codes}")
+    
+    # Add patterns with team codes for FLBB-specific theme directory (from issue requirement)
+    for code in team_codes:
+        asset_patterns.extend([
+            f"{BASE_URL}/layout/themes/flbb/images/Logos/{code}.jpg",
+            f"{BASE_URL}/layout/themes/flbb/images/Logos/{code}.png",
+            f"{BASE_URL}/layout/themes/flbb/images/logos/{code}.jpg",
+            f"{BASE_URL}/layout/themes/flbb/images/logos/{code}.png",
+        ])
+    
+    # Add patterns with normalized name for FLBB theme directory
+    asset_patterns.extend([
+        f"{BASE_URL}/layout/themes/flbb/images/Logos/{normalized_name.upper()}.jpg",
+        f"{BASE_URL}/layout/themes/flbb/images/Logos/{normalized_name.upper()}.png",
+        f"{BASE_URL}/layout/themes/flbb/images/logos/{normalized_name}.jpg",
+        f"{BASE_URL}/layout/themes/flbb/images/logos/{normalized_name}.png",
+    ])
+    
+    # Standard asset directories with normalized name
+    asset_patterns.extend([
         f"{BASE_URL}/assets/logos/{normalized_name}.png",
         f"{BASE_URL}/assets/logos/{normalized_name}.jpg",
         f"{BASE_URL}/assets/images/logos/{normalized_name}.png",
@@ -143,7 +255,7 @@ def search_team_logo_on_flbb(team_name, session, verbose=False):
         f"{BASE_URL}/logo/{normalized_name}.jpg",
         f"{BASE_URL}/logos/{normalized_name}.png",
         f"{BASE_URL}/logos/{normalized_name}.jpg",
-    ]
+    ])
     
     for logo_url in asset_patterns:
         try:
