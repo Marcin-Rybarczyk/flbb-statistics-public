@@ -10,3 +10,6 @@ logs/**
 /_unrelated-projects/2021
 /_unrelated-projects/before_2020
 raw-data-*.zip
+
+# Generated static sites (can be regenerated)
+racing-c-site/
