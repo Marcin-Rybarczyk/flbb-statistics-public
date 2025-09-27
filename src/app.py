@@ -11,9 +11,21 @@ from .utils import (calculate_standings_by_division, get_highest_scoring_games,
                    get_starting_five_vs_bench_stats, get_double_digit_scorers, get_consistent_scorers,
                    get_player_game_impact_analysis, get_player_foul_impact_analysis,
                    get_best_player_combinations, get_referee_game_impact_analysis, get_all_fixtures_data,
-                   get_fixtures_matrix_data, get_data_source_info)
+                   get_fixtures_matrix_data, get_data_source_info, get_season_info, 
+                   get_website_config, list_available_archives, import_season_archive)
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
+
+# Context processor to make season info available to all templates
+@app.context_processor
+def inject_season_info():
+    """Make season information available to all templates"""
+    season_info = get_season_info()
+    website_config = get_website_config()
+    return {
+        'season_info': season_info,
+        'website_config': website_config
+    }
 
 # Logo utility functions
 def normalize_team_name(team_name):
@@ -282,6 +294,10 @@ def admin():
     """Administration page with data statistics"""
     import os
     
+    # Get season information
+    season_info = get_season_info()
+    website_config = get_website_config()
+    
     # Calculate data statistics
     data_stats = {}
     
@@ -356,11 +372,57 @@ def admin():
     except:
         file_stats = {}
     
+    # List available season archives
+    available_archives = list_available_archives()
+    
     return render_template('admin.html',
                          data_stats=data_stats,
                          file_stats=file_stats,
                          data_source_info=data_source_info,
-                         divisions=divisions)
+                         divisions=divisions,
+                         season_info=season_info,
+                         website_config=website_config,
+                         available_archives=available_archives)
+
+@app.route('/admin/import-season', methods=['POST'])
+def import_season_data():
+    """Handle season archive import"""
+    import os
+    import tempfile
+    
+    if 'archive_file' not in request.files:
+        return {'success': False, 'error': 'No file provided'}, 400
+    
+    file = request.files['archive_file']
+    if file.filename == '':
+        return {'success': False, 'error': 'No file selected'}, 400
+    
+    if not file.filename.endswith('.zip'):
+        return {'success': False, 'error': 'Please upload a ZIP file'}, 400
+    
+    try:
+        # Save uploaded file temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as tmp_file:
+            file.save(tmp_file.name)
+            
+            # Import the archive
+            result = import_season_archive(tmp_file.name)
+            
+            # Clean up temporary file
+            os.unlink(tmp_file.name)
+            
+            if result['success']:
+                return {
+                    'success': True,
+                    'message': f"Successfully imported {len(result['imported_files'])} files",
+                    'season_id': result['season_id'],
+                    'target_directory': result['target_directory']
+                }
+            else:
+                return {'success': False, 'error': '; '.join(result['errors'])}, 400
+                
+    except Exception as e:
+        return {'success': False, 'error': f'Import failed: {str(e)}'}, 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

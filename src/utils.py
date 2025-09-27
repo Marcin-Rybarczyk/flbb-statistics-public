@@ -2,11 +2,18 @@ import os
 import pandas as pd
 import json
 from collections import defaultdict
+import zipfile
+import tempfile
+from datetime import datetime
 
 
 FULL_GAME_STATS_OUTPUT_DIR = "full-game-stats-output"
 CSV_FILEPATH = "data/full-game-stats.csv"
 FORCE_TO_CREATE_CSV = True
+
+# Configuration file paths
+CONFIG_FILEPATH = "data/config.json"
+DEFAULT_CONFIG_FILEPATH = "config.json"
 
 # Global variables to track data source and last update
 _data_source_info = {
@@ -14,6 +21,9 @@ _data_source_info = {
     'last_update': None,
     'source_description': 'Unknown data source'
 }
+
+# Global variable to cache config
+_cached_config = None
 
 def get_data_source_info():
     """
@@ -23,6 +33,97 @@ def get_data_source_info():
     dict: Dictionary containing source, last_update, and source_description
     """
     return _data_source_info.copy()
+
+def load_config():
+    """
+    Load configuration from config.json file.
+    First tries data/config.json, then config.json, then returns defaults.
+    
+    Returns:
+    dict: Configuration dictionary
+    """
+    global _cached_config
+    
+    if _cached_config is not None:
+        return _cached_config
+    
+    # Try data/config.json first
+    for config_path in [CONFIG_FILEPATH, DEFAULT_CONFIG_FILEPATH]:
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    _cached_config = config
+                    return config
+            except Exception as e:
+                print(f"Error loading config from {config_path}: {e}")
+                continue
+    
+    # Return default config if no file found
+    default_config = {
+        "eventName": "FLBB Basketball Season",
+        "seasonId": "unknown",
+        "dataSource": {
+            "baseUrl": "https://www.luxembourg.basketball",
+            "allCompetitionsUrl": "https://www.luxembourg.basketball/c/categorie/all"
+        },
+        "website": {
+            "title": "FLBB Basketball Statistics",
+            "description": "Basketball statistics for Luxembourg Basketball Federation"
+        }
+    }
+    _cached_config = default_config
+    return default_config
+
+def get_season_info():
+    """
+    Get season information from configuration.
+    
+    Returns:
+    dict: Dictionary containing season ID, event name, and derived info
+    """
+    config = load_config()
+    season_id = config.get('seasonId', 'unknown')
+    event_name = config.get('eventName', 'FLBB Basketball Season')
+    
+    # Extract year information from season ID
+    season_year = None
+    season_display = season_id
+    
+    if season_id != 'unknown' and '-' in season_id:
+        try:
+            years = season_id.split('-')
+            if len(years) >= 2:
+                season_year = int(years[0])
+                season_display = f"{years[0]}-{years[1]}"
+        except ValueError:
+            pass
+    
+    return {
+        'season_id': season_id,
+        'season_display': season_display,
+        'season_year': season_year,
+        'event_name': event_name,
+        'full_name': f"{event_name} ({season_display})" if season_display != 'unknown' else event_name
+    }
+
+def get_season_archive_filename(base_name="raw-data"):
+    """
+    Generate a season-specific archive filename with timestamp.
+    
+    Parameters:
+    base_name (str): Base name for the archive file
+    
+    Returns:
+    str: Formatted filename with season and timestamp
+    """
+    season_info = get_season_info()
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+    
+    if season_info['season_id'] != 'unknown':
+        return f"{base_name}-{season_info['season_id']}-{timestamp}.zip"
+    else:
+        return f"{base_name}-{timestamp}.zip"
 
 def extract_last_update_from_data(data):
     """
@@ -1837,3 +1938,160 @@ def get_game_top_scorer(game):
         pass
     
     return {'name': None, 'points': 0, 'team': None}
+
+
+def validate_season_archive(zip_filepath):
+    """
+    Validate that a zip file contains expected season data structure.
+    
+    Parameters:
+    zip_filepath (str): Path to the zip file
+    
+    Returns:
+    dict: Validation result with success status and details
+    """
+    result = {
+        'valid': False,
+        'season_id': None,
+        'files_found': [],
+        'errors': []
+    }
+    
+    try:
+        with zipfile.ZipFile(zip_filepath, 'r') as zip_file:
+            file_list = zip_file.namelist()
+            result['files_found'] = file_list
+            
+            # Check for required files/directories
+            has_csv = any(f.endswith('.csv') for f in file_list)
+            has_game_data = any('game-schedule-raw' in f or 'full-game-stats-raw' in f for f in file_list)
+            has_json_db = any(f.endswith('DB.json') for f in file_list)
+            
+            if has_csv or has_game_data or has_json_db:
+                result['valid'] = True
+                
+                # Try to extract season ID from filename
+                filename = os.path.basename(zip_filepath)
+                if 'raw-data-' in filename:
+                    parts = filename.replace('raw-data-', '').replace('.zip', '').split('-')
+                    if len(parts) >= 2:
+                        # Assume format: raw-data-YYYY-YYYY-TIMESTAMP.zip
+                        if parts[0].isdigit() and parts[1].isdigit():
+                            result['season_id'] = f"{parts[0]}-{parts[1]}"
+                        # Or format: raw-data-TIMESTAMP.zip (no season)
+                        elif len(parts) == 1 and parts[0].isdigit():
+                            result['season_id'] = 'unknown'
+            else:
+                result['errors'].append("Archive does not contain expected data files")
+                
+    except zipfile.BadZipFile:
+        result['errors'].append("Invalid zip file")
+    except Exception as e:
+        result['errors'].append(f"Error reading zip file: {str(e)}")
+    
+    return result
+
+
+def import_season_archive(zip_filepath, target_season_dir=None):
+    """
+    Import data from a season archive zip file.
+    
+    Parameters:
+    zip_filepath (str): Path to the season archive zip file
+    target_season_dir (str): Directory to extract to (optional)
+    
+    Returns:
+    dict: Import result with success status and details
+    """
+    result = {
+        'success': False,
+        'imported_files': [],
+        'season_id': None,
+        'errors': []
+    }
+    
+    # First validate the archive
+    validation = validate_season_archive(zip_filepath)
+    if not validation['valid']:
+        result['errors'] = validation['errors']
+        return result
+    
+    result['season_id'] = validation['season_id']
+    
+    try:
+        # Create target directory if not specified
+        if target_season_dir is None:
+            season_id = validation['season_id'] or 'imported'
+            target_season_dir = f"archive-{season_id}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
+        os.makedirs(target_season_dir, exist_ok=True)
+        
+        with zipfile.ZipFile(zip_filepath, 'r') as zip_file:
+            # Extract all files to target directory
+            zip_file.extractall(target_season_dir)
+            result['imported_files'] = zip_file.namelist()
+            result['success'] = True
+            result['target_directory'] = target_season_dir
+            
+    except Exception as e:
+        result['errors'].append(f"Error extracting archive: {str(e)}")
+    
+    return result
+
+
+def list_available_archives(archive_dir='.'):
+    """
+    List available season archive files in a directory.
+    
+    Parameters:
+    archive_dir (str): Directory to search for archives
+    
+    Returns:
+    list: List of archive information dictionaries
+    """
+    archives = []
+    
+    try:
+        for filename in os.listdir(archive_dir):
+            if filename.startswith('raw-data-') and filename.endswith('.zip'):
+                filepath = os.path.join(archive_dir, filename)
+                validation = validate_season_archive(filepath)
+                
+                archive_info = {
+                    'filename': filename,
+                    'filepath': filepath,
+                    'valid': validation['valid'],
+                    'season_id': validation['season_id'],
+                    'size': os.path.getsize(filepath),
+                    'modified': datetime.fromtimestamp(os.path.getmtime(filepath)).strftime('%Y-%m-%d %H:%M:%S')
+                }
+                
+                archives.append(archive_info)
+                
+    except OSError:
+        pass
+    
+    # Sort by modification time (newest first)
+    archives.sort(key=lambda x: x['modified'], reverse=True)
+    return archives
+
+
+def get_website_config():
+    """
+    Get website configuration including title and description.
+    
+    Returns:
+    dict: Website configuration
+    """
+    config = load_config()
+    website_config = config.get('website', {})
+    season_info = get_season_info()
+    
+    # Add season information to website config
+    return {
+        'title': website_config.get('title', 'FLBB Basketball Statistics'),
+        'description': website_config.get('description', 'Basketball statistics for Luxembourg Basketball Federation'),
+        'season_display': season_info['season_display'],
+        'season_full_name': season_info['full_name'],
+        'features': website_config.get('features', {})
+    }

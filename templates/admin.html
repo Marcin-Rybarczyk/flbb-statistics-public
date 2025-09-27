@@ -29,6 +29,77 @@
         </div>
 
         <div class="stats-section">
+            <h2>🗓️ Season Information</h2>
+            <div class="stat-summary">
+                <div class="stat-card">
+                    <h3>Current Season</h3>
+                    <p>{{ season_info.season_display }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Season ID</h3>
+                    <p>{{ season_info.season_id }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Event Name</h3>
+                    <p style="font-size: 0.9em;">{{ season_info.event_name }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-section">
+            <h2>📦 Season Archive Management</h2>
+            <div style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                <h3>Available Archives</h3>
+                {% if available_archives %}
+                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                    <thead>
+                        <tr style="background: #f8f9fa;">
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Archive File</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Season</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Size</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Modified</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for archive in available_archives %}
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #dee2e6;">{{ archive.filename }}</td>
+                            <td style="padding: 10px; border: 1px solid #dee2e6;">
+                                {% if archive.season_id %}{{ archive.season_id }}{% else %}Unknown{% endif %}
+                            </td>
+                            <td style="padding: 10px; border: 1px solid #dee2e6;">{{ "%.1f"|format(archive.size / 1024 / 1024) }} MB</td>
+                            <td style="padding: 10px; border: 1px solid #dee2e6;">{{ archive.modified }}</td>
+                            <td style="padding: 10px; border: 1px solid #dee2e6;">
+                                {% if archive.valid %}
+                                    <span style="color: #28a745;">✓ Valid</span>
+                                {% else %}
+                                    <span style="color: #dc3545;">✗ Invalid</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p style="color: #666; font-style: italic;">No archives found in current directory</p>
+                {% endif %}
+                
+                <div style="margin-top: 20px;">
+                    <h3>Import Season Archive</h3>
+                    <form id="importForm" enctype="multipart/form-data" style="margin-top: 10px;">
+                        <div style="margin-bottom: 10px;">
+                            <label for="archive_file" style="display: block; margin-bottom: 5px; font-weight: bold;">Select Archive File (.zip):</label>
+                            <input type="file" id="archive_file" name="archive_file" accept=".zip" required style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                        <button type="submit" style="background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">Import Archive</button>
+                    </form>
+                    <div id="importStatus" style="margin-top: 10px; padding: 10px; border-radius: 4px; display: none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-section">
             <h2>🏀 Game Statistics</h2>
             <div class="stat-summary">
                 <div class="stat-card">
@@ -218,4 +289,50 @@
                 </tbody>
             </table>
         </div>
+
+        <script>
+        document.getElementById('importForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const statusDiv = document.getElementById('importStatus');
+            
+            // Show loading status
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#e7f3ff';
+            statusDiv.style.color = '#0066cc';
+            statusDiv.innerHTML = '⏳ Importing archive, please wait...';
+            
+            try {
+                const response = await fetch('/admin/import-season', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    statusDiv.style.background = '#d4edda';
+                    statusDiv.style.color = '#155724';
+                    statusDiv.innerHTML = `✅ ${result.message}<br>
+                        Season ID: ${result.season_id}<br>
+                        Target Directory: ${result.target_directory}`;
+                    // Reset the form
+                    this.reset();
+                    // Reload page after 3 seconds to update archive list
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 3000);
+                } else {
+                    statusDiv.style.background = '#f8d7da';
+                    statusDiv.style.color = '#721c24';
+                    statusDiv.innerHTML = `❌ Import failed: ${result.error}`;
+                }
+            } catch (error) {
+                statusDiv.style.background = '#f8d7da';
+                statusDiv.style.color = '#721c24';
+                statusDiv.innerHTML = `❌ Error: ${error.message}`;
+            }
+        });
+        </script>
 {% endblock %}

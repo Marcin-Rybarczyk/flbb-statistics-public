@@ -257,7 +257,18 @@ function Get-GamesInDivision($appConfig, $gameSchedule) {
 }
 
 function Invoke-CreateArchive($appConfig) {
-    $zipFilepath = "$ROOT/raw-data-$(Get-Date -Format 'yyyyMMddHHmmss').zip"
+    # Create season-aware filename
+    $timestamp = Get-Date -Format 'yyyyMMddHHmmss'
+    $seasonId = $appConfig.ConfigData.seasonId
+    
+    if ($seasonId -and $seasonId -ne "unknown") {
+        $zipFilepath = "$ROOT/raw-data-$seasonId-$timestamp.zip"
+    } else {
+        $zipFilepath = "$ROOT/raw-data-$timestamp.zip"
+    }
+    
+    Write-Host "Creating season archive: $zipFilepath"
+    
     if (Test-Path $zipFilepath) {
         Remove-Item -Path $zipFilepath
     }
