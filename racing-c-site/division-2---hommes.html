@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Division Standings - FLBB Statistics</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+
+        .navigation {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .navigation a {
+            color: #667eea;
+            text-decoration: none;
+            margin: 0 15px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .navigation a:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .navigation a.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .content {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .stats-section {
+            margin-bottom: 40px;
+        }
+
+        .stats-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            text-align: center;
+            position: relative;
+        }
+
+        .stats-section h2:after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 2px;
+        }
+
+        .stats-section h3 {
+            color: #34495e;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9em;
+            letter-spacing: 0.5px;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        tr:hover {
+            background-color: rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+            transition: all 0.2s ease;
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .error {
+            color: #e74c3c;
+            font-style: italic;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .highlight {
+            background-color: rgba(255, 243, 205, 0.8);
+        }
+
+        .stat-summary {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            min-width: 180px;
+            flex: 1;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+
+        .stat-card p {
+            margin: 0;
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        select, input[type="submit"] {
+            padding: 10px 15px;
+            margin: 10px 5px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
+        }
+
+        input[type="submit"] {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        input[type="submit"]:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .navigation {
+                padding: 10px;
+            }
+            
+            .navigation a {
+                margin: 5px;
+                padding: 6px 12px;
+                font-size: 0.9em;
+            }
+            
+            .stat-summary {
+                flex-direction: column;
+            }
+            
+            table {
+                font-size: 0.9em;
+            }
+            
+            th, td {
+                padding: 8px 10px;
+            }
+        }
+
+        
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏠 Division Standings</h1>
+            <p>View team standings and results by division</p>
+        </div>
+
+        <div class="navigation">
+            <a href="/" >🏠 Home</a>
+            <a href="/fixtures" >📅 Fixtures</a>
+            <a href="/statistics" >📊 Statistics</a>
+            <a href="/player-stats" >👤 Player Stats</a>
+            <a href="/team-stats" >🏆 Team Stats</a>
+            <a href="/deeper-analysis" >🔍 Deep Analysis</a>
+            <a href="/admin" >⚙️ Admin</a>
+        </div>
+
+        
+
+        <div class="content">
+            
+
+        <form method="post">
+            <label for="division">Select a Division:</label>
+            <select name="division" onchange="this.form.submit()">
+                <option value="">-- Choose Division --</option>
+                
+                <option value="Division:2 - Hommes" selected>Division:2 - Hommes</option>
+                
+            </select>
+        </form>
+
+        
+        <div class="stats-section">
+            <h2>Standings for Division:2 - Hommes</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Team Name</th>
+                        <th>Games</th>
+                        <th>Wins</th>
+                        <th>Losses</th>
+                        <th>Points For</th>
+                        <th>Points Against</th>
+                        <th>Points Diff</th>
+                        <th>League Points</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td>1</td>
+                        <td>Racing D</td>
+                        <td>11</td>
+                        <td>11</td>
+                        <td>0</td>
+                        <td>901</td>
+                        <td>602</td>
+                        <td>299</td>
+                        <td>22</td>
+                    </tr>
+                    
+                    <tr>
+                        <td>2</td>
+                        <td>Mamer B</td>
+                        <td>11</td>
+                        <td>9</td>
+                        <td>2</td>
+                        <td>779</td>
+                        <td>638</td>
+                        <td>141</td>
+                        <td>20</td>
+                    </tr>
+                    
+                    <tr>
+                        <td>3</td>
+                        <td>BBC Nitia B</td>
+                        <td>11</td>
+                        <td>7</td>
+                        <td>4</td>
+                        <td>648</td>
+                        <td>620</td>
+                        <td>28</td>
+                        <td>18</td>
+                    </tr>
+                    
+                    <tr>
+                        <td>4</td>
+                        <td>Sparta C</td>
+                        <td>11</td>
+                        <td>5</td>
+                        <td>6</td>
+                        <td>696</td>
+                        <td>744</td>
+                        <td>-48</td>
+                        <td>16</td>
+                    </tr>
+                    
+                    <tr>
+                        <td>5</td>
+                        <td>Schieren B</td>
+                        <td>11</td>
+                        <td>5</td>
+                        <td>6</td>
+                        <td>700</td>
+                        <td>756</td>
+                        <td>-56</td>
+                        <td>16</td>
+                    </tr>
+                    
+                    <tr>
+                        <td>6</td>
+                        <td>Contern C</td>
+                        <td>11</td>
+                        <td>5</td>
+                        <td>6</td>
+                        <td>645</td>
+                        <td>705</td>
+                        <td>-60</td>
+                        <td>16</td>
+                    </tr>
+                    
+                    <tr>
+                        <td>7</td>
+                        <td>BC Mess B</td>
+                        <td>11</td>
+                        <td>5</td>
+                        <td>6</td>
+                        <td>598</td>
+                        <td>693</td>
+                        <td>-95</td>
+                        <td>16</td>
+                    </tr>
+                    
+                    <tr>
+                        <td>8</td>
+                        <td>Grengewald Hostert C</td>
+                        <td>11</td>
+                        <td>4</td>
+                        <td>7</td>
+                        <td>682</td>
+                        <td>671</td>
+                        <td>11</td>
+                        <td>15</td>
+                    </tr>
+                    
+                    <tr>
+                        <td>9</td>
+                        <td>Amicale B</td>
+                        <td>11</td>
+                        <td>4</td>
+                        <td>7</td>
+                        <td>711</td>
+                        <td>805</td>
+                        <td>-94</td>
+                        <td>15</td>
+                    </tr>
+                    
+                    <tr>
+                        <td>10</td>
+                        <td>Racing C</td>
+                        <td>11</td>
+                        <td>0</td>
+                        <td>11</td>
+                        <td>637</td>
+                        <td>763</td>
+                        <td>-126</td>
+                        <td>11</td>
+                    </tr>
+                    
+                </tbody>
+            </table>
+        </div>
+        
+
+        
+        <div class="stats-section">
+            <h2>Highest Scoring Games in Division:2 - Hommes</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Game ID</th>
+                        <th>Home Team</th>
+                        <th>Away Team</th>
+                        <th>Home Score</th>
+                        <th>Away Score</th>
+                        <th>Total Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td>16007</td>
+                        <td>Mamer B</td>
+                        <td>Racing C</td>
+                        <td>87</td>
+                        <td>85</td>
+                        <td><strong>172</strong></td>
+                    </tr>
+                    
+                    <tr>
+                        <td>16016</td>
+                        <td>Amicale B</td>
+                        <td>Racing C</td>
+                        <td>77</td>
+                        <td>74</td>
+                        <td><strong>151</strong></td>
+                    </tr>
+                    
+                    <tr>
+                        <td>16087</td>
+                        <td>Racing D</td>
+                        <td>Racing C</td>
+                        <td>88</td>
+                        <td>57</td>
+                        <td><strong>145</strong></td>
+                    </tr>
+                    
+                </tbody>
+            </table>
+        </div>
+        
+        
+        
+
+        </div>
+    </div>
+
+    
+</body>
+</html>
