@@ -51,7 +51,7 @@ jobs:
         
     - name: Generate static pages for GitHub Pages
       run: |
-        python generate_static.py
+        python deployment/generate_static.py
         
     - name: Upload to GitHub Pages
       uses: actions/upload-pages-artifact@v3

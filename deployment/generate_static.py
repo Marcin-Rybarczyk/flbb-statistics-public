@@ -36,7 +36,7 @@ def generate_static_site():
     os.makedirs(os.path.join(output_dir, 'static'), exist_ok=True)
     
     # Create a Flask app for template rendering
-    app = Flask(__name__)
+    app = Flask(__name__, template_folder='../templates')
     
     # Load data
     data = load_game_data()
