@@ -7,7 +7,12 @@ This script generates static versions focused specifically on Racing C team data
 import os
 import json
 from flask import Flask, render_template
-from utils import load_game_data, calculate_standings_by_division, get_highest_scoring_games
+import sys
+
+# Add the root directory to Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from src.utils import load_game_data, calculate_standings_by_division, get_highest_scoring_games
 
 def filter_racing_c_data(data):
     """Filter data to include only games involving Racing C team"""

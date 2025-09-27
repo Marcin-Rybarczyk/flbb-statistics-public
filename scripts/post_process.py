@@ -51,11 +51,14 @@ def check_dependencies():
 if not check_dependencies():
     sys.exit(1)
 
-# Import our utilities
-from utils import create_csv_from_json_data
-from google_drive_helper import upload_file_to_drive
+# Add the root directory to Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-def load_config(config_file="config.json"):
+# Import our utilities
+from src.utils import create_csv_from_json_data
+from src.google_drive_helper import upload_file_to_drive
+
+def load_config(config_file="data/config.json"):
     """Load configuration from JSON file."""
     if not os.path.exists(config_file):
         print(f"Warning: Config file {config_file} not found, using defaults")

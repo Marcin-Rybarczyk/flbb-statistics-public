@@ -12,7 +12,11 @@ Usage:
 import argparse
 import os
 import sys
-from utils import load_game_data
+
+# Add the root directory to Python path so we can import from src
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from src.utils import load_game_data
 
 def test_data_availability():
     """Test if the required data is available"""
@@ -44,7 +48,7 @@ def test_flask_import():
     print("\nTesting Flask application import...")
     
     try:
-        from app import app
+        from src.app import app
         print("✅ Flask app imported successfully")
         
         # Test routes
@@ -85,7 +89,7 @@ def run_flask_server(port=5000, debug=True, production=False):
     print("\n💡 Press Ctrl+C to stop the server")
     
     try:
-        from app import app
+        from src.app import app
         
         if production:
             # Use gunicorn for production-like testing

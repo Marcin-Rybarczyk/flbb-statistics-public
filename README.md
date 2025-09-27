@@ -1,42 +1,76 @@
 # FLBB Statistics
 
-A comprehensive data analytics and visualization platform for Luxembourg Basketball Federation (FLBB) statistics.
-
-![Basketball Statistics Dashboard](https://img.shields.io/badge/Flask-Web%20App-blue?logo=flask) ![Python](https://img.shields.io/badge/Python-3.11+-green?logo=python) ![Data Analysis](https://img.shields.io/badge/Data-Analytics-orange) ![Deployment](https://img.shields.io/badge/Deploy-Ready-success)
+A comprehensive Flask-based web application for analyzing and visualizing basketball statistics from the Luxembourg Basketball Federation (FLBB). The application automatically scrapes game data, processes it into meaningful insights, and presents interactive visualizations through a modern web interface.
 
 ## 🏀 Overview
 
-This Flask-based web application provides in-depth analysis and visualization of basketball statistics from the Luxembourg Basketball Federation. It automatically scrapes game data, processes it into meaningful insights, and presents interactive visualizations through a modern web interface.
+This project provides in-depth analysis and visualization of basketball statistics from the Luxembourg Basketball Federation. It automatically scrapes game data, processes it into meaningful insights, and presents interactive visualizations through a modern web interface.
 
-## 🚀 Features
+**Live Demo**: [Visit the deployed application](https://flbb-statistics-public.onrender.com)
 
-### 📊 Statistical Analysis
-- **Division Standings** - Interactive league tables with team performance metrics
-- **Player Statistics** - Top scorers, shooting efficiency, and performance analysis  
-- **Team Performance** - Win/loss records, scoring trends, and comparative analysis
-- **Game Insights** - Highest scoring games, biggest wins, and lead changes
-- **Referee Analysis** - Foul statistics and game impact analysis
+## 📁 Project Structure
 
-### 🤖 Automated Data Pipeline
-- Daily automated data collection from FLBB website
-- Automatic processing of HTML game data into structured formats
-- CSV generation and Google Drive integration
-- GitHub Actions workflows for continuous updates
+```
+flbb-statistics/
+├── 📂 src/                          # Main application source code
+│   ├── app.py                       # Flask web application
+│   ├── utils.py                     # Data processing and statistics utilities  
+│   ├── wsgi.py                      # Production WSGI configuration
+│   └── google_drive_helper.py       # Google Drive integration
+├── 📂 scripts/                      # Data collection and processing scripts
+│   ├── download-controller.ps1      # Main data collection script (PowerShell)
+│   ├── extract-game.ps1             # Data extraction and JSON conversion (PowerShell)
+│   ├── post_process.py              # Post-processing automation (Python)
+│   └── check_version_api.py         # API version checking utility
+├── 📂 deployment/                   # Deployment tools and configuration
+│   ├── deploy_flask.py              # Multi-platform deployment assistant
+│   ├── generate_static.py           # Static site generator for GitHub Pages
+│   ├── generate_racing_c_static.py  # Racing C team specific static generator
+│   ├── requirements.txt             # Python dependencies
+│   ├── render_deploy.txt            # Render.com deployment notes
+│   └── railway_deploy.txt           # Railway.app deployment notes
+├── 📂 data/                         # Data files and configuration
+│   ├── full-game-stats.csv          # Main statistics data source
+│   ├── config.json                  # Application configuration
+│   ├── player-map.json              # Player mapping data
+│   ├── event-action-patterns.json   # Game event patterns
+│   └── Net40/                       # .NET dependencies for PowerShell scripts
+├── 📂 docs/                         # Comprehensive documentation
+│   ├── README.md                    # This file
+│   ├── README_DEPLOYMENT.md         # Complete deployment instructions
+│   ├── GOOGLE_DRIVE_SECRETS_SETUP.md # Google Drive API setup guide
+│   ├── GITHUB_ACTIONS_USAGE.md      # Automation workflows documentation
+│   ├── CSV_GENERATION_WORKFLOW.md   # Data processing pipeline guide
+│   └── IMPLEMENTATION_SUMMARY.md    # Technical implementation details
+├── 📂 tests/                        # Testing and validation
+│   ├── test_local_flask.py          # Local development and testing script
+│   ├── test_google_drive.py         # Google Drive integration tests
+│   └── test-multiple-downloads.ps1  # PowerShell testing script
+├── 📂 templates/                    # HTML templates for web interface
+│   ├── base.html                    # Base template layout
+│   ├── index.html                   # Home page template
+│   ├── statistics.html              # Main statistics overview
+│   ├── team_stats.html              # Team analysis page
+│   ├── player_stats.html            # Player statistics page
+│   ├── deeper_analysis.html         # Advanced analytics page
+│   ├── fixtures.html                # Fixtures and schedule page
+│   └── admin.html                   # Administrative interface
+├── 📂 static_site/                  # Generated static files for GitHub Pages
+├── 📂 logos/                        # Team logos and branding assets
+├── 📂 .github/workflows/            # GitHub Actions automation
+│   ├── google-drive-upload.yml      # Automated Google Drive uploads
+│   ├── google-drive-list.yml        # Drive file listing workflow
+│   ├── upload-to-gdrive.yml         # Legacy upload workflow
+│   └── deploy-website.yml           # Website deployment automation
+├── wsgi.py                          # Root-level WSGI entry point for deployment
+├── requirements.txt                 # Python dependencies (copy for easy access)
+├── .gitignore                       # Git ignore configuration
+└── _config.yml                      # Jekyll configuration for GitHub Pages
+```
 
-### 🌐 Multi-Platform Deployment
-- **Local Development** - Full-featured development environment
-- **Render.com** - Recommended cloud hosting platform
-- **Railway.app** - Modern deployment with generous free tier
-- **GitHub Pages** - Static version for basic hosting
+## 🚀 Quick Start
 
-## 🛠️ Quick Start
-
-### Prerequisites
-- Python 3.11 or higher
-- pip (Python package manager)
-- Git
-
-### Local Setup
+### Local Development
 
 1. **Clone the repository:**
    ```bash
@@ -49,42 +83,43 @@ This Flask-based web application provides in-depth analysis and visualization of
    pip install -r requirements.txt
    ```
 
-3. **Run tests:**
+3. **Run the application:**
    ```bash
-   python3 test_local_flask.py --test-only
+   python3 tests/test_local_flask.py
    ```
 
-4. **Start the application:**
-   ```bash
-   # Development server
-   python3 test_local_flask.py
-   
-   # Production-like testing
-   python3 test_local_flask.py --production
-   ```
+4. **Access the web interface:**
+   - Local: http://localhost:5000
+   - Network: http://127.0.0.1:5000
 
-5. **Access the web interface:**
-   Open your browser to `http://localhost:5000`
-
-## 📁 Project Structure
-
+### Testing Only
+```bash
+python3 tests/test_local_flask.py --test-only
 ```
-flbb-statistics/
-├── app.py                    # Main Flask application
-├── utils.py                  # Data processing and statistics
-├── wsgi.py                   # Production WSGI entry point
-├── requirements.txt          # Python dependencies
-├── full-game-stats.csv      # Main statistics data source
-├── templates/               # HTML templates for web interface
-├── static_site/             # Generated static files
-├── .github/workflows/       # GitHub Actions automation
-├── doc/                     # Comprehensive documentation
-├── deploy_flask.py          # Multi-platform deployment assistant  
-├── google_drive_helper.py   # Google Drive integration
-├── download-controller.ps1  # Data collection script
-├── extract-game.ps1         # Data processing script
-└── test_local_flask.py      # Local testing and development
+
+## 🌐 Deployment Options
+
+### Quick Deployment
+Use the built-in deployment assistant:
+```bash
+python3 deployment/deploy_flask.py              # Interactive guided deployment
+python3 deployment/deploy_flask.py render      # Deploy to Render.com
+python3 deployment/deploy_flask.py railway     # Deploy to Railway.app  
+python3 deployment/deploy_flask.py github      # Generate static site for GitHub Pages
 ```
+
+### Platform-Specific Instructions
+- **[Render.com](docs/README_DEPLOYMENT.md#render-com)** - Recommended for full Flask deployment
+- **[Railway.app](docs/README_DEPLOYMENT.md#railway-app)** - Modern platform with generous free tier
+- **[GitHub Pages](docs/README_DEPLOYMENT.md#github-pages)** - Static version hosting
+
+## 📖 Documentation
+
+Comprehensive documentation is available in the `docs/` directory:
+- **[Deployment Guide](docs/README_DEPLOYMENT.md)** - Complete deployment instructions
+- **[Google Drive Setup](docs/GOOGLE_DRIVE_SECRETS_SETUP.md)** - API configuration guide
+- **[GitHub Actions Usage](docs/GITHUB_ACTIONS_USAGE.md)** - Automation workflows
+- **[CSV Generation Workflow](docs/CSV_GENERATION_WORKFLOW.md)** - Data processing pipeline
 
 ## 🚦 Usage
 
@@ -99,32 +134,8 @@ The Flask application provides several analytical views:
 The application automatically processes basketball data through:
 1. **Data Collection** - PowerShell scripts scrape FLBB website
 2. **Data Processing** - Raw HTML converted to structured JSON
-3. **CSV Generation** - Statistics calculated and exported
+3. **CSV Generation** - Statistics calculated and exported  
 4. **Visualization** - Flask app presents interactive charts and tables
-
-## 🌐 Deployment Options
-
-### Quick Deployment
-Use the built-in deployment assistant:
-```bash
-python3 deploy_flask.py              # Interactive guided deployment
-python3 deploy_flask.py render      # Deploy to Render.com
-python3 deploy_flask.py railway     # Deploy to Railway.app
-python3 deploy_flask.py github      # Generate static site for GitHub Pages
-```
-
-### Platform-Specific Instructions
-- **[Render.com](doc/README_DEPLOYMENT.md#render-com)** - Recommended for full Flask deployment
-- **[Railway.app](doc/README_DEPLOYMENT.md#railway-app)** - Modern platform with generous free tier
-- **[GitHub Pages](doc/README_DEPLOYMENT.md#github-pages)** - Static version hosting
-
-## 📖 Documentation
-
-Comprehensive documentation is available in the `doc/` directory:
-- **[Deployment Guide](README_DEPLOYMENT.md)** - Complete deployment instructions
-- **[Google Drive Setup](doc/GOOGLE_DRIVE_SECRETS_SETUP.md)** - API configuration guide
-- **[GitHub Actions Usage](doc/GITHUB_ACTIONS_USAGE.md)** - Automation workflows
-- **[CSV Generation Workflow](doc/CSV_GENERATION_WORKFLOW.md)** - Data processing pipeline
 
 ## 🔧 Configuration
 
@@ -142,7 +153,7 @@ Comprehensive documentation is available in the `doc/` directory:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Test your changes locally with `python3 test_local_flask.py --test-only`
+3. Test your changes locally with `python3 tests/test_local_flask.py --test-only`
 4. Commit your changes (`git commit -m 'Add amazing feature'`)
 5. Push to the branch (`git push origin feature/amazing-feature`)
 6. Open a Pull Request
@@ -151,8 +162,8 @@ Comprehensive documentation is available in the `doc/` directory:
 
 Data is collected from the [Luxembourg Basketball Federation](https://www.luxembourg.basketball/) website:
 - Game results and schedules
-- Player statistics and performance metrics  
-- Division standings and team information
+- Player statistics and performance metrics
+- Division standings and team information  
 - Referee assignments and foul statistics
 
 ## 🛡️ Security
@@ -161,10 +172,6 @@ Data is collected from the [Luxembourg Basketball Federation](https://www.luxemb
 - No sensitive data is committed to the repository
 - Automated cleanup of temporary credential files
 - Production deployments use environment-based configuration
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🎯 Roadmap
 
@@ -178,12 +185,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 For questions, issues, or contributions:
-1. Check the [documentation](doc/) for detailed guides
-2. Review existing [GitHub Issues](../../issues) 
+1. Check the [documentation](docs/) for detailed guides
+2. Review existing [GitHub Issues](../../issues)
 3. Create a new issue with detailed information
 4. Refer to deployment guides for hosting questions
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
 **Ready to explore Luxembourg basketball statistics?** 🏀  
-Get started with `python3 test_local_flask.py` and visit `http://localhost:5000`!
+Get started with `python3 tests/test_local_flask.py` and visit `http://localhost:5000`!

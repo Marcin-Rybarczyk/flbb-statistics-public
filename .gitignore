@@ -5,6 +5,9 @@ gamesDB.json
 gameScheduleDB.json
 google-drive-sync/**
 __pycache__/**
+*.pyc
+*.pyo
+*.pyd
 logs/**
 *.log
 /_unrelated-projects/2021
@@ -13,3 +16,22 @@ raw-data-*.zip
 
 # Generated static sites (can be regenerated)
 racing-c-site/
+
+# Python virtual environments
+venv/
+env/
+.venv/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp

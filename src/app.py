@@ -1,7 +1,7 @@
 import os
 from flask import Flask, render_template, request
 import pandas as pd
-from utils import (calculate_standings_by_division, get_highest_scoring_games, 
+from .utils import (calculate_standings_by_division, get_highest_scoring_games, 
                    load_game_data, get_top_players_by_score, get_team_performance_stats,
                    get_top_scorers, get_highest_single_game_score, get_top_three_pointers, 
                    get_top_foulers, get_referee_statistics, get_referee_fouls_per_game,
@@ -12,7 +12,7 @@ from utils import (calculate_standings_by_division, get_highest_scoring_games,
                    get_best_player_combinations, get_referee_game_impact_analysis, get_all_fixtures_data,
                    get_fixtures_matrix_data)
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='../templates')
 
 # Load and process the data
 data = load_game_data()
