@@ -289,8 +289,13 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>{% block page_title %}🏀 FLBB Basketball Statistics{% endblock %}</h1>
-            <p>{% block page_description %}Comprehensive basketball statistics for Luxembourg Basketball Federation{% endblock %}</p>
+            <h1>{% block page_title %}🏀 {{ website_config.title }}{% endblock %}</h1>
+            <p>{% block page_description %}{{ website_config.description }}{% endblock %}</p>
+            <div style="margin-top: 10px; color: #34495e; font-size: 0.9em;">
+                <span style="background: linear-gradient(90deg, #3498db, #9b59b6); padding: 4px 12px; border-radius: 15px; color: white; font-weight: 500;">
+                    Season {{ season_info.season_display }}
+                </span>
+            </div>
         </div>
 
         <div class="navigation">

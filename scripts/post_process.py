@@ -90,9 +90,16 @@ def create_archive(config):
     game_schedule_dir = config.get("directories", {}).get("gameScheduleRaw", "game-schedule-raw")
     full_game_stats_dir = config.get("directories", {}).get("fullGameStatsRaw", "full-game-stats-raw")
     
-    # Create filename with timestamp
+    # Create season-aware filename with timestamp
+    season_id = config.get("seasonId", "unknown")
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-    zip_filepath = f"raw-data-{timestamp}.zip"
+    
+    if season_id != "unknown":
+        zip_filepath = f"raw-data-{season_id}-{timestamp}.zip"
+    else:
+        zip_filepath = f"raw-data-{timestamp}.zip"
+    
+    print(f"Creating archive: {zip_filepath}")
     
     try:
         with zipfile.ZipFile(zip_filepath, 'w', zipfile.ZIP_DEFLATED) as zipf:
