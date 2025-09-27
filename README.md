@@ -6,7 +6,7 @@ A comprehensive Flask-based web application for analyzing and visualizing basket
 
 This project provides in-depth analysis and visualization of basketball statistics from the Luxembourg Basketball Federation. It automatically scrapes game data, processes it into meaningful insights, and presents interactive visualizations through a modern web interface.
 
-**Live Demo**: [Visit the deployed application](https://flbb-statistics-public.onrender.com)
+**Live Demo**: [Visit the deployed application](https://marcin-rybarczyk.github.io/flbb-statistics-public)
 
 ## 📁 Project Structure
 

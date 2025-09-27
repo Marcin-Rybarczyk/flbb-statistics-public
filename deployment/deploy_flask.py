@@ -151,7 +151,7 @@ def deploy_github_pages():
     
     print_colored("\n🔄 Generating static site...")
     try:
-        subprocess.run([sys.executable, 'generate_static.py'], check=True)
+        subprocess.run([sys.executable, 'deployment/generate_static.py'], check=True)
         print_colored("✅ Static site generated successfully!")
         
         if os.path.exists('static_site'):
