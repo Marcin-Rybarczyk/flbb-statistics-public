@@ -66,6 +66,30 @@
         </div>
         {% endif %}
 
+        <div class="stats-section">
+            <h2>📡 Data Source Information</h2>
+            <div class="stat-summary">
+                <div class="stat-card">
+                    <h3>Data Source</h3>
+                    {% if data_source_info.source == 'new_data' %}
+                    <p style="color: #27ae60;">✓ New Data</p>
+                    {% elif data_source_info.source == 'backup_csv' %}
+                    <p style="color: #f39c12;">⚠️ Backup CSV</p>
+                    {% else %}
+                    <p style="color: #e74c3c;">❌ No Data</p>
+                    {% endif %}
+                </div>
+                <div class="stat-card">
+                    <h3>Source Description</h3>
+                    <p>{{ data_source_info.source_description }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Last Update</h3>
+                    <p>{{ data_source_info.last_update or 'Unknown' }}</p>
+                </div>
+            </div>
+        </div>
+
         {% if data_stats.division_games %}
         <div class="stats-section">
             <h2>🏆 Games by Division</h2>

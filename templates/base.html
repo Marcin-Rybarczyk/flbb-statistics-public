@@ -269,6 +269,20 @@
             }
         }
 
+        .data-source-footer {
+            margin-top: 30px;
+            padding: 15px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            border-top: 2px solid #e9ecef;
+        }
+
+        .data-source-footer small {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+
         {% block extra_styles %}{% endblock %}
     </style>
 </head>
@@ -298,6 +312,24 @@
         <div class="content">
             {% block content %}{% endblock %}
         </div>
+        
+        {% if data_source_info %}
+        <div class="data-source-footer">
+            <small>
+                Data Source: 
+                {% if data_source_info.source == 'new_data' %}
+                <span style="color: #27ae60;">✓ Live Data</span>
+                {% elif data_source_info.source == 'backup_csv' %}
+                <span style="color: #f39c12;">⚠️ Backup Data</span>
+                {% else %}
+                <span style="color: #e74c3c;">❌ No Data</span>
+                {% endif %}
+                {% if data_source_info.last_update %}
+                | Last Update: {{ data_source_info.last_update }}
+                {% endif %}
+            </small>
+        </div>
+        {% endif %}
     </div>
 
     {% block scripts %}{% endblock %}
