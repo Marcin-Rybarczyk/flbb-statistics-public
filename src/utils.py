@@ -8,6 +8,72 @@ FULL_GAME_STATS_OUTPUT_DIR = "full-game-stats-output"
 CSV_FILEPATH = "data/full-game-stats.csv"
 FORCE_TO_CREATE_CSV = True
 
+# Global variables to track data source and last update
+_data_source_info = {
+    'source': 'unknown',  # 'new_data', 'backup_csv', 'none'
+    'last_update': None,
+    'source_description': 'Unknown data source'
+}
+
+def get_data_source_info():
+    """
+    Get information about the current data source and last update.
+    
+    Returns:
+    dict: Dictionary containing source, last_update, and source_description
+    """
+    return _data_source_info.copy()
+
+def extract_last_update_from_data(data):
+    """
+    Extract the most recent update date from the game data.
+    
+    Parameters:
+    data (DataFrame): The game data
+    
+    Returns:
+    str or None: The most recent date/time found in the data
+    """
+    if data.empty:
+        return None
+    
+    # Check for DateTime column first
+    if 'DateTime' in data.columns:
+        try:
+            # Convert to datetime and find the maximum
+            datetime_series = pd.to_datetime(data['DateTime'], errors='coerce')
+            max_datetime = datetime_series.max()
+            if pd.notna(max_datetime):
+                return max_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        except:
+            pass
+    
+    # Fallback to GameEvents column if it contains timestamps
+    if 'GameEvents' in data.columns:
+        try:
+            latest_event_date = None
+            for events in data['GameEvents'].dropna():
+                # Parse JSON events if they exist
+                if isinstance(events, str) and events.startswith('['):
+                    import json
+                    try:
+                        event_list = json.loads(events)
+                        for event in event_list:
+                            if isinstance(event, dict) and 'EventDateTime' in event:
+                                event_date = pd.to_datetime(event['EventDateTime'], errors='coerce')
+                                if pd.notna(event_date):
+                                    if latest_event_date is None or event_date > latest_event_date:
+                                        latest_event_date = event_date
+                    except:
+                        continue
+            
+            if latest_event_date:
+                return latest_event_date.strftime("%Y-%m-%d %H:%M:%S")
+        except:
+            pass
+    
+    return None
+
 def load_json_data_with_bom_handling(file_path):
     """
     Load data from a JSON file with UTF-8 BOM handling.
@@ -946,26 +1012,56 @@ def create_csv_from_json_data(output_dir, csv_filepath):
 
 def load_game_data():
     """
-    Load game data from CSV file or generate from JSON files if needed.
+    Load game data prioritizing new data over repository backup.
+    For live website, use only new data downloaded. Repository data used only as backup.
     """
-    # Check if we should force CSV regeneration from JSON data
+    global _data_source_info
+    
     root_dir = os.path.join(os.getcwd(), FULL_GAME_STATS_OUTPUT_DIR)
     
-    if FORCE_TO_CREATE_CSV and os.path.exists(root_dir):
-        # Force regeneration of CSV from JSON data
+    # PRIORITY 1: Try to load from new JSON data directory first (live data)
+    if os.path.exists(root_dir):
         all_data = load_data_from_directories(root_dir) 
-        if all_data:  # Only proceed if we have JSON data
+        if all_data:  # If we have new JSON data, use it
             data = pd.DataFrame(all_data)
             flatten_df(data)
-            data.to_csv(CSV_FILEPATH, index=False)
+            
+            # Update data source info
+            last_update = extract_last_update_from_data(data)
+            _data_source_info = {
+                'source': 'new_data',
+                'last_update': last_update,
+                'source_description': f'New data from {FULL_GAME_STATS_OUTPUT_DIR} directory'
+            }
+            
+            # Optionally save to CSV for backup
+            if FORCE_TO_CREATE_CSV:
+                try:
+                    data.to_csv(CSV_FILEPATH, index=False)
+                except:
+                    pass  # Don't fail if we can't save backup
+            
+            print(f"✅ Using new data: {len(data)} games loaded from JSON files")
             return data
     
-    # Try to load existing CSV file
+    # PRIORITY 2: Fall back to repository CSV backup only if no new data available
     if os.path.exists(CSV_FILEPATH):
         try:
             data = pd.read_csv(CSV_FILEPATH)
-            # Check if the CSV has data
             if not data.empty:
+                # Update data source info
+                csv_mod_time = os.path.getmtime(CSV_FILEPATH)
+                import datetime
+                csv_date = datetime.datetime.fromtimestamp(csv_mod_time).strftime("%Y-%m-%d %H:%M:%S")
+                
+                last_update = extract_last_update_from_data(data)
+                _data_source_info = {
+                    'source': 'backup_csv',
+                    'last_update': last_update or csv_date,
+                    'source_description': f'Repository backup CSV (file modified: {csv_date})'
+                }
+                
+                print(f"⚠️  Using backup data: {len(data)} games loaded from repository CSV")
                 return data
             else:
                 print(f"Warning: {CSV_FILEPATH} exists but is empty")
@@ -974,16 +1070,14 @@ def load_game_data():
         except Exception as e:
             print(f"Warning: Unexpected error reading {CSV_FILEPATH}: {e}")
     
-    # If CSV doesn't exist or failed to load, try to generate from JSON files
-    if os.path.exists(root_dir):
-        all_data = load_data_from_directories(root_dir) 
-        if all_data:  # Only proceed if we have JSON data
-            data = pd.DataFrame(all_data)
-            flatten_df(data)
-            data.to_csv(CSV_FILEPATH, index=False)
-            return data
+    # PRIORITY 3: No data available
+    _data_source_info = {
+        'source': 'none',
+        'last_update': None,
+        'source_description': 'No data available'
+    }
     
-    # Return empty DataFrame if no data available
+    print("❌ No data available: Neither new data nor backup CSV found")
     return pd.DataFrame()
 
 # =============================================================================

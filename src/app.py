@@ -11,7 +11,7 @@ from .utils import (calculate_standings_by_division, get_highest_scoring_games,
                    get_starting_five_vs_bench_stats, get_double_digit_scorers, get_consistent_scorers,
                    get_player_game_impact_analysis, get_player_foul_impact_analysis,
                    get_best_player_combinations, get_referee_game_impact_analysis, get_all_fixtures_data,
-                   get_fixtures_matrix_data)
+                   get_fixtures_matrix_data, get_data_source_info)
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
 
@@ -58,6 +58,8 @@ app.jinja_env.globals.update(get_team_logo_url=get_team_logo_url)
 
 # Load and process the data
 data = load_game_data()
+data_source_info = get_data_source_info()
+
 if not data.empty:
     # Clean the data - remove unnamed column if it exists
     if 'Unnamed: 0' in data.columns:
@@ -84,7 +86,8 @@ def index():
                          divisions=divisions, 
                          standings=standings, 
                          highest_games=highest_games,
-                         selected_division=selected_division)
+                         selected_division=selected_division,
+                         data_source_info=data_source_info)
 
 @app.route('/statistics')
 def statistics():
@@ -92,7 +95,8 @@ def statistics():
     if data.empty:
         return render_template('statistics.html', 
                              error="No data available",
-                             divisions=divisions)
+                             divisions=divisions,
+                             data_source_info=data_source_info)
     
     # Get overall statistics
     highest_games = get_highest_scoring_games(data, 10)
@@ -130,13 +134,14 @@ def statistics():
                          most_ties=most_ties,
                          most_lead_changes=most_lead_changes,
                          team_stats=team_stats,
-                         divisions=divisions)
+                         divisions=divisions,
+                         data_source_info=data_source_info)
 
 @app.route('/team-stats', methods=['GET', 'POST'])
 def team_stats():
     """Detailed team statistics page with team selection"""
     if data.empty:
-        return render_template('team_stats.html', error="No data available")
+        return render_template('team_stats.html', error="No data available", data_source_info=data_source_info)
     
     # Get all unique teams
     home_teams = set(data['HomeTeamName'].unique())
@@ -185,13 +190,14 @@ def team_stats():
                          selected_team=selected_team,
                          team_games=team_games,
                          team_specific_stats=team_specific_stats,
-                         divisions=divisions)
+                         divisions=divisions,
+                         data_source_info=data_source_info)
 
 @app.route('/player-stats')
 def player_stats():
     """Dedicated player statistics page"""
     if data.empty:
-        return render_template('player_stats.html', error="No data available")
+        return render_template('player_stats.html', error="No data available", data_source_info=data_source_info)
     
     # Get comprehensive player statistics
     top_scorers = get_top_scorers(data, 50)  # Get top 50 for comprehensive view
@@ -214,13 +220,14 @@ def player_stats():
                          starter_bench_stats=starter_bench_stats,
                          double_digit_scorers=double_digit_scorers,
                          consistent_scorers=consistent_scorers,
-                         divisions=divisions)
+                         divisions=divisions,
+                         data_source_info=data_source_info)
 
 @app.route('/deeper-analysis')
 def deeper_analysis():
     """Deep game analysis page with advanced metrics"""
     if data.empty:
-        return render_template('deeper_analysis.html', error="No data available", divisions=divisions)
+        return render_template('deeper_analysis.html', error="No data available", divisions=divisions, data_source_info=data_source_info)
     
     # Get division filter from query parameters
     division_filter = request.args.get('division')
@@ -242,13 +249,14 @@ def deeper_analysis():
                          player_combinations=player_combinations,
                          referee_impact=referee_impact,
                          divisions=divisions,
-                         selected_division=division_filter)
+                         selected_division=division_filter,
+                         data_source_info=data_source_info)
 
 @app.route('/fixtures')
 def fixtures():
     """Fixtures page with games displayed as a matrix table"""
     if data.empty:
-        return render_template('fixtures.html', error="No data available", divisions=divisions)
+        return render_template('fixtures.html', error="No data available", divisions=divisions, data_source_info=data_source_info)
     
     # Get division filter from query parameters
     division_filter = request.args.get('division')
@@ -266,7 +274,8 @@ def fixtures():
     return render_template('fixtures.html',
                          fixtures=fixtures_data,
                          matrix_data=matrix_data,
-                         divisions=divisions)
+                         divisions=divisions,
+                         data_source_info=data_source_info)
 
 @app.route('/admin')
 def admin():
@@ -350,6 +359,7 @@ def admin():
     return render_template('admin.html',
                          data_stats=data_stats,
                          file_stats=file_stats,
+                         data_source_info=data_source_info,
                          divisions=divisions)
 
 if __name__ == '__main__':
