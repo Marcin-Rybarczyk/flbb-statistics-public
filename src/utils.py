@@ -5,7 +5,7 @@ from collections import defaultdict
 
 
 FULL_GAME_STATS_OUTPUT_DIR = "full-game-stats-output"
-CSV_FILEPATH = "full-game-stats.csv"
+CSV_FILEPATH = "data/full-game-stats.csv"
 FORCE_TO_CREATE_CSV = True
 
 def load_json_data_with_bom_handling(file_path):

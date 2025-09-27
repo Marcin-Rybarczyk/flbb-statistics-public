@@ -7,7 +7,12 @@ This script generates static versions of the Flask pages that can be hosted on G
 import os
 import json
 from flask import Flask, render_template
-from utils import load_game_data, calculate_standings_by_division, get_highest_scoring_games
+import sys
+
+# Add the root directory to Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from src.utils import load_game_data, calculate_standings_by_division, get_highest_scoring_games
 
 def generate_static_site():
     """Generate static HTML files for GitHub Pages"""

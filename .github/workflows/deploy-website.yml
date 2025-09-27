@@ -29,7 +29,7 @@ jobs:
         
     - name: Test Flask application
       run: |
-        python -c "from app import app; from utils import load_game_data; print('Flask app loads successfully')"
+        python -c "from src.app import app; from src.utils import load_game_data; print('Flask app loads successfully')"
 
   deploy:
     needs: test
