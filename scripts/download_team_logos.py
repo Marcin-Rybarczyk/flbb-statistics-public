@@ -62,6 +62,13 @@ TIMEOUT_SECONDS = 15
 MAX_IMAGE_SIZE_MB = 10  # Maximum logo file size in MB
 MIN_IMAGE_SIZE_KB = 1   # Minimum logo file size in KB
 
+logos = {
+   "AB Contern": 'https://clubs.flbb.lu/web_users/updates/images/Logos/CON.jpg',
+    "Amicale Steesel": 'https://clubs.flbb.lu/web_users/updates/images/Logos/AMI.jpg',
+    'Racing Luxembourg': 'https://clubs.flbb.lu/web_users/updates/images/Logos/RAC.jpg'
+}
+
+
 def create_logos_directory():
     """Create logos directory if it doesn't exist"""
     Path(LOGOS_DIR).mkdir(exist_ok=True)
@@ -148,75 +155,76 @@ def search_team_logo_on_flbb(team_name, session, verbose=False):
     if verbose:
         print(f"  Searching for logo for '{team_name}' (normalized: '{normalized_name}')")
     
-    # Strategy 1: Try direct team page URL patterns
-    # Based on common basketball website structures
-    possible_urls = [
-        # Direct team pages
-        f"{BASE_URL}/equipe/{normalized_name}",
-        f"{BASE_URL}/club/{normalized_name}", 
-        f"{BASE_URL}/teams/{normalized_name}",
-        f"{BASE_URL}/team/{normalized_name}",
+    # # Strategy 1: Try direct team page URL patterns
+    # # Based on common basketball website structures
+    # possible_urls = [
+    #     # Direct team pages
+    #     # https://www.luxembourg.basketball/layout/themes/flbb/images/Logos/FRO.jpg
+    #     f"{BASE_URL}/equipe/{normalized_name}",
+    #     f"{BASE_URL}/club/{normalized_name}", 
+    #     f"{BASE_URL}/teams/{normalized_name}",
+    #     f"{BASE_URL}/team/{normalized_name}",
         
-        # Alternative URL structures
-        f"{BASE_URL}/clubs/{normalized_name}",
-        f"{BASE_URL}/equipes/{normalized_name}",
+    #     # Alternative URL structures
+    #     f"{BASE_URL}/clubs/{normalized_name}",
+    #     f"{BASE_URL}/equipes/{normalized_name}",
         
-        # With potential ID patterns
-        f"{BASE_URL}/equipe/{normalized_name}.html",
-        f"{BASE_URL}/club/{normalized_name}.html",
+    #     # With potential ID patterns
+    #     f"{BASE_URL}/equipe/{normalized_name}.html",
+    #     f"{BASE_URL}/club/{normalized_name}.html",
         
-        # Category-based patterns
-        f"{BASE_URL}/c/equipe/{normalized_name}",
-        f"{BASE_URL}/c/club/{normalized_name}",
-    ]
+    #     # Category-based patterns
+    #     f"{BASE_URL}/c/equipe/{normalized_name}",
+    #     f"{BASE_URL}/c/club/{normalized_name}",
+    # ]
     
-    for url in possible_urls:
-        try:
-            time.sleep(REQUEST_DELAY)
-            if verbose:
-                print(f"    Trying: {url}")
-            response = session.get(url, timeout=15, allow_redirects=True)
-            if response.status_code == 200:
-                logo_url = extract_logo_from_page(response.text, team_name, verbose)
-                if logo_url:
-                    if verbose:
-                        print(f"    ✓ Found logo at: {logo_url}")
-                    return logo_url
-            elif verbose:
-                print(f"    Status: {response.status_code}")
-        except Exception as e:
-            if verbose:
-                print(f"    Error: {e}")
-            continue
+    # for url in possible_urls:
+    #     try:
+    #         time.sleep(REQUEST_DELAY)
+    #         if verbose:
+    #             print(f"    Trying: {url}")
+    #         response = session.get(url, timeout=15, allow_redirects=True)
+    #         if response.status_code == 200:
+    #             logo_url = extract_logo_from_page(response.text, team_name, verbose)
+    #             if logo_url:
+    #                 if verbose:
+    #                     print(f"    ✓ Found logo at: {logo_url}")
+    #                 return logo_url
+    #         elif verbose:
+    #             print(f"    Status: {response.status_code}")
+    #     except Exception as e:
+    #         if verbose:
+    #             print(f"    Error: {e}")
+    #         continue
     
-    # Strategy 2: Search through category and listing pages
-    search_urls = [
-        f"{BASE_URL}/c/categorie/all",
-        f"{BASE_URL}/categories",
-        f"{BASE_URL}/equipes",
-        f"{BASE_URL}/clubs",
-        f"{BASE_URL}/teams",
-        f"{BASE_URL}/search?q={quote(team_name)}",
-        f"{BASE_URL}/recherche?q={quote(team_name)}",
-        f"{BASE_URL}/?s={quote(team_name)}",
-    ]
+    # # Strategy 2: Search through category and listing pages
+    # search_urls = [
+    #     f"{BASE_URL}/c/categorie/all",
+    #     f"{BASE_URL}/categories",
+    #     f"{BASE_URL}/equipes",
+    #     f"{BASE_URL}/clubs",
+    #     f"{BASE_URL}/teams",
+    #     f"{BASE_URL}/search?q={quote(team_name)}",
+    #     f"{BASE_URL}/recherche?q={quote(team_name)}",
+    #     f"{BASE_URL}/?s={quote(team_name)}",
+    # ]
     
-    for url in search_urls:
-        try:
-            time.sleep(REQUEST_DELAY)
-            if verbose:
-                print(f"    Searching in: {url}")
-            response = session.get(url, timeout=15)
-            if response.status_code == 200:
-                logo_url = extract_logo_from_search_page(response.text, team_name, verbose)
-                if logo_url:
-                    if verbose:
-                        print(f"    ✓ Found logo in search: {logo_url}")
-                    return logo_url
-        except Exception as e:
-            if verbose:
-                print(f"    Search error: {e}")
-            continue
+    # for url in search_urls:
+    #     try:
+    #         time.sleep(REQUEST_DELAY)
+    #         if verbose:
+    #             print(f"    Searching in: {url}")
+    #         response = session.get(url, timeout=15)
+    #         if response.status_code == 200:
+    #             logo_url = extract_logo_from_search_page(response.text, team_name, verbose)
+    #             if logo_url:
+    #                 if verbose:
+    #                     print(f"    ✓ Found logo in search: {logo_url}")
+    #                 return logo_url
+    #     except Exception as e:
+    #         if verbose:
+    #             print(f"    Search error: {e}")
+    #         continue
     
     # Strategy 3: Try to find logos in common asset directories
     asset_patterns = []
@@ -262,7 +270,7 @@ def search_team_logo_on_flbb(team_name, session, verbose=False):
             time.sleep(REQUEST_DELAY / 2)  # Faster for direct asset checks
             if verbose:
                 print(f"    Checking asset: {logo_url}")
-            response = session.head(logo_url, timeout=10)  # HEAD request to check if exists
+            response = session.head(logo_url, timeout=10, verify=False)  # HEAD request to check if exists
             if response.status_code == 200:
                 content_type = response.headers.get('content-type', '').lower()
                 if 'image' in content_type:
@@ -273,7 +281,7 @@ def search_team_logo_on_flbb(team_name, session, verbose=False):
             if verbose:
                 print(f"    Asset check error: {e}")
             continue
-    
+    # https://www.luxembourg.basketball/layout/themes/flbb/images/Logos/NIT.jpg
     return None
 
 def extract_logo_from_page(html_content, team_name, verbose=False):
