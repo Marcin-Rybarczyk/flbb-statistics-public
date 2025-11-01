@@ -3,5 +3,4 @@ services:
     name: flbb-stats-2025-2026
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
-    rootDir: src
+    startCommand: gunicorn src.app:app
