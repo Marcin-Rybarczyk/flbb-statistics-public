@@ -360,7 +360,7 @@ function Main($appConfig) {
     Write-Host "Running post-processing (CSV generation, archive creation, and Google Drive upload)..."
     
     try {
-        $pythonResult = python post_process.py 2>&1
+        $pythonResult = python $ROOT\post_process.py 2>&1
         if ($LASTEXITCODE -eq 0) {
             Write-Host "Post-processing completed successfully"
             Write-Host $pythonResult

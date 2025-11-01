@@ -58,7 +58,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from src.utils import create_csv_from_json_data
 from src.google_drive_helper import upload_file_to_drive
 
-def load_config(config_file="data/config.json"):
+def load_config(config_file="config.json"):
     """Load configuration from JSON file."""
     if not os.path.exists(config_file):
         print(f"Warning: Config file {config_file} not found, using defaults")
