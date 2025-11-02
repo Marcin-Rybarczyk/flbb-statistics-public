@@ -266,7 +266,7 @@
     <div class="stats-summary">
         <h3>📊 Season Overview</h3>
         <p>Teams: {{ matrix_data.teams|length }} | 
-           Division: {{ matrix_data.current_division }}
+           Division: {% if selected_division == 'ALL' %}All Divisions{% else %}{{ selected_division }}{% endif %}
         </p>
     </div>
 
@@ -275,10 +275,10 @@
     <div class="filter-section">
         <label for="division-filter">Filter by Division:</label>
         <select id="division-filter" onchange="filterByDivision(this.value)">
-            <option value="">All Divisions</option>
+            <option value="ALL" {% if selected_division == 'ALL' %}selected{% endif %}>All Divisions</option>
             {% for division in matrix_data.divisions %}
                 <option value="{{ division }}" 
-                        {% if division == matrix_data.current_division %}selected{% endif %}>
+                        {% if division == selected_division %}selected{% endif %}>
                     {{ division }}
                 </option>
             {% endfor %}
@@ -470,11 +470,8 @@
 
         function filterByDivision(division) {
             const params = new URLSearchParams(window.location.search);
-            if (division) {
-                params.set('division', division);
-            } else {
-                params.delete('division');
-            }
+            // Always set the division parameter, including "ALL"
+            params.set('division', division);
             window.location.search = params.toString();
         }
     </script>

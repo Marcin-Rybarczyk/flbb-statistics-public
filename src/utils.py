@@ -1811,17 +1811,23 @@ def get_top_scorer_by_game(data):
     
     return pd.DataFrame(fixtures)
 
-def get_all_fixtures_data(data):
+def get_all_fixtures_data(data, division_filter=None):
     """
     Get all fixtures data with enhanced information for display.
     
     Parameters:
     data (DataFrame): The game data
+    division_filter (str): Optional filter by division
     
     Returns:
     DataFrame: Enhanced fixtures data
     """
-    return get_top_scorer_by_game(data)
+    # Apply division filter if provided (check for None explicitly to handle empty strings)
+    filtered_data = data.copy()
+    if division_filter is not None:
+        filtered_data = filtered_data[filtered_data['GameDivisionDisplay'] == division_filter]
+    
+    return get_top_scorer_by_game(filtered_data)
 
 
 def get_fixtures_matrix_data(data, division_filter=None):

@@ -271,13 +271,28 @@ def fixtures():
         return render_template('fixtures.html', error="No data available", divisions=divisions, data_source_info=data_source_info)
     
     # Get division filter from query parameters
-    division_filter = request.args.get('division')
+    # Default to "M-Division 1:" if no filter is provided (first time visit)
+    DEFAULT_DIVISION = "M-Division 1:"
+    division_param = request.args.get('division')
+    
+    if division_param is None:
+        # First time visit - default to "M-Division 1:"
+        division_filter = DEFAULT_DIVISION
+        selected_division_param = DEFAULT_DIVISION
+    elif division_param == "ALL":
+        # User explicitly selected "All Divisions" - show all
+        division_filter = None
+        selected_division_param = "ALL"
+    else:
+        # Specific division selected
+        division_filter = division_param
+        selected_division_param = division_param
     
     # Get matrix data for fixtures
     matrix_data = get_fixtures_matrix_data(data, division_filter)
     
-    # Also get traditional table data for compatibility/comparison (if needed)
-    fixtures_data = get_all_fixtures_data(data)
+    # Also get traditional table data with filter applied
+    fixtures_data = get_all_fixtures_data(data, division_filter)
     
     # Sort by date (most recent first)
     if not fixtures_data.empty and 'DateTime' in fixtures_data.columns:
@@ -287,6 +302,7 @@ def fixtures():
                          fixtures=fixtures_data,
                          matrix_data=matrix_data,
                          divisions=divisions,
+                         selected_division=selected_division_param,
                          data_source_info=data_source_info)
 
 @app.route('/admin')
