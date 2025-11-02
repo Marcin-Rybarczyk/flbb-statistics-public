@@ -2162,3 +2162,176 @@ def get_website_config():
         'season_full_name': season_info['full_name'],
         'features': website_config.get('features', {})
     }
+
+def get_all_players_list(data):
+    """
+    Get a list of all unique players with their teams for autocomplete/search.
+    
+    Parameters:
+    data (DataFrame): The game data
+    
+    Returns:
+    list: List of dictionaries with player names and teams
+    """
+    player_stats = extract_all_player_stats(data)
+    
+    if player_stats.empty:
+        return []
+    
+    # Group by player name and team to get unique combinations
+    unique_players = player_stats.groupby(['PlayerName', 'Team']).size().reset_index(name='Games')
+    
+    # Sort by player name
+    unique_players = unique_players.sort_values('PlayerName')
+    
+    # Convert to list of dictionaries
+    players_list = unique_players.to_dict('records')
+    
+    return players_list
+
+def get_player_detail_stats(data, player_name):
+    """
+    Get comprehensive statistics for a specific player.
+    
+    Parameters:
+    data (DataFrame): The game data
+    player_name (str): The name of the player
+    
+    Returns:
+    dict: Comprehensive player statistics including:
+        - basic_stats: Overall statistics
+        - game_by_game: Detailed game-by-game performance
+        - quarter_analysis: Statistics distributed over quarters
+        - foul_breakdown: Detailed foul statistics by type
+        - starting_five_stats: Starting vs bench statistics
+    """
+    player_stats = extract_all_player_stats(data)
+    
+    if player_stats.empty:
+        return None
+    
+    # Filter for the specific player
+    player_games = player_stats[player_stats['PlayerName'] == player_name].copy()
+    
+    if player_games.empty:
+        return None
+    
+    # Basic aggregated statistics
+    basic_stats = {
+        'player_name': player_name,
+        'team': player_games['Team'].mode()[0] if not player_games['Team'].mode().empty else player_games['Team'].iloc[0],
+        'games_played': len(player_games),
+        'total_points': int(player_games['TotalPoints'].sum()),
+        'avg_points_per_game': round(player_games['TotalPoints'].mean(), 1),
+        'max_points_game': int(player_games['TotalPoints'].max()),
+        'min_points_game': int(player_games['TotalPoints'].min()),
+        'total_1p_made': int(player_games['1PMadeShots'].sum()),
+        'total_2p_made': int(player_games['2PMadeShots'].sum()),
+        'total_3p_made': int(player_games['3PMadeShots'].sum()),
+        'total_field_goals': int(player_games['1PMadeShots'].sum() + player_games['2PMadeShots'].sum() + player_games['3PMadeShots'].sum()),
+        'total_fouls': int(player_games['TotalFouls'].sum()),
+        'avg_fouls_per_game': round(player_games['TotalFouls'].mean(), 1),
+        'p_fouls': int(player_games['PFouls'].sum()),
+        'p1_fouls': int(player_games['P1Fouls'].sum()),
+        'p2_fouls': int(player_games['P2Fouls'].sum()),
+        'p3_fouls': int(player_games['P3Fouls'].sum()),
+        'starting_five_games': int(player_games['StartingFive'].sum()),
+        'bench_games': int((~player_games['StartingFive']).sum()),
+    }
+    
+    # Calculate shooting percentages
+    if basic_stats['starting_five_games'] > 0:
+        starting_games = player_games[player_games['StartingFive']]
+        if not starting_games.empty:
+            basic_stats['avg_points_as_starter'] = round(starting_games['TotalPoints'].mean(), 1)
+        else:
+            basic_stats['avg_points_as_starter'] = 0
+    else:
+        basic_stats['avg_points_as_starter'] = 0
+        
+    if basic_stats['bench_games'] > 0:
+        bench_games = player_games[~player_games['StartingFive']]
+        if not bench_games.empty:
+            basic_stats['avg_points_from_bench'] = round(bench_games['TotalPoints'].mean(), 1)
+        else:
+            basic_stats['avg_points_from_bench'] = 0
+    else:
+        basic_stats['avg_points_from_bench'] = 0
+    
+    # Game-by-game breakdown (sorted by date, most recent first)
+    game_by_game = player_games.sort_values('GameDate', ascending=False).to_dict('records')
+    
+    # Get quarter-by-quarter analysis from game events
+    quarter_analysis = _analyze_player_quarters(data, player_name)
+    
+    return {
+        'basic_stats': basic_stats,
+        'game_by_game': game_by_game,
+        'quarter_analysis': quarter_analysis
+    }
+
+def _analyze_player_quarters(data, player_name):
+    """
+    Analyze player performance by quarter from game events.
+    
+    Parameters:
+    data (DataFrame): The game data
+    player_name (str): The name of the player
+    
+    Returns:
+    dict: Quarter-by-quarter statistics
+    """
+    import ast
+    
+    quarter_stats = {
+        1: {'points': 0, 'fouls': 0, 'events': 0},
+        2: {'points': 0, 'fouls': 0, 'events': 0},
+        3: {'points': 0, 'fouls': 0, 'events': 0},
+        4: {'points': 0, 'fouls': 0, 'events': 0},
+    }
+    
+    for _, game in data.iterrows():
+        try:
+            # Parse game events
+            if isinstance(game['GameEvents'], str):
+                events = ast.literal_eval(game['GameEvents'])
+            else:
+                events = game['GameEvents']
+            
+            if not isinstance(events, list):
+                continue
+            
+            # Process each event for this player
+            for event in events:
+                if not isinstance(event, dict):
+                    continue
+                
+                event_actor = event.get('EventActor', '')
+                if event_actor != player_name:
+                    continue
+                
+                quarter = event.get('EventQuarter', 0)
+                if quarter not in quarter_stats:
+                    continue
+                
+                quarter_stats[quarter]['events'] += 1
+                
+                # Check event action
+                event_action = event.get('EventAction', '')
+                if 'Points Added' in event_action:
+                    # Extract points from action (1P, 2P, 3P)
+                    if '1P' in event_action:
+                        quarter_stats[quarter]['points'] += 1
+                    elif '2P' in event_action:
+                        quarter_stats[quarter]['points'] += 2
+                    elif '3P' in event_action:
+                        quarter_stats[quarter]['points'] += 3
+                
+                if 'Foul' in event_action:
+                    quarter_stats[quarter]['fouls'] += 1
+        
+        except Exception as e:
+            # Skip games with parsing errors
+            continue
+    
+    return quarter_stats
