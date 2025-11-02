@@ -202,6 +202,16 @@
                     Players ranked by overall impact on games - considering scoring, win rate, efficiency, and team performance
                 </p>
                 
+                <!-- Explanation Box -->
+                <div style="background: rgba(102, 126, 234, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 25px; border-left: 4px solid #667eea;">
+                    <h3 style="margin-top: 0; color: #667eea;">📊 Understanding the Metrics</h3>
+                    <ul style="margin: 10px 0; padding-left: 20px; line-height: 1.8;">
+                        <li><strong>Impact Score:</strong> A comprehensive weighted metric combining scoring (30%), win rate (25%), shooting efficiency (20%), team performance differential (15%), starting importance (10%), minus a foul penalty. Higher scores indicate greater overall game impact.</li>
+                        <li><strong>Win Rate:</strong> Percentage of games won when this player participates, indicating their correlation with team success.</li>
+                        <li><strong>Team Performance:</strong> Average point differential (team score minus opponent score) when the player plays. Positive values indicate the team outscores opponents.</li>
+                    </ul>
+                </div>
+                
                 {% if player_impact is not none and not player_impact.empty %}
                 <table>
                     <thead>
@@ -246,6 +256,16 @@
                 <p style="text-align: center; margin-bottom: 30px; color: #666; font-style: italic;">
                     Analysis of how fouls affect game outcomes and player effectiveness
                 </p>
+                
+                <!-- Explanation Box -->
+                <div style="background: rgba(231, 76, 60, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 25px; border-left: 4px solid #e74c3c;">
+                    <h3 style="margin-top: 0; color: #e74c3c;">⚠️ Understanding Foul Impact</h3>
+                    <ul style="margin: 10px 0; padding-left: 20px; line-height: 1.8;">
+                        <li><strong>Foul Impact:</strong> Percentage change in team foul rate when this player is on the court compared to when they're not. Positive values indicate the team commits more fouls with this player, negative values indicate fewer fouls.</li>
+                        <li><strong>Fouls/Game:</strong> Average personal fouls committed by the player per game. Lower values indicate better discipline.</li>
+                        <li><strong>Win Rate w/ Fouls:</strong> Team's win percentage in games where this player commits fouls, showing whether their aggressive play style correlates with team success.</li>
+                    </ul>
+                </div>
                 
                 {% if foul_impact is not none and not foul_impact.empty %}
                 <table>
@@ -292,6 +312,17 @@
                     Most effective player combinations based on joint performance metrics
                 </p>
                 
+                <!-- Explanation Box -->
+                <div style="background: rgba(39, 174, 96, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 25px; border-left: 4px solid #27ae60;">
+                    <h3 style="margin-top: 0; color: #27ae60;">👥 Understanding Synergy Score</h3>
+                    <ul style="margin: 10px 0; padding-left: 20px; line-height: 1.8;">
+                        <li><strong>Synergy Score:</strong> A measure of how well two players perform together, based on their combined win rate, scoring output, and games played as teammates. Higher scores indicate more effective partnerships.</li>
+                        <li><strong>Games Together:</strong> Minimum number of games played together required for statistical significance (default: 3 games).</li>
+                        <li><strong>Win Rate:</strong> Team's winning percentage when both players are on the court together, showing their combined impact on team success.</li>
+                        <li><strong>Combined Avg Points:</strong> Total points scored by both players per game when playing together, indicating their offensive contribution.</li>
+                    </ul>
+                </div>
+                
                 {% if player_combinations and 'player_synergies' in player_combinations and not player_combinations['player_synergies'].empty %}
                 <table>
                     <thead>
@@ -330,6 +361,17 @@
                 <p style="text-align: center; margin-bottom: 30px; color: #666; font-style: italic;">
                     Analysis of referee influence on game dynamics, scoring, and foul patterns
                 </p>
+                
+                <!-- Explanation Box -->
+                <div style="background: rgba(155, 89, 182, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 25px; border-left: 4px solid #9b59b6;">
+                    <h3 style="margin-top: 0; color: #9b59b6;">🟣 Understanding Referee Impact Metrics</h3>
+                    <ul style="margin: 10px 0; padding-left: 20px; line-height: 1.8;">
+                        <li><strong>Score Impact:</strong> How much the average total game score deviates from the league average when this referee officiates. Positive values indicate higher-scoring games, negative values indicate lower-scoring games.</li>
+                        <li><strong>Foul Impact:</strong> How much the average fouls per game deviates from the league average with this referee. Positive values mean more fouls are called (stricter), negative values mean fewer fouls (more lenient).</li>
+                        <li><strong>Overall Impact (Competitiveness Impact):</strong> How much the close game rate (games decided by 5 points or less) deviates from the league average with this referee. Positive values indicate more competitive games, negative values indicate more blowouts.</li>
+                        <li><strong>Interpretation:</strong> These metrics help identify refereeing styles - some refs allow more physical play (lower fouls), while others maintain tighter control (higher fouls). Score and competitiveness impacts show how referee decisions influence game flow.</li>
+                    </ul>
+                </div>
                 
                 {% if referee_impact and 'referee_impact_summary' in referee_impact and not referee_impact['referee_impact_summary'].empty %}
                 <table>
