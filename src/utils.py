@@ -731,7 +731,7 @@ def get_filtered_player_stats(data, division=None, team=None):
         'GDFouls': 'sum',
         'GameId': 'count',  # Games played
         'StartingFive': 'sum',  # Count of starting five appearances
-        'PlayerNumber': lambda x: x.mode()[0] if not x.mode().empty else x.iloc[0]  # Most common number
+        'PlayerNumber': lambda x: x.mode()[0] if not x.mode().empty else (x.iloc[0] if len(x) > 0 else None)  # Most common number
     }
     
     player_summary = player_stats.groupby(['PlayerName', 'Team']).agg(aggregations).reset_index()

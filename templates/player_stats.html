@@ -106,7 +106,7 @@
         </div>
 
         <!-- Filtered Results Section -->
-        {% if filtered_stats is not none and not filtered_stats.empty %}
+        {% if filtered_stats and not filtered_stats.empty %}
         <div class="stats-section" style="margin-bottom: 30px; background: rgba(102, 126, 234, 0.05); padding: 20px; border-radius: 15px; border: 2px solid #667eea;">
             <h2>📊 Filtered Player Statistics
                 {% if selected_division %}
