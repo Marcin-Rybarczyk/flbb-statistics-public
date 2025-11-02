@@ -2623,16 +2623,29 @@ def _calculate_score_evolution(events, home_team, away_team):
     # Sort events chronologically
     sorted_events = sorted(events, key=lambda x: x.get('EventDateTime', ''))
     
+    # Foul-related action keywords (case-insensitive)
+    foul_keywords = ['foul added', 'faute', 'foul deleted']
+    
     for event in sorted_events:
         # Track fouls
         event_action = event.get('EventAction', '').lower()
         event_team = event.get('EventTeam', '')
         
-        if 'foul' in event_action or 'faute' in event_action:
+        # Check if this is a foul event (but not a foul deletion)
+        is_foul_added = any(keyword in event_action for keyword in ['foul added', 'faute'])
+        is_foul_deleted = 'foul deleted' in event_action
+        
+        if is_foul_added and not is_foul_deleted:
             if event_team == home_team:
                 home_fouls += 1
             elif event_team == away_team:
                 away_fouls += 1
+        elif is_foul_deleted:
+            # Handle foul deletions by decrementing
+            if event_team == home_team and home_fouls > 0:
+                home_fouls -= 1
+            elif event_team == away_team and away_fouls > 0:
+                away_fouls -= 1
         
         # Track score changes
         if event.get('EventScore'):
