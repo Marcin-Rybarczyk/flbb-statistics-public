@@ -505,8 +505,13 @@ def get_starting_five_vs_bench_stats(data):
         - starters: DataFrame with top starting players
         - bench: DataFrame with top bench players
         - starters_total_players: Total unique starter players
-        - bench_total_players: Total unique bench players
-        - etc.
+        - starters_total_games: Total game appearances by starters
+        - starters_avg_points: Average points per game for starters
+        - starters_total_points: Total points scored by starters
+        - starters_avg_fouls: Average fouls per game for starters
+        - starters_total_shots: Total shots made by starters
+        - starters_avg_shots_per_game: Average shots per game for starters
+        - (corresponding bench_* fields for bench players)
     """
     player_stats = extract_all_player_stats(data)
     
@@ -563,7 +568,7 @@ def get_starting_five_vs_bench_stats(data):
     # Calculate summary averages for comparison
     starters_avg = starter_stats.get('starters_avg_points', 0)
     bench_avg = bench_stats.get('bench_avg_points', 0)
-    difference = round(starters_avg - bench_avg, 1) if starters_avg and bench_avg else 0
+    difference = round(starters_avg - bench_avg, 1) if starters_avg is not None and bench_avg is not None else 0
     
     # Build result dictionary with all required keys
     result = {
