@@ -70,7 +70,7 @@
                 <tbody>
                     {% for index, row in team_games.iterrows() %}
                     <tr class="{% if row['Result'] == 'W' %}highlight{% endif %}">
-                        <td>{{ row['GameId'] }}</td>
+                        <td><a href="/game-detail/{{ row['GameId'] }}" style="color: #667eea; text-decoration: underline;">{{ row['GameId'] }}</a></td>
                         <td>{{ row['DateTime'][:10] if row['DateTime'] else 'N/A' }}</td>
                         <td>{{ 'Home' if row['IsHome'] else 'Away' }}</td>
                         <td>
@@ -78,7 +78,10 @@
                             {% if opponent_logo_url %}
                                 <img src="{{ opponent_logo_url }}" alt="{{ row['Opponent'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
                             {% endif %}
-                            {{ row['Opponent'] }}
+                            <form method="post" action="/team-stats" style="display: inline;">
+                                <input type="hidden" name="team" value="{{ row['Opponent'] }}">
+                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Opponent'] }}</button>
+                            </form>
                         </td>
                         <td><strong>{{ row['TeamScore'] }} - {{ row['OpponentScore'] }}</strong></td>
                         <td><strong>{{ row['Result'] }}</strong></td>

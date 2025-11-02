@@ -26,9 +26,19 @@
                     {% for index, row in highest_games.iterrows() %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td>{{ row['GameId'] }}</td>
-                        <td>{{ row['HomeTeamName'] }}</td>
-                        <td>{{ row['AwayTeamName'] }}</td>
+                        <td><a href="/game-detail/{{ row['GameId'] }}" style="color: #667eea; text-decoration: underline;">{{ row['GameId'] }}</a></td>
+                        <td>
+                            <form method="post" action="/team-stats" style="display: inline;">
+                                <input type="hidden" name="team" value="{{ row['HomeTeamName'] }}">
+                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['HomeTeamName'] }}</button>
+                            </form>
+                        </td>
+                        <td>
+                            <form method="post" action="/team-stats" style="display: inline;">
+                                <input type="hidden" name="team" value="{{ row['AwayTeamName'] }}">
+                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['AwayTeamName'] }}</button>
+                            </form>
+                        </td>
                         <td>{{ row['FinalHomeScore'] }} - {{ row['FinalAwayScore'] }}</td>
                         <td><strong>{{ row['TotalScore'] }}</strong></td>
                         <td>{{ row['GameDivisionDisplay'] }}</td>
@@ -70,7 +80,12 @@
                     {% for index, row in team_stats.head(10).iterrows() %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td>{{ row['Team'] }}</td>
+                        <td>
+                            <form method="post" action="/team-stats" style="display: inline;">
+                                <input type="hidden" name="team" value="{{ row['Team'] }}">
+                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team'] }}</button>
+                            </form>
+                        </td>
                         <td>{{ row['TotalGames'] }}</td>
                         <td><strong>{{ row['WinPercentage'] }}%</strong></td>
                         <td>{{ "%.1f"|format(row['AvgPointsScored']) }}</td>
@@ -105,8 +120,13 @@
                     {% for index, row in top_scorers.iterrows() %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td>{{ row['PlayerName'] }}</td>
-                        <td>{{ row['Team'] }}</td>
+                        <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" style="color: #667eea; text-decoration: underline;">{{ row['PlayerName'] }}</a></td>
+                        <td>
+                            <form method="post" action="/team-stats" style="display: inline;">
+                                <input type="hidden" name="team" value="{{ row['Team'] }}">
+                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team'] }}</button>
+                            </form>
+                        </td>
                         <td>{{ row['GamesPlayed'] }}</td>
                         <td><strong>{{ row['TotalPoints'] }}</strong></td>
                         <td>{{ "%.1f"|format(row['AvgPointsPerGame']) }}</td>
@@ -134,10 +154,15 @@
                 <tbody>
                     {% for index, row in highest_single_score.iterrows() %}
                     <tr>
-                        <td>{{ row['PlayerName'] }}</td>
-                        <td>{{ row['Team'] }}</td>
+                        <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" style="color: #667eea; text-decoration: underline;">{{ row['PlayerName'] }}</a></td>
+                        <td>
+                            <form method="post" action="/team-stats" style="display: inline;">
+                                <input type="hidden" name="team" value="{{ row['Team'] }}">
+                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team'] }}</button>
+                            </form>
+                        </td>
                         <td><strong>{{ row['TotalPoints'] }}</strong></td>
-                        <td>{{ row['GameId'] }}</td>
+                        <td><a href="/game-detail/{{ row['GameId'] }}" style="color: #667eea; text-decoration: underline;">{{ row['GameId'] }}</a></td>
                         <td>{{ row['GameDate'] }}</td>
                     </tr>
                     {% endfor %}
@@ -163,8 +188,13 @@
                     {% for index, row in top_three_pointers.iterrows() %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td>{{ row['PlayerName'] }}</td>
-                        <td>{{ row['Team'] }}</td>
+                        <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" style="color: #667eea; text-decoration: underline;">{{ row['PlayerName'] }}</a></td>
+                        <td>
+                            <form method="post" action="/team-stats" style="display: inline;">
+                                <input type="hidden" name="team" value="{{ row['Team'] }}">
+                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team'] }}</button>
+                            </form>
+                        </td>
                         <td><strong>{{ row['3PMadeShots'] }}</strong></td>
                         <td>{{ row['GamesPlayed'] }}</td>
                         <td>{{ "%.1f"|format(row['AvgThreePointsPerGame']) }}</td>
@@ -192,8 +222,13 @@
                     {% for index, row in top_foulers.iterrows() %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td>{{ row['PlayerName'] }}</td>
-                        <td>{{ row['Team'] }}</td>
+                        <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" style="color: #667eea; text-decoration: underline;">{{ row['PlayerName'] }}</a></td>
+                        <td>
+                            <form method="post" action="/team-stats" style="display: inline;">
+                                <input type="hidden" name="team" value="{{ row['Team'] }}">
+                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team'] }}</button>
+                            </form>
+                        </td>
                         <td><strong>{{ row['TotalFouls'] }}</strong></td>
                         <td>{{ row['GamesPlayed'] }}</td>
                         <td>{{ "%.1f"|format(row['AvgFoulsPerGame']) }}</td>
@@ -281,9 +316,25 @@
                     {% for index, row in most_ties.iterrows() %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td>{{ row['GameId'] }}</td>
-                        <td>{{ row['HomeTeam'] }}</td>
-                        <td>{{ row['AwayTeam'] }}</td>
+                        <td><a href="/game-detail/{{ row['GameId'] }}" style="color: #667eea; text-decoration: underline;">{{ row['GameId'] }}</a></td>
+                        <td>
+                            <form method="post" action="/team-stats" style="display: inline;">
+                                <input type="hidden" name="team" value="{{ row['HomeTeam'] }}">
+                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['HomeTeam'] }}</button>
+                            </form>
+                        </td>
+                        <td>
+                            <form method="post" action="/team-stats" style="display: inline;">
+                                <input type="hidden" name="team" value="{{ row['HomeTeam'] }}">
+                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['HomeTeam'] }}</button>
+                            </form>
+                        </td>
+                        <td>
+                            <form method="post" action="/team-stats" style="display: inline;">
+                                <input type="hidden" name="team" value="{{ row['AwayTeam'] }}">
+                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['AwayTeam'] }}</button>
+                            </form>
+                        </td>
                         <td>{{ row['FinalHomeScore'] }} - {{ row['FinalAwayScore'] }}</td>
                         <td><strong>{{ row['TieScores'] }}</strong></td>
                     </tr>
@@ -310,9 +361,19 @@
                     {% for index, row in most_lead_changes.iterrows() %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td>{{ row['GameId'] }}</td>
-                        <td>{{ row['HomeTeam'] }}</td>
-                        <td>{{ row['AwayTeam'] }}</td>
+                        <td><a href="/game-detail/{{ row['GameId'] }}" style="color: #667eea; text-decoration: underline;">{{ row['GameId'] }}</a></td>
+                        <td>
+                            <form method="post" action="/team-stats" style="display: inline;">
+                                <input type="hidden" name="team" value="{{ row['HomeTeam'] }}">
+                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['HomeTeam'] }}</button>
+                            </form>
+                        </td>
+                        <td>
+                            <form method="post" action="/team-stats" style="display: inline;">
+                                <input type="hidden" name="team" value="{{ row['AwayTeam'] }}">
+                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['AwayTeam'] }}</button>
+                            </form>
+                        </td>
                         <td>{{ row['FinalHomeScore'] }} - {{ row['FinalAwayScore'] }}</td>
                         <td><strong>{{ row['LeadChanges'] }}</strong></td>
                     </tr>
@@ -339,9 +400,19 @@
                     {% for index, row in biggest_leads.iterrows() %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td>{{ row['GameId'] }}</td>
-                        <td>{{ row['HomeTeam'] }}</td>
-                        <td>{{ row['AwayTeam'] }}</td>
+                        <td><a href="/game-detail/{{ row['GameId'] }}" style="color: #667eea; text-decoration: underline;">{{ row['GameId'] }}</a></td>
+                        <td>
+                            <form method="post" action="/team-stats" style="display: inline;">
+                                <input type="hidden" name="team" value="{{ row['HomeTeam'] }}">
+                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['HomeTeam'] }}</button>
+                            </form>
+                        </td>
+                        <td>
+                            <form method="post" action="/team-stats" style="display: inline;">
+                                <input type="hidden" name="team" value="{{ row['AwayTeam'] }}">
+                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['AwayTeam'] }}</button>
+                            </form>
+                        </td>
                         <td>{{ row['FinalHomeScore'] }} - {{ row['FinalAwayScore'] }}</td>
                         <td><strong>{{ row['BiggestLead'] }}</strong></td>
                     </tr>
@@ -369,12 +440,27 @@
                     {% for index, row in biggest_wins.iterrows() %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td>{{ row['GameId'] }}</td>
-                        <td>{{ row['HomeTeam'] }}</td>
-                        <td>{{ row['AwayTeam'] }}</td>
+                        <td><a href="/game-detail/{{ row['GameId'] }}" style="color: #667eea; text-decoration: underline;">{{ row['GameId'] }}</a></td>
+                        <td>
+                            <form method="post" action="/team-stats" style="display: inline;">
+                                <input type="hidden" name="team" value="{{ row['HomeTeam'] }}">
+                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['HomeTeam'] }}</button>
+                            </form>
+                        </td>
+                        <td>
+                            <form method="post" action="/team-stats" style="display: inline;">
+                                <input type="hidden" name="team" value="{{ row['AwayTeam'] }}">
+                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['AwayTeam'] }}</button>
+                            </form>
+                        </td>
                         <td>{{ row['FinalHomeScore'] }} - {{ row['FinalAwayScore'] }}</td>
                         <td><strong>{{ row['WinMargin'] }}</strong></td>
-                        <td>{{ row['Winner'] }}</td>
+                        <td>
+                            <form method="post" action="/team-stats" style="display: inline;">
+                                <input type="hidden" name="team" value="{{ row['Winner'] }}">
+                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Winner'] }}</button>
+                            </form>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
