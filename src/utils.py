@@ -529,7 +529,7 @@ def get_top_scorers(data, top_n=20, division=None):
 
 def get_highest_single_game_score(data, top_n=10, division=None):
     """
-    Get the highest single game scores by any player.
+    Get the highest single game scores by any player, with one entry per player (their best game).
     
     Parameters:
     data (DataFrame): The game data
@@ -537,7 +537,7 @@ def get_highest_single_game_score(data, top_n=10, division=None):
     division (str): Optional division filter
     
     Returns:
-    DataFrame: Players with highest single game scores
+    DataFrame: Players with highest single game scores (unique players)
     """
     # Filter by division if specified
     if division:
@@ -548,8 +548,10 @@ def get_highest_single_game_score(data, top_n=10, division=None):
     if player_stats.empty:
         return pd.DataFrame()
     
-    # Sort by total points and return top N single game performances
-    top_single_games = player_stats.nlargest(top_n, 'TotalPoints').reset_index(drop=True)
+    # Get the highest score for each player (eliminate duplicates)
+    # Group by player and get the row with max points for each player
+    idx = player_stats.groupby('PlayerName')['TotalPoints'].idxmax()
+    top_single_games = player_stats.loc[idx].nlargest(top_n, 'TotalPoints').reset_index(drop=True)
     
     return top_single_games
 
@@ -741,12 +743,12 @@ def get_double_digit_scorers(data, min_points=10, division=None):
     double_digit_stats.columns = ['PlayerName', 'Team', 'DoubleDigitGames', 'AvgInDoubleDigitGames', 'HighestScore', 'TotalGamesPlayed']
     
     # Get total games played for each player from all games
-    all_player_games = player_stats.groupby(['PlayerName', 'Team']).size().reset_index(name='TotalGamesActual')
+    all_player_games = player_stats.groupby(['PlayerName', 'Team']).size().reset_index(name='TotalGames')
     double_digit_stats = double_digit_stats.merge(all_player_games, on=['PlayerName', 'Team'], how='left')
     
     # Calculate percentage of double-digit games
     double_digit_stats['DoubleDigitPercentage'] = (
-        (double_digit_stats['DoubleDigitGames'] / double_digit_stats['TotalGamesActual']) * 100
+        (double_digit_stats['DoubleDigitGames'] / double_digit_stats['TotalGames']) * 100
     ).round(1)
     
     # Round averages
