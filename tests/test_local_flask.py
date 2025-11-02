@@ -64,10 +64,18 @@ def test_flask_import():
                 print("✅ Statistics route (/statistics) working")
             else:
                 print(f"❌ Statistics route returned status code: {response.status_code}")
+            
+            response = client.get('/player-detail')
+            if response.status_code == 200:
+                print("✅ Player detail route (/player-detail) working")
+            else:
+                print(f"❌ Player detail route returned status code: {response.status_code}")
                 
         return True
     except Exception as e:
         print(f"❌ Error importing Flask app: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def run_flask_server(port=5000, debug=True, production=False):

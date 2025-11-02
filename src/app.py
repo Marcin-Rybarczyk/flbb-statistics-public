@@ -12,8 +12,8 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
                    get_player_game_impact_analysis, get_player_foul_impact_analysis,
                    get_best_player_combinations, get_referee_game_impact_analysis, get_all_fixtures_data,
                    get_fixtures_matrix_data, get_data_source_info, get_season_info, 
-                   get_website_config, list_available_archives, import_season_archive)
-from src.version import get_version_info
+                   get_website_config, list_available_archives, import_season_archive,
+                   get_all_players_list, get_player_detail_stats)
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
 
@@ -235,6 +235,29 @@ def player_stats():
                          starter_bench_stats=starter_bench_stats,
                          double_digit_scorers=double_digit_scorers,
                          consistent_scorers=consistent_scorers,
+                         divisions=divisions,
+                         data_source_info=data_source_info)
+
+@app.route('/player-detail')
+def player_detail():
+    """Individual player detail page with search and comprehensive statistics"""
+    if data.empty:
+        return render_template('player_detail.html', error="No data available", data_source_info=data_source_info)
+    
+    # Get all players for autocomplete
+    all_players = get_all_players_list(data)
+    
+    # Get selected player from query parameter
+    player_name = request.args.get('player')
+    player_stats_detail = None
+    
+    if player_name:
+        player_stats_detail = get_player_detail_stats(data, player_name)
+    
+    return render_template('player_detail.html',
+                         all_players=all_players,
+                         player_name=player_name,
+                         player_stats=player_stats_detail,
                          divisions=divisions,
                          data_source_info=data_source_info)
 
