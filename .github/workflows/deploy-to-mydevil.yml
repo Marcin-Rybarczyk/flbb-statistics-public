@@ -3,7 +3,7 @@ name: Deploy to MyDevil.net
 on:
   push:
     branches:
-      - main  # adjust to your main branch
+      - feature-mydevil  # adjust to your main branch
   workflow_dispatch:  # allow manual trigger too
 
 jobs:
@@ -36,7 +36,7 @@ jobs:
             git clone git@github.com:Marcin-Rybarczyk/flbb-statistics-public.git .
           else
             echo "📦 Pulling latest changes..."
-            git pull origin main
+            git pull origin feature-mydevil
           fi
           source ~/flaskenv/bin/activate
           pip install -r requirements.txt
