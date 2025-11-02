@@ -397,6 +397,9 @@ def extract_all_player_stats(data):
                     'P1Fouls': player.get('P1 Fouls', 0),
                     'P2Fouls': player.get('P2 Fouls', 0),
                     'P3Fouls': player.get('P3 Fouls', 0),
+                    'U1Fouls': player.get('U1 Fouls', 0),
+                    'U2Fouls': player.get('U2 Fouls', 0),
+                    'GDFouls': player.get('GD Fouls', 0),
                     'StartingFive': player.get('Starting Five', 'false') == 'true'
                 }
                 all_players.append(player_record)
@@ -438,6 +441,9 @@ def create_players_database(data, output_filepath=None):
         'P1Fouls': 'sum',
         'P2Fouls': 'sum',
         'P3Fouls': 'sum',
+        'U1Fouls': 'sum',
+        'U2Fouls': 'sum',
+        'GDFouls': 'sum',
         'StartingFive': 'sum'  # Count how many games they started
     }
     
@@ -475,7 +481,7 @@ def create_players_database(data, output_filepath=None):
         'TotalPoints', 'AvgPointsPerGame', 
         '1PMadeShots', '2PMadeShots', '3PMadeShots', 'TotalFieldGoalsMade', 
         'AvgShotsPerGame', 'PointsPerShot',
-        'TotalFouls', 'AvgFoulsPerGame', 'PFouls', 'P1Fouls', 'P2Fouls', 'P3Fouls'
+        'TotalFouls', 'AvgFoulsPerGame', 'PFouls', 'P1Fouls', 'P2Fouls', 'P3Fouls', 'U1Fouls', 'U2Fouls', 'GDFouls'
     ]
     
     players_db = players_db[column_order]
@@ -529,7 +535,7 @@ def get_top_scorers(data, top_n=20, division=None):
 
 def get_highest_single_game_score(data, top_n=10, division=None):
     """
-    Get the highest single game scores by any player.
+    Get the highest single game scores by any player, with one entry per player (their best game).
     
     Parameters:
     data (DataFrame): The game data
@@ -537,7 +543,7 @@ def get_highest_single_game_score(data, top_n=10, division=None):
     division (str): Optional division filter
     
     Returns:
-    DataFrame: Players with highest single game scores
+    DataFrame: Players with highest single game scores (unique players)
     """
     # Filter by division if specified
     if division:
@@ -548,8 +554,10 @@ def get_highest_single_game_score(data, top_n=10, division=None):
     if player_stats.empty:
         return pd.DataFrame()
     
-    # Sort by total points and return top N single game performances
-    top_single_games = player_stats.nlargest(top_n, 'TotalPoints').reset_index(drop=True)
+    # Get the highest score for each player (eliminate duplicates)
+    # Group by player and get the row with max points for each player
+    idx = player_stats.groupby('PlayerName')['TotalPoints'].idxmax()
+    top_single_games = player_stats.loc[idx].nlargest(top_n, 'TotalPoints').reset_index(drop=True)
     
     return top_single_games
 
@@ -741,12 +749,12 @@ def get_double_digit_scorers(data, min_points=10, division=None):
     double_digit_stats.columns = ['PlayerName', 'Team', 'DoubleDigitGames', 'AvgInDoubleDigitGames', 'HighestScore', 'TotalGamesPlayed']
     
     # Get total games played for each player from all games
-    all_player_games = player_stats.groupby(['PlayerName', 'Team']).size().reset_index(name='TotalGamesActual')
+    all_player_games = player_stats.groupby(['PlayerName', 'Team']).size().reset_index(name='TotalGames')
     double_digit_stats = double_digit_stats.merge(all_player_games, on=['PlayerName', 'Team'], how='left')
     
     # Calculate percentage of double-digit games
     double_digit_stats['DoubleDigitPercentage'] = (
-        (double_digit_stats['DoubleDigitGames'] / double_digit_stats['TotalGamesActual']) * 100
+        (double_digit_stats['DoubleDigitGames'] / double_digit_stats['TotalGames']) * 100
     ).round(1)
     
     # Round averages
@@ -2384,6 +2392,9 @@ def get_player_detail_stats(data, player_name):
         'p1_fouls': int(player_games['P1Fouls'].sum()),
         'p2_fouls': int(player_games['P2Fouls'].sum()),
         'p3_fouls': int(player_games['P3Fouls'].sum()),
+        'u1_fouls': int(player_games['U1Fouls'].sum()),
+        'u2_fouls': int(player_games['U2Fouls'].sum()),
+        'gd_fouls': int(player_games['GDFouls'].sum()),
         'starting_five_games': int(player_games['StartingFive'].sum()),
         'bench_games': int((~player_games['StartingFive']).sum()),
     }

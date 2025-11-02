@@ -76,6 +76,17 @@
         .player-link:hover {
             color: #764ba2;
             text-decoration: underline;
+        
+        .info-tooltip {
+            cursor: help;
+            color: #667eea;
+            font-size: 0.9em;
+            margin-left: 5px;
+            display: inline-block;
+        }
+        
+        .info-tooltip:hover {
+            color: #4a5fc1;
         }
 {% endblock %}
 
@@ -232,7 +243,7 @@
         <!-- Single Game Records Tab -->
         <div id="single-game" class="tab-content">
             <div class="stats-section">
-                <h2>Single Game Scoring Records</h2>
+                <h2>Top 30 Single Game Scoring Records</h2>
                 <table>
                     <thead>
                         <tr>
@@ -265,7 +276,9 @@
         <!-- Shooting Efficiency Tab -->
         <div id="shooting-efficiency" class="tab-content">
             <div class="stats-section">
-                <h2>Shooting Efficiency Leaders</h2>
+                <h2>Shooting Efficiency Leaders 
+                    <span class="info-tooltip" title="Efficiency Score (Points Per Shot) = Total Points ÷ Total Field Goals Made. This measures how many points a player scores per shot attempt. Minimum: 5 games played and 10 total shots.">ℹ️</span>
+                </h2>
                 <table>
                     <thead>
                         <tr>
@@ -389,6 +402,7 @@
                             <th>Rank</th>
                             <th>Player</th>
                             <th>Team</th>
+                            <th>Total Points</th>
                             <th>Avg Points</th>
                             <th>Games</th>
                         </tr>
@@ -399,6 +413,7 @@
                             <td>{{ loop.index }}</td>
                             <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
                             <td>{{ row['Team'] }}</td>
+                            <td><strong>{{ row['TotalPoints'] }}</strong></td>
                             <td>{{ "%.1f"|format(row['AvgPointsPerGame']) }}</td>
                             <td>{{ row['GamesPlayed'] }}</td>
                         </tr>
@@ -415,6 +430,7 @@
                             <th>Rank</th>
                             <th>Player</th>
                             <th>Team</th>
+                            <th>Total Points</th>
                             <th>Avg Points</th>
                             <th>Games</th>
                         </tr>
@@ -425,6 +441,7 @@
                             <td>{{ loop.index }}</td>
                             <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
                             <td>{{ row['Team'] }}</td>
+                            <td><strong>{{ row['TotalPoints'] }}</strong></td>
                             <td>{{ "%.1f"|format(row['AvgPointsPerGame']) }}</td>
                             <td>{{ row['GamesPlayed'] }}</td>
                         </tr>
