@@ -217,7 +217,7 @@ def player_stats():
     
     # Get comprehensive player statistics
     top_scorers = get_top_scorers(data, 50)  # Get top 50 for comprehensive view
-    highest_single_scores = get_highest_single_game_score(data, 10)  # Now returns top 10
+    highest_single_scores = get_highest_single_game_score(data, 30)  # Top 30 unique players
     top_three_pointers = get_top_three_pointers(data, 20)
     top_foulers = get_top_foulers(data, 20)
     
