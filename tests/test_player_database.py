@@ -175,8 +175,8 @@ def test_player_database_statistics():
     print(f"Average points per player: {players_db['TotalPoints'].mean():.1f}")
     print(f"Average fouls per player: {players_db['TotalFouls'].mean():.1f}")
     
-    # Top scorer
-    top_scorer = players_db.iloc[0]
+    # Top scorer - explicitly sort to ensure correctness
+    top_scorer = players_db.nlargest(1, 'TotalPoints').iloc[0]
     print(f"\nTop scorer: {top_scorer['PlayerName']} ({top_scorer['Team']})")
     print(f"  - Total Points: {top_scorer['TotalPoints']}")
     print(f"  - Games Played: {top_scorer['GamesPlayed']}")

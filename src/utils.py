@@ -449,8 +449,11 @@ def create_players_database(data, output_filepath=None):
     players_db['StartingPercentage'] = ((players_db['GamesStarted'] / players_db['GamesPlayed']) * 100).round(1)
     
     # Calculate points per shot (efficiency metric)
-    players_db['PointsPerShot'] = (
-        players_db['TotalPoints'] / players_db['TotalFieldGoalsMade'].replace(0, 1)
+    # Set to 0 for players with no field goals made (more accurate than division by 1)
+    players_db['PointsPerShot'] = 0.0
+    mask = players_db['TotalFieldGoalsMade'] > 0
+    players_db.loc[mask, 'PointsPerShot'] = (
+        players_db.loc[mask, 'TotalPoints'] / players_db.loc[mask, 'TotalFieldGoalsMade']
     ).round(2)
     
     # Sort by total points (most productive players first)
