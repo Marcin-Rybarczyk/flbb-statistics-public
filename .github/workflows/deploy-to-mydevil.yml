@@ -1,0 +1,55 @@
+name: Deploy to MyDevil.net
+
+on:
+  push:
+    branches:
+      - main  # adjust to your main branch
+  workflow_dispatch:  # allow manual trigger too
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    # 🧠 Run only if commit message contains "deploy-to-mydevil"
+    if: contains(github.event.head_commit.message, 'deploy-to-mydevil') || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: 🧾 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔑 Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.MYDEVIL_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.MYDEVIL_HOST }} >> ~/.ssh/known_hosts
+
+      - name: 🚀 Deploy to MyDevil.net
+        id: deploy
+        run: |
+          set -e
+          ssh ${{ secrets.MYDEVIL_USER }}@${{ secrets.MYDEVIL_HOST }} << 'EOF'
+          set -e
+          cd ~/domains/flbb.ryba.usermd.net/public_python/public
+          if [ ! -d .git ]; then
+            echo "🔧 First-time setup: cloning repository..."
+            git clone git@github.com:Marcin-Rybarczyk/flbb-statistics-public.git .
+          else
+            echo "📦 Pulling latest changes..."
+            git pull origin main
+          fi
+          source ~/flaskenv/bin/activate
+          pip install -r requirements.txt
+          mkdir -p tmp
+          touch tmp/restart.txt
+          EOF
+
+      - name: 🧾 Deployment Summary
+        if: success()
+        run: |
+          echo "✅ **Deployment successful!**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📦 Repository: [${{ github.repository }}](https://github.com/${{ github.repository }})" >> $GITHUB_STEP_SUMMARY
+          echo "🌐 Host: ${{ secrets.MYDEVIL_HOST }}" >> $GITHUB_STEP_SUMMARY
+          echo "🕐 Commit: ${{ github.event.head_commit.id }}" >> $GITHUB_STEP_SUMMARY
+          echo "💬 Message: ${{ github.event.head_commit.message }}" >> $GITHUB_STEP_SUMMARY

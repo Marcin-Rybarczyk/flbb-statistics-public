@@ -2,7 +2,7 @@ import os
 import re
 from flask import Flask, render_template, request
 import pandas as pd
-from .utils import (calculate_standings_by_division, get_highest_scoring_games, 
+from src.utils import (calculate_standings_by_division, get_highest_scoring_games, 
                    load_game_data, get_top_players_by_score, get_team_performance_stats,
                    get_top_scorers, get_highest_single_game_score, get_top_three_pointers, 
                    get_top_foulers, get_referee_statistics, get_referee_fouls_per_game,
