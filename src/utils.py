@@ -386,6 +386,11 @@ def extract_all_player_stats(data):
                     'P1Fouls': player.get('P1 Fouls', 0),
                     'P2Fouls': player.get('P2 Fouls', 0),
                     'P3Fouls': player.get('P3 Fouls', 0),
+                    'U1Fouls': player.get('U1 Fouls', 0),
+                    'U2Fouls': player.get('U2 Fouls', 0),
+                    'U3Fouls': player.get('U3 Fouls', 0),
+                    'T1Fouls': player.get('T1 Fouls', 0),
+                    'GDFouls': player.get('GD Fouls', 0),
                     'StartingFive': player.get('Starting Five', 'false') == 'true'
                 }
                 all_players.append(player_record)
@@ -661,6 +666,11 @@ def get_top_foulers(data, top_n=10):
         'P1Fouls': 'sum',
         'P2Fouls': 'sum',
         'P3Fouls': 'sum',
+        'U1Fouls': 'sum',
+        'U2Fouls': 'sum',
+        'U3Fouls': 'sum',
+        'T1Fouls': 'sum',
+        'GDFouls': 'sum',
         'GameId': 'count',  # Games played
         'TotalPoints': 'sum'
     }).reset_index()
@@ -670,6 +680,76 @@ def get_top_foulers(data, top_n=10):
     
     # Sort by total fouls and return top N
     return foul_stats.sort_values('TotalFouls', ascending=False).head(top_n).reset_index(drop=True)
+
+def get_filtered_player_stats(data, division=None, team=None):
+    """
+    Get comprehensive player statistics with optional filtering by division and team.
+    
+    Parameters:
+    data (DataFrame): The game data
+    division (str): Optional division filter
+    team (str): Optional team filter
+    
+    Returns:
+    DataFrame: Filtered player statistics with comprehensive details
+    """
+    # Extract all player stats
+    player_stats = extract_all_player_stats(data)
+    
+    if player_stats.empty:
+        return pd.DataFrame()
+    
+    # Filter by division if specified
+    if division:
+        # Merge with game data to get division info
+        player_stats = player_stats.merge(
+            data[['GameId', 'GameDivisionDisplay']], 
+            on='GameId', 
+            how='left'
+        )
+        player_stats = player_stats[player_stats['GameDivisionDisplay'] == division]
+    
+    # Filter by team if specified
+    if team:
+        player_stats = player_stats[player_stats['Team'] == team]
+    
+    # Group by player and calculate comprehensive statistics
+    aggregations = {
+        'TotalPoints': 'sum',
+        '1PMadeShots': 'sum',
+        '2PMadeShots': 'sum', 
+        '3PMadeShots': 'sum',
+        'TotalFouls': 'sum',
+        'PFouls': 'sum',
+        'P1Fouls': 'sum',
+        'P2Fouls': 'sum',
+        'P3Fouls': 'sum',
+        'U1Fouls': 'sum',
+        'U2Fouls': 'sum',
+        'U3Fouls': 'sum',
+        'T1Fouls': 'sum',
+        'GDFouls': 'sum',
+        'GameId': 'count',  # Games played
+        'StartingFive': 'sum',  # Count of starting five appearances
+        'PlayerNumber': lambda x: x.mode()[0] if not x.mode().empty else x.iloc[0]  # Most common number
+    }
+    
+    player_summary = player_stats.groupby(['PlayerName', 'Team']).agg(aggregations).reset_index()
+    
+    # Rename columns
+    player_summary.rename(columns={
+        'GameId': 'GamesPlayed',
+        'StartingFive': 'StartingFiveCount'
+    }, inplace=True)
+    
+    # Calculate per-game averages
+    player_summary['PointsPerGame'] = (player_summary['TotalPoints'] / player_summary['GamesPlayed']).round(1)
+    player_summary['FoulsPerGame'] = (player_summary['TotalFouls'] / player_summary['GamesPlayed']).round(1)
+    
+    # Sort by total points descending
+    player_summary = player_summary.sort_values('TotalPoints', ascending=False).reset_index(drop=True)
+    
+    return player_summary
 
 def get_top_players_by_score(data, top_n=50):
     """

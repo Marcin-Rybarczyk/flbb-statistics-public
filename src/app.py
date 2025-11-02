@@ -12,7 +12,8 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
                    get_player_game_impact_analysis, get_player_foul_impact_analysis,
                    get_best_player_combinations, get_referee_game_impact_analysis, get_all_fixtures_data,
                    get_fixtures_matrix_data, get_data_source_info, get_season_info, 
-                   get_website_config, list_available_archives, import_season_archive)
+                   get_website_config, list_available_archives, import_season_archive,
+                   get_filtered_player_stats, extract_all_player_stats)
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
 
@@ -205,13 +206,29 @@ def team_stats():
                          divisions=divisions,
                          data_source_info=data_source_info)
 
-@app.route('/player-stats')
+@app.route('/player-stats', methods=['GET', 'POST'])
 def player_stats():
     """Dedicated player statistics page"""
     if data.empty:
         return render_template('player_stats.html', error="No data available", data_source_info=data_source_info)
     
-    # Get comprehensive player statistics
+    # Get filter parameters
+    selected_division = request.form.get('division') if request.method == 'POST' else request.args.get('division')
+    selected_team = request.form.get('team') if request.method == 'POST' else request.args.get('team')
+    
+    # Get all unique teams for filter dropdown
+    player_stats_all = extract_all_player_stats(data)
+    if not player_stats_all.empty:
+        all_teams = sorted(player_stats_all['Team'].unique())
+    else:
+        all_teams = []
+    
+    # Get filtered player statistics if filters are applied
+    filtered_stats = None
+    if selected_division or selected_team:
+        filtered_stats = get_filtered_player_stats(data, selected_division, selected_team)
+    
+    # Get comprehensive player statistics (unfiltered for tabs)
     top_scorers = get_top_scorers(data, 50)  # Get top 50 for comprehensive view
     highest_single_scores = get_highest_single_game_score(data, 10)  # Now returns top 10
     top_three_pointers = get_top_three_pointers(data, 20)
@@ -233,6 +250,10 @@ def player_stats():
                          double_digit_scorers=double_digit_scorers,
                          consistent_scorers=consistent_scorers,
                          divisions=divisions,
+                         all_teams=all_teams,
+                         selected_division=selected_division,
+                         selected_team=selected_team,
+                         filtered_stats=filtered_stats,
                          data_source_info=data_source_info)
 
 @app.route('/deeper-analysis')

@@ -68,6 +68,118 @@
 {% endblock %}
 
 {% block content %}
+        <!-- Filter Section -->
+        <div class="stats-section" style="margin-bottom: 30px;">
+            <h2>🔍 Filter Player Statistics</h2>
+            <form method="POST" action="/player-stats" style="display: flex; gap: 15px; align-items: end; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 200px;">
+                    <label for="division" style="display: block; margin-bottom: 5px; font-weight: 600;">Division:</label>
+                    <select name="division" id="division" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 1em;">
+                        <option value="">All Divisions</option>
+                        {% for division in divisions %}
+                        <option value="{{ division }}" {% if selected_division == division %}selected{% endif %}>{{ division }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="flex: 1; min-width: 200px;">
+                    <label for="team" style="display: block; margin-bottom: 5px; font-weight: 600;">Team:</label>
+                    <select name="team" id="team" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 1em;">
+                        <option value="">All Teams</option>
+                        {% for team in all_teams %}
+                        <option value="{{ team }}" {% if selected_team == team %}selected{% endif %}>{{ team }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" style="padding: 10px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 1em; font-weight: 600; cursor: pointer; transition: transform 0.2s;">
+                        Apply Filters
+                    </button>
+                </div>
+                {% if selected_division or selected_team %}
+                <div>
+                    <a href="/player-stats" style="padding: 10px 30px; background: #6c757d; color: white; border: none; border-radius: 8px; font-size: 1em; font-weight: 600; text-decoration: none; display: inline-block;">
+                        Clear Filters
+                    </a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Filtered Results Section -->
+        {% if filtered_stats is not none and not filtered_stats.empty %}
+        <div class="stats-section" style="margin-bottom: 30px; background: rgba(102, 126, 234, 0.05); padding: 20px; border-radius: 15px; border: 2px solid #667eea;">
+            <h2>📊 Filtered Player Statistics
+                {% if selected_division %}
+                    - {{ selected_division }}
+                {% endif %}
+                {% if selected_team %}
+                    - {{ selected_team }}
+                {% endif %}
+            </h2>
+            <p style="color: #666; margin-bottom: 20px;">
+                <em>Showing {{ filtered_stats.shape[0] }} player(s) matching your filters</em>
+            </p>
+            
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Team</th>
+                            <th>Jersey #</th>
+                            <th>Games</th>
+                            <th>Total Points</th>
+                            <th>Points/Game</th>
+                            <th>Total Fouls</th>
+                            <th>Fouls/Game</th>
+                            <th>P1</th>
+                            <th>P2</th>
+                            <th>P3</th>
+                            <th>U1</th>
+                            <th>U2</th>
+                            <th>U3</th>
+                            <th>T1</th>
+                            <th>GD</th>
+                            <th>Starting Five</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for index, row in filtered_stats.iterrows() %}
+                        <tr {% if loop.index <= 3 %}style="background-color: rgba(102, 126, 234, 0.1);"{% endif %}>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td>{{ row['Team'] }}</td>
+                            <td style="text-align: center;"><strong>{{ row['PlayerNumber'] }}</strong></td>
+                            <td>{{ row['GamesPlayed'] }}</td>
+                            <td><strong>{{ row['TotalPoints'] }}</strong></td>
+                            <td>{{ "%.1f"|format(row['PointsPerGame']) }}</td>
+                            <td><strong>{{ row['TotalFouls'] }}</strong></td>
+                            <td>{{ "%.1f"|format(row['FoulsPerGame']) }}</td>
+                            <td>{{ row['P1Fouls'] }}</td>
+                            <td>{{ row['P2Fouls'] }}</td>
+                            <td>{{ row['P3Fouls'] }}</td>
+                            <td>{{ row['U1Fouls'] }}</td>
+                            <td>{{ row['U2Fouls'] }}</td>
+                            <td>{{ row['U3Fouls'] }}</td>
+                            <td>{{ row['T1Fouls'] }}</td>
+                            <td>{{ row['GDFouls'] }}</td>
+                            <td>{{ row['StartingFiveCount'] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% elif (selected_division or selected_team) %}
+        <div class="stats-section" style="margin-bottom: 30px; background: rgba(255, 193, 7, 0.1); padding: 20px; border-radius: 15px; border: 2px solid #ffc107;">
+            <p style="color: #856404; margin: 0;">
+                ⚠️ No players found matching the selected filters. Please try different criteria.
+            </p>
+        </div>
+        {% endif %}
+
+        <!-- Overall Statistics Summary -->
         {% if top_scorers is not none and not top_scorers.empty %}
         
         <div class="stat-summary">
