@@ -2434,3 +2434,142 @@ def _analyze_player_quarters(data, player_name):
             continue
     
     return quarter_stats
+
+
+def get_game_details(data, game_id):
+    """
+    Get comprehensive details for a specific game.
+    
+    Parameters:
+    data (DataFrame): The game data
+    game_id (str or int): The game ID to retrieve details for
+    
+    Returns:
+    dict: Dictionary containing all game details including:
+        - basic_info: Game metadata (location, date, division, etc.)
+        - teams: Team information and player statistics
+        - events: Timeline of game events
+        - score_evolution: Score progression throughout the game
+        - referees: Referee information
+    """
+    import ast
+    
+    # Convert game_id to string for comparison
+    game_id = str(game_id)
+    
+    # Find the game
+    game_row = data[data['GameId'].astype(str) == game_id]
+    
+    if game_row.empty:
+        return None
+    
+    game = game_row.iloc[0]
+    
+    # Parse complex fields
+    try:
+        teams = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
+    except:
+        teams = []
+    
+    try:
+        events = ast.literal_eval(game['GameEvents']) if isinstance(game['GameEvents'], str) else game['GameEvents']
+    except:
+        events = []
+    
+    try:
+        referees = ast.literal_eval(game['Referres']) if isinstance(game['Referres'], str) else game['Referres']
+    except:
+        referees = []
+    
+    try:
+        location = ast.literal_eval(game['GameLocation']) if isinstance(game['GameLocation'], str) else game['GameLocation']
+    except:
+        location = {}
+    
+    # Build basic info
+    basic_info = {
+        'game_id': game_id,
+        'location': location,
+        'division': game['GameDivisionDisplay'],
+        'date_time': game['DateTime'],
+        'home_team': game['HomeTeamName'],
+        'away_team': game['AwayTeamName'],
+        'final_score': game['GameFinalScore'],
+        'home_score': game['FinalHomeScore'],
+        'away_score': game['FinalAwayScore'],
+        'winner': game['GameWinner'],
+        'loser': game['GameLoser'],
+        'home_league_points': game.get('HomeTeamLeaguePoints', 0),
+        'away_league_points': game.get('AwayTeamLeaguePoints', 0)
+    }
+    
+    # Calculate score evolution from events
+    score_evolution = _calculate_score_evolution(events, game['HomeTeamName'], game['AwayTeamName'])
+    
+    # Process teams and players
+    teams_data = []
+    for team in teams:
+        team_info = {
+            'name': team.get('Team Name', ''),
+            'name_short': team.get('Team Name Short', ''),
+            'role': team.get('Team Role', ''),
+            'result': team.get('Result Outcome', ''),
+            'league_points': team.get('League Points', 0),
+            'total_won_points': team.get('Total Won Points', 0),
+            'total_lost_points': team.get('Total Lost Points', 0),
+            'players': team.get('Players', [])
+        }
+        teams_data.append(team_info)
+    
+    # Sort events by time (most recent first for display, but we'll reverse for chronological)
+    sorted_events = sorted(events, key=lambda x: x.get('EventDateTime', ''), reverse=False)
+    
+    return {
+        'basic_info': basic_info,
+        'teams': teams_data,
+        'events': sorted_events,
+        'score_evolution': score_evolution,
+        'referees': referees
+    }
+
+
+def _calculate_score_evolution(events, home_team, away_team):
+    """
+    Calculate score evolution throughout the game from events.
+    
+    Parameters:
+    events (list): List of game events
+    home_team (str): Home team name
+    away_team (str): Away team name
+    
+    Returns:
+    list: List of score points with quarters and scores
+    """
+    score_points = []
+    
+    # Sort events chronologically
+    sorted_events = sorted(events, key=lambda x: x.get('EventDateTime', ''))
+    
+    for event in sorted_events:
+        if event.get('EventScore'):
+            score_str = event.get('EventScore', '')
+            quarter = event.get('EventQuarter', 0)
+            
+            # Parse score "X : Y"
+            if ':' in score_str:
+                try:
+                    parts = score_str.split(':')
+                    home_score = int(parts[0].strip())
+                    away_score = int(parts[1].strip())
+                    
+                    score_points.append({
+                        'quarter': quarter,
+                        'home_score': home_score,
+                        'away_score': away_score,
+                        'time': event.get('EventDateTime', ''),
+                        'event': event.get('EventAction', '')
+                    })
+                except:
+                    pass
+    
+    return score_points
