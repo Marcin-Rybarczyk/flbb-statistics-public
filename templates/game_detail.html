@@ -340,7 +340,6 @@
 {% block scripts %}
     {% if game and game.score_evolution %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2"></script>
     <script>
         // Prepare data for score evolution chart
         const scoreData = {{ game.score_evolution | tojson }};
@@ -353,44 +352,13 @@
         const awayFouls = scoreData.map(point => point.away_fouls || 0);
         const quarters = scoreData.map(point => point.quarter);
         
-        // Find quarter boundaries for annotations
-        const quarterBoundaries = [];
-        let lastQuarter = 0;
-        quarters.forEach((q, index) => {
-            if (q !== lastQuarter && index > 0) {
-                quarterBoundaries.push({
-                    quarter: q,
-                    index: index
-                });
-                lastQuarter = q;
-            } else if (index === 0) {
-                lastQuarter = q;
+        // Create quarter labels for x-axis
+        const xLabels = scoreData.map((point, index) => {
+            // Check if this is the start of a new quarter
+            if (index === 0 || (index > 0 && point.quarter !== scoreData[index - 1].quarter)) {
+                return `Q${point.quarter}`;
             }
-        });
-        
-        // Create quarter annotations
-        const annotations = {};
-        quarterBoundaries.forEach((boundary, i) => {
-            annotations[`quarter${i}`] = {
-                type: 'line',
-                xMin: boundary.index,
-                xMax: boundary.index,
-                borderColor: 'rgba(102, 126, 234, 0.3)',
-                borderWidth: 2,
-                borderDash: [5, 5],
-                label: {
-                    display: true,
-                    content: `Q${boundary.quarter}`,
-                    position: 'start',
-                    backgroundColor: 'rgba(102, 126, 234, 0.8)',
-                    color: 'white',
-                    font: {
-                        size: 10,
-                        weight: 'bold'
-                    },
-                    padding: 4
-                }
-            };
+            return '';
         });
         
         // Create the chart
@@ -398,7 +366,7 @@
         new Chart(ctx, {
             type: 'line',
             data: {
-                labels: labels,
+                labels: xLabels,
                 datasets: [
                     {
                         label: '{{ game.basic_info.home_team }} Score',
@@ -407,7 +375,9 @@
                         backgroundColor: 'rgba(41, 128, 185, 0.1)',
                         tension: 0.4,
                         fill: true,
-                        yAxisID: 'y'
+                        yAxisID: 'y',
+                        pointRadius: 2,
+                        borderWidth: 2
                     },
                     {
                         label: '{{ game.basic_info.away_team }} Score',
@@ -416,7 +386,9 @@
                         backgroundColor: 'rgba(230, 126, 34, 0.1)',
                         tension: 0.4,
                         fill: true,
-                        yAxisID: 'y'
+                        yAxisID: 'y',
+                        pointRadius: 2,
+                        borderWidth: 2
                     },
                     {
                         label: '{{ game.basic_info.home_team }} Fouls',
@@ -427,6 +399,7 @@
                         fill: false,
                         borderDash: [5, 5],
                         pointRadius: 3,
+                        borderWidth: 2,
                         yAxisID: 'y1'
                     },
                     {
@@ -438,6 +411,7 @@
                         fill: false,
                         borderDash: [5, 5],
                         pointRadius: 3,
+                        borderWidth: 2,
                         yAxisID: 'y1'
                     }
                 ]
@@ -455,7 +429,10 @@
                         position: 'top',
                         labels: {
                             usePointStyle: true,
-                            padding: 15
+                            padding: 15,
+                            font: {
+                                size: 11
+                            }
                         }
                     },
                     tooltip: {
@@ -470,14 +447,11 @@
                                 const point = scoreData[index];
                                 return [
                                     '',
-                                    `Home Team Fouls: ${point.home_fouls || 0}`,
-                                    `Away Team Fouls: ${point.away_fouls || 0}`
+                                    `${context[0].chart.data.datasets[0].label.split(' ')[0]} Fouls: ${point.home_fouls || 0}`,
+                                    `${context[0].chart.data.datasets[1].label.split(' ')[0]} Fouls: ${point.away_fouls || 0}`
                                 ];
                             }
                         }
-                    },
-                    annotation: {
-                        annotations: annotations
                     }
                 },
                 scales: {
@@ -489,7 +463,8 @@
                             display: true,
                             text: 'Score',
                             font: {
-                                weight: 'bold'
+                                weight: 'bold',
+                                size: 12
                             }
                         },
                         grid: {
@@ -504,7 +479,8 @@
                             display: true,
                             text: 'Fouls',
                             font: {
-                                weight: 'bold'
+                                weight: 'bold',
+                                size: 12
                             }
                         },
                         grid: {
@@ -517,22 +493,39 @@
                     x: {
                         title: {
                             display: true,
-                            text: 'Game Progress (Events)',
+                            text: 'Game Progress (Quarter Markers)',
                             font: {
-                                weight: 'bold'
+                                weight: 'bold',
+                                size: 12
                             }
                         },
                         ticks: {
-                            callback: function(value, index) {
-                                // Show quarter markers on x-axis
-                                const point = scoreData[index];
-                                if (point && index % Math.floor(scoreData.length / 8) === 0) {
-                                    return `Q${point.quarter}`;
-                                }
-                                return '';
-                            },
                             maxRotation: 0,
-                            autoSkip: false
+                            autoSkip: false,
+                            font: {
+                                size: 11,
+                                weight: 'bold'
+                            },
+                            callback: function(value, index) {
+                                // Only show non-empty labels (quarter markers)
+                                return xLabels[index] || '';
+                            }
+                        },
+                        grid: {
+                            color: function(context) {
+                                // Highlight quarter boundaries with darker grid lines
+                                if (xLabels[context.index]) {
+                                    return 'rgba(102, 126, 234, 0.3)';
+                                }
+                                return 'rgba(0, 0, 0, 0.05)';
+                            },
+                            lineWidth: function(context) {
+                                // Make quarter boundary lines thicker
+                                if (xLabels[context.index]) {
+                                    return 2;
+                                }
+                                return 1;
+                            }
                         }
                     }
                 }
