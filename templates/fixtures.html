@@ -193,11 +193,6 @@
             font-size: 0.7em;
         }
 
-        .game-location {
-            color: #8e44ad;
-            font-size: 0.65em;
-        }
-
         .game-top-scorer {
             color: #e74c3c;
             font-size: 0.65em;
@@ -334,7 +329,6 @@
                                                 <div class="game-score">vs</div>
                                             {% endif %}
                                             <div class="game-date">{{ game.date[:10] if game.date != 'TBD' else 'TBD' }}</div>
-                                            <div class="game-location">{{ game.location }}</div>
                                             {% if game.top_scorer.name %}
                                                 <div class="game-top-scorer">{{ game.top_scorer.name }} ({{ game.top_scorer.points }}pts)</div>
                                             {% endif %}
