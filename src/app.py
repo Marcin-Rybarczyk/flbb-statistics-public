@@ -14,6 +14,7 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
                    get_fixtures_matrix_data, get_data_source_info, get_season_info, 
                    get_website_config, list_available_archives, import_season_archive,
                    get_all_players_list, get_player_detail_stats)
+from src.version import get_version_info
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
 
