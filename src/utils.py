@@ -2614,14 +2614,27 @@ def _calculate_score_evolution(events, home_team, away_team):
     away_team (str): Away team name
     
     Returns:
-    list: List of score points with quarters and scores
+    list: List of score points with quarters, scores, and foul counts
     """
     score_points = []
+    home_fouls = 0
+    away_fouls = 0
     
     # Sort events chronologically
     sorted_events = sorted(events, key=lambda x: x.get('EventDateTime', ''))
     
     for event in sorted_events:
+        # Track fouls
+        event_action = event.get('EventAction', '').lower()
+        event_team = event.get('EventTeam', '')
+        
+        if 'foul' in event_action or 'faute' in event_action:
+            if event_team == home_team:
+                home_fouls += 1
+            elif event_team == away_team:
+                away_fouls += 1
+        
+        # Track score changes
         if event.get('EventScore'):
             score_str = event.get('EventScore', '')
             quarter = event.get('EventQuarter', 0)
@@ -2637,6 +2650,8 @@ def _calculate_score_evolution(events, home_team, away_team):
                         'quarter': quarter,
                         'home_score': home_score,
                         'away_score': away_score,
+                        'home_fouls': home_fouls,
+                        'away_fouls': away_fouls,
                         'time': event.get('EventDateTime', ''),
                         'event': event.get('EventAction', '')
                     })
