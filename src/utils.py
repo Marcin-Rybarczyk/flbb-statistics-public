@@ -1187,7 +1187,9 @@ def get_referee_detail_stats(data, referee_name):
                         game_fouls += 1
                         total_fouls += 1
                         
-                        # Extract foul type (P, P1, P2, etc.)
+                        # Extract foul type - check more specific patterns first
+                        # This ensures 'P2 Foul Added' and 'P1 Foul Added' are matched
+                        # before the more general 'P Foul Added'
                         if 'P2 Foul Added' in action:
                             game_foul_types['P2'] += 1
                             foul_types['P2'] += 1
@@ -1198,7 +1200,7 @@ def get_referee_detail_stats(data, referee_name):
                             game_foul_types['P'] += 1
                             foul_types['P'] += 1
                         else:
-                            # Other foul types
+                            # Other foul types (technical, unsportsmanlike, etc.)
                             game_foul_types['Other'] += 1
                             foul_types['Other'] += 1
         except:
