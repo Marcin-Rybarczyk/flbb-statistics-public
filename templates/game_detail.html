@@ -241,34 +241,37 @@
 
         <!-- Game Statistics -->
         {% if game.game_stats %}
-        <div class="game-info-grid" style="margin-top: 20px;">
-            <div class="info-card">
-                <h3>🔄 Lead Changes</h3>
-                <p style="font-size: 2em; font-weight: bold; color: #667eea;">{{ game.game_stats.lead_changes }}</p>
-            </div>
-            <div class="info-card">
-                <h3>⚖️ Tied Scores</h3>
-                <p style="font-size: 2em; font-weight: bold; color: #667eea;">{{ game.game_stats.tied_scores }}</p>
-            </div>
-            <div class="info-card">
-                <h3>📊 {{ game.basic_info.home_team }} Highest Lead</h3>
-                <p style="font-size: 2em; font-weight: bold; color: #2980b9;">
-                    {% if game.game_stats.home_highest_lead %}
-                        +{{ game.game_stats.home_highest_lead }}
-                    {% else %}
-                        N/A
-                    {% endif %}
-                </p>
-            </div>
-            <div class="info-card">
-                <h3>📊 {{ game.basic_info.away_team }} Highest Lead</h3>
-                <p style="font-size: 2em; font-weight: bold; color: #e67e22;">
-                    {% if game.game_stats.away_highest_lead %}
-                        +{{ game.game_stats.away_highest_lead }}
-                    {% else %}
-                        N/A
-                    {% endif %}
-                </p>
+        <div class="info-card" style="margin-top: 20px;">
+            <h3>📊 Game Flow Statistics</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">🔄 Lead Changes</div>
+                    <div style="font-size: 1.5em; font-weight: bold; color: #667eea;">{{ game.game_stats.lead_changes }}</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">⚖️ Tied Scores</div>
+                    <div style="font-size: 1.5em; font-weight: bold; color: #667eea;">{{ game.game_stats.tied_scores }}</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">{{ game.basic_info.home_team }} Lead</div>
+                    <div style="font-size: 1.5em; font-weight: bold; color: #2980b9;">
+                        {% if game.game_stats.home_highest_lead %}
+                            +{{ game.game_stats.home_highest_lead }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">{{ game.basic_info.away_team }} Lead</div>
+                    <div style="font-size: 1.5em; font-weight: bold; color: #e67e22;">
+                        {% if game.game_stats.away_highest_lead %}
+                            +{{ game.game_stats.away_highest_lead }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
         {% endif %}
