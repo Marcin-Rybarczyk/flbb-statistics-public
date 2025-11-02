@@ -1,0 +1,501 @@
+{% extends "base.html" %}
+
+{% block title %}Player Detail - FLBB Statistics{% endblock %}
+
+{% block page_title %}👤 Player Detail Statistics{% endblock %}
+{% block page_description %}Comprehensive individual player performance analysis{% endblock %}
+
+{% block extra_styles %}
+        .search-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .search-box {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            max-width: 600px;
+        }
+        
+        #playerSearch {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 1.1em;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        #playerSearch:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .autocomplete-suggestions {
+            position: absolute;
+            width: 100%;
+            max-height: 300px;
+            overflow-y: auto;
+            background: white;
+            border: 2px solid #667eea;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: none;
+        }
+        
+        .autocomplete-suggestion {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            transition: all 0.2s ease;
+        }
+        
+        .autocomplete-suggestion:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .autocomplete-suggestion strong {
+            color: #667eea;
+        }
+        
+        .player-info-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .player-info-header h2 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: white;
+        }
+        
+        .player-info-header h2:after {
+            display: none;
+        }
+        
+        .player-info-header .team-info {
+            font-size: 1.3em;
+            opacity: 0.9;
+        }
+        
+        .quarter-chart {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+            gap: 15px;
+        }
+        
+        .quarter-bar {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .quarter-bar-container {
+            height: 200px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            background: linear-gradient(to top, #f8f9fa, transparent);
+            border-radius: 10px;
+            padding: 10px;
+        }
+        
+        .quarter-bar-fill {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 10px 10px 0 0;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .quarter-label {
+            margin-top: 10px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .foul-breakdown {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .foul-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid rgba(102, 126, 234, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .foul-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .foul-card h4 {
+            color: #34495e;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+        
+        .foul-card .number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        
+        .game-row-win {
+            background-color: rgba(46, 204, 113, 0.1) !important;
+        }
+        
+        .game-row-loss {
+            background-color: rgba(231, 76, 60, 0.1) !important;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .badge-starter {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .badge-bench {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        .no-player-selected {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+        
+        .no-player-selected h3 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+{% endblock %}
+
+{% block content %}
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" 
+                       id="playerSearch" 
+                       placeholder="🔍 Search for a player..." 
+                       autocomplete="off"
+                       value="{{ player_name if player_name else '' }}">
+                <div id="autocompleteSuggestions" class="autocomplete-suggestions"></div>
+            </div>
+        </div>
+        
+        {% if player_stats %}
+        <!-- Player Information Header -->
+        <div class="player-info-header">
+            <h2>{{ player_stats.basic_stats.player_name }}</h2>
+            <div class="team-info">{{ player_stats.basic_stats.team }}</div>
+        </div>
+        
+        <!-- Basic Statistics Summary -->
+        <div class="stat-summary">
+            <div class="stat-card">
+                <h3>Games Played</h3>
+                <p>{{ player_stats.basic_stats.games_played }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>Total Points</h3>
+                <p>{{ player_stats.basic_stats.total_points }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>Avg Points/Game</h3>
+                <p>{{ player_stats.basic_stats.avg_points_per_game }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>Best Game</h3>
+                <p>{{ player_stats.basic_stats.max_points_game }}</p>
+            </div>
+        </div>
+        
+        <!-- Scoring Breakdown -->
+        <div class="stats-section">
+            <h2>Scoring Breakdown</h2>
+            <div class="stat-summary">
+                <div class="stat-card">
+                    <h3>1-Point Shots</h3>
+                    <p>{{ player_stats.basic_stats.total_1p_made }}</p>
+                    <small>{{ "%.1f"|format(player_stats.basic_stats.total_1p_made / player_stats.basic_stats.games_played) if player_stats.basic_stats.games_played > 0 else "0.0" }} per game</small>
+                </div>
+                <div class="stat-card">
+                    <h3>2-Point Shots</h3>
+                    <p>{{ player_stats.basic_stats.total_2p_made }}</p>
+                    <small>{{ "%.1f"|format(player_stats.basic_stats.total_2p_made / player_stats.basic_stats.games_played) if player_stats.basic_stats.games_played > 0 else "0.0" }} per game</small>
+                </div>
+                <div class="stat-card">
+                    <h3>3-Point Shots</h3>
+                    <p>{{ player_stats.basic_stats.total_3p_made }}</p>
+                    <small>{{ "%.1f"|format(player_stats.basic_stats.total_3p_made / player_stats.basic_stats.games_played) if player_stats.basic_stats.games_played > 0 else "0.0" }} per game</small>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Field Goals</h3>
+                    <p>{{ player_stats.basic_stats.total_field_goals }}</p>
+                    <small>{{ "%.1f"|format(player_stats.basic_stats.total_field_goals / player_stats.basic_stats.games_played) if player_stats.basic_stats.games_played > 0 else "0.0" }} per game</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Foul Statistics -->
+        <div class="stats-section">
+            <h2>Foul Breakdown</h2>
+            <div class="foul-breakdown">
+                <div class="foul-card">
+                    <h4>Total Fouls</h4>
+                    <div class="number">{{ player_stats.basic_stats.total_fouls }}</div>
+                    <small>{{ player_stats.basic_stats.avg_fouls_per_game }} per game</small>
+                </div>
+                <div class="foul-card">
+                    <h4>Personal Fouls (P)</h4>
+                    <div class="number">{{ player_stats.basic_stats.p_fouls }}</div>
+                </div>
+                <div class="foul-card">
+                    <h4>P1 Fouls</h4>
+                    <div class="number">{{ player_stats.basic_stats.p1_fouls }}</div>
+                </div>
+                <div class="foul-card">
+                    <h4>P2 Fouls</h4>
+                    <div class="number">{{ player_stats.basic_stats.p2_fouls }}</div>
+                </div>
+                <div class="foul-card">
+                    <h4>P3 Fouls</h4>
+                    <div class="number">{{ player_stats.basic_stats.p3_fouls }}</div>
+                </div>
+                <div class="foul-card">
+                    <h4>Technical Fouls (T1)</h4>
+                    <div class="number">{{ player_stats.basic_stats.t1_fouls }}</div>
+                </div>
+                <div class="foul-card">
+                    <h4>U1 Fouls</h4>
+                    <div class="number">{{ player_stats.basic_stats.u1_fouls }}</div>
+                </div>
+                <div class="foul-card">
+                    <h4>U2 Fouls</h4>
+                    <div class="number">{{ player_stats.basic_stats.u2_fouls }}</div>
+                </div>
+                <div class="foul-card">
+                    <h4>U3 Fouls</h4>
+                    <div class="number">{{ player_stats.basic_stats.u3_fouls }}</div>
+                </div>
+                <div class="foul-card">
+                    <h4>GD Fouls</h4>
+                    <div class="number">{{ player_stats.basic_stats.gd_fouls }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Starting Five vs Bench -->
+        <div class="stats-section">
+            <h2>Starting Five Analysis</h2>
+            <div class="stat-summary">
+                <div class="stat-card">
+                    <h3>Started</h3>
+                    <p>{{ player_stats.basic_stats.starting_five_games }}</p>
+                    <small>{{ "%.1f"|format(player_stats.basic_stats.starting_five_games / player_stats.basic_stats.games_played * 100) if player_stats.basic_stats.games_played > 0 else "0.0" }}% of games</small>
+                </div>
+                <div class="stat-card">
+                    <h3>From Bench</h3>
+                    <p>{{ player_stats.basic_stats.bench_games }}</p>
+                    <small>{{ "%.1f"|format(player_stats.basic_stats.bench_games / player_stats.basic_stats.games_played * 100) if player_stats.basic_stats.games_played > 0 else "0.0" }}% of games</small>
+                </div>
+                <div class="stat-card">
+                    <h3>Avg as Starter</h3>
+                    <p>{{ player_stats.basic_stats.avg_points_as_starter }}</p>
+                    <small>points per game</small>
+                </div>
+                <div class="stat-card">
+                    <h3>Avg from Bench</h3>
+                    <p>{{ player_stats.basic_stats.avg_points_from_bench }}</p>
+                    <small>points per game</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quarter by Quarter Analysis -->
+        <div class="stats-section">
+            <h2>Quarter by Quarter Analysis</h2>
+            <div class="quarter-chart">
+                {% for quarter in [1, 2, 3, 4] %}
+                <div class="quarter-bar">
+                    <div class="quarter-bar-container">
+                        {% set max_points = [player_stats.quarter_analysis[1]['points'], player_stats.quarter_analysis[2]['points'], player_stats.quarter_analysis[3]['points'], player_stats.quarter_analysis[4]['points']]|max %}
+                        {% set height_percent = (player_stats.quarter_analysis[quarter]['points'] / max_points * 100) if max_points > 0 else 0 %}
+                        <div class="quarter-bar-fill" style="height: {{ height_percent }}%;">
+                            <div>{{ player_stats.quarter_analysis[quarter]['points'] }}</div>
+                            <small style="font-size: 0.7em;">pts</small>
+                        </div>
+                    </div>
+                    <div class="quarter-label">Q{{ quarter }}</div>
+                    <small style="color: #7f8c8d;">{{ player_stats.quarter_analysis[quarter]['fouls'] }} fouls</small>
+                </div>
+                {% endfor %}
+            </div>
+            <p style="text-align: center; color: #7f8c8d; margin-top: 20px;">
+                <em>Points and fouls distribution across quarters</em>
+            </p>
+        </div>
+        
+        <!-- Game by Game Performance -->
+        <div class="stats-section">
+            <h2>Game by Game Performance</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Game ID</th>
+                        <th>Opponent</th>
+                        <th>Status</th>
+                        <th>Points</th>
+                        <th>1P</th>
+                        <th>2P</th>
+                        <th>3P</th>
+                        <th>Fouls</th>
+                        <th>P</th>
+                        <th>P1</th>
+                        <th>P2</th>
+                        <th>P3</th>
+                        <th>T1</th>
+                        <th>U1</th>
+                        <th>U2</th>
+                        <th>U3</th>
+                        <th>GD</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for game in player_stats.game_by_game %}
+                    <tr>
+                        <td>{{ game.GameDate }}</td>
+                        <td>{{ game.GameId }}</td>
+                        <td>{{ game.OpponentTeam }}</td>
+                        <td>
+                            {% if game.StartingFive %}
+                            <span class="badge badge-starter">Starter</span>
+                            {% else %}
+                            <span class="badge badge-bench">Bench</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ game.TotalPoints }}</strong></td>
+                        <td>{{ game['1PMadeShots'] }}</td>
+                        <td>{{ game['2PMadeShots'] }}</td>
+                        <td>{{ game['3PMadeShots'] }}</td>
+                        <td><strong>{{ game.TotalFouls }}</strong></td>
+                        <td>{{ game.PFouls }}</td>
+                        <td>{{ game.P1Fouls }}</td>
+                        <td>{{ game.P2Fouls }}</td>
+                        <td>{{ game.P3Fouls }}</td>
+                        <td>{{ game.T1Fouls }}</td>
+                        <td>{{ game.U1Fouls }}</td>
+                        <td>{{ game.U2Fouls }}</td>
+                        <td>{{ game.U3Fouls }}</td>
+                        <td>{{ game.GDFouls }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        {% elif player_name %}
+        <div class="no-player-selected">
+            <h3>Player Not Found</h3>
+            <p>No statistics found for "{{ player_name }}". Please try another search.</p>
+        </div>
+        {% else %}
+        <div class="no-player-selected">
+            <h3>Search for a Player</h3>
+            <p>Use the search box above to find and view detailed statistics for any player in the league.</p>
+        </div>
+        {% endif %}
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        // Player data for autocomplete
+        const allPlayers = {{ all_players|tojson }};
+        
+        const searchInput = document.getElementById('playerSearch');
+        const suggestionsDiv = document.getElementById('autocompleteSuggestions');
+        
+        // Show suggestions on input
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            
+            if (searchTerm.length < 2) {
+                suggestionsDiv.style.display = 'none';
+                return;
+            }
+            
+            // Filter players
+            const matches = allPlayers.filter(player => 
+                player.PlayerName.toLowerCase().includes(searchTerm) ||
+                player.Team.toLowerCase().includes(searchTerm)
+            );
+            
+            if (matches.length === 0) {
+                suggestionsDiv.style.display = 'none';
+                return;
+            }
+            
+            // Display suggestions
+            suggestionsDiv.innerHTML = matches.slice(0, 10).map(player => `
+                <div class="autocomplete-suggestion" onclick="selectPlayer('${player.PlayerName.replace(/'/g, "\\'")}')">
+                    <strong>${player.PlayerName}</strong> <span style="color: #7f8c8d;">- ${player.Team}</span>
+                </div>
+            `).join('');
+            
+            suggestionsDiv.style.display = 'block';
+        });
+        
+        // Select player
+        function selectPlayer(playerName) {
+            searchInput.value = playerName;
+            suggestionsDiv.style.display = 'none';
+            window.location.href = `/player-detail?player=${encodeURIComponent(playerName)}`;
+        }
+        
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+                suggestionsDiv.style.display = 'none';
+            }
+        });
+        
+        // Handle Enter key
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const firstSuggestion = suggestionsDiv.querySelector('.autocomplete-suggestion');
+                if (firstSuggestion) {
+                    firstSuggestion.click();
+                }
+            }
+        });
+    </script>
+{% endblock %}

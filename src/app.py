@@ -2,7 +2,7 @@ import os
 import re
 from flask import Flask, render_template, request
 import pandas as pd
-from .utils import (calculate_standings_by_division, get_highest_scoring_games, 
+from src.utils import (calculate_standings_by_division, get_highest_scoring_games, 
                    load_game_data, get_top_players_by_score, get_team_performance_stats,
                    get_top_scorers, get_highest_single_game_score, get_top_three_pointers, 
                    get_top_foulers, get_referee_statistics, get_referee_fouls_per_game,
@@ -12,7 +12,9 @@ from .utils import (calculate_standings_by_division, get_highest_scoring_games,
                    get_player_game_impact_analysis, get_player_foul_impact_analysis,
                    get_best_player_combinations, get_referee_game_impact_analysis, get_all_fixtures_data,
                    get_fixtures_matrix_data, get_data_source_info, get_season_info, 
-                   get_website_config, list_available_archives, import_season_archive)
+                   get_website_config, list_available_archives, import_season_archive,
+                   get_all_players_list, get_player_detail_stats, get_game_details)
+from src.version import get_version_info
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
 
@@ -22,9 +24,11 @@ def inject_season_info():
     """Make season information available to all templates"""
     season_info = get_season_info()
     website_config = get_website_config()
+    version_info = get_version_info()
     return {
         'season_info': season_info,
-        'website_config': website_config
+        'website_config': website_config,
+        'version_info': version_info
     }
 
 # Logo utility functions
@@ -205,23 +209,26 @@ def team_stats():
                          divisions=divisions,
                          data_source_info=data_source_info)
 
-@app.route('/player-stats')
+@app.route('/player-stats', methods=['GET', 'POST'])
 def player_stats():
     """Dedicated player statistics page"""
     if data.empty:
         return render_template('player_stats.html', error="No data available", data_source_info=data_source_info)
     
-    # Get comprehensive player statistics
-    top_scorers = get_top_scorers(data, 50)  # Get top 50 for comprehensive view
-    highest_single_scores = get_highest_single_game_score(data, 10)  # Now returns top 10
-    top_three_pointers = get_top_three_pointers(data, 20)
-    top_foulers = get_top_foulers(data, 20)
+    # Get selected division from form
+    selected_division = request.form.get('division')
+    
+    # Get comprehensive player statistics (filtered by division if selected)
+    top_scorers = get_top_scorers(data, 50, division=selected_division)  # Get top 50 for comprehensive view
+    highest_single_scores = get_highest_single_game_score(data, 10, division=selected_division)  # Now returns top 10
+    top_three_pointers = get_top_three_pointers(data, 20, division=selected_division)
+    top_foulers = get_top_foulers(data, 20, division=selected_division)
     
     # New basketball-specific statistics
-    shooting_efficiency = get_player_shooting_efficiency(data, 20)
-    starter_bench_stats = get_starting_five_vs_bench_stats(data)
-    double_digit_scorers = get_double_digit_scorers(data)
-    consistent_scorers = get_consistent_scorers(data)
+    shooting_efficiency = get_player_shooting_efficiency(data, 20, division=selected_division)
+    starter_bench_stats = get_starting_five_vs_bench_stats(data, division=selected_division)
+    double_digit_scorers = get_double_digit_scorers(data, division=selected_division)
+    consistent_scorers = get_consistent_scorers(data, division=selected_division)
     
     return render_template('player_stats.html',
                          top_scorers=top_scorers,
@@ -232,6 +239,50 @@ def player_stats():
                          starter_bench_stats=starter_bench_stats,
                          double_digit_scorers=double_digit_scorers,
                          consistent_scorers=consistent_scorers,
+                         divisions=divisions,
+                         selected_division=selected_division,
+                         data_source_info=data_source_info)
+
+@app.route('/player-detail')
+def player_detail():
+    """Individual player detail page with search and comprehensive statistics"""
+    if data.empty:
+        return render_template('player_detail.html', error="No data available", data_source_info=data_source_info)
+    
+    # Get all players for autocomplete
+    all_players = get_all_players_list(data)
+    
+    # Get selected player from query parameter
+    player_name = request.args.get('player')
+    player_stats_detail = None
+    
+    if player_name:
+        player_stats_detail = get_player_detail_stats(data, player_name)
+    
+    return render_template('player_detail.html',
+                         all_players=all_players,
+                         player_name=player_name,
+                         player_stats=player_stats_detail,
+                         divisions=divisions,
+                         data_source_info=data_source_info)
+
+@app.route('/referee-stats')
+def referee_stats():
+    """Dedicated referee statistics page"""
+    if data.empty:
+        return render_template('referee_stats.html', error="No data available", data_source_info=data_source_info)
+    
+    # Get comprehensive referee statistics
+    referee_stats_data = get_referee_statistics(data)
+    referee_fouls = get_referee_fouls_per_game(data)
+    referee_least_fouls = get_referees_least_fouls_per_game(data)
+    referee_impact = get_referee_game_impact_analysis(data)
+    
+    return render_template('referee_stats.html',
+                         referee_stats=referee_stats_data,
+                         referee_fouls=referee_fouls,
+                         referee_least_fouls=referee_least_fouls,
+                         referee_impact=referee_impact,
                          divisions=divisions,
                          data_source_info=data_source_info)
 
@@ -271,13 +322,28 @@ def fixtures():
         return render_template('fixtures.html', error="No data available", divisions=divisions, data_source_info=data_source_info)
     
     # Get division filter from query parameters
-    division_filter = request.args.get('division')
+    # Default to "M-Division 1:" if no filter is provided (first time visit)
+    DEFAULT_DIVISION = "M-Division 1:"
+    division_param = request.args.get('division')
+    
+    if division_param is None:
+        # First time visit - default to "M-Division 1:"
+        division_filter = DEFAULT_DIVISION
+        selected_division_param = DEFAULT_DIVISION
+    elif division_param == "ALL":
+        # User explicitly selected "All Divisions" - show all
+        division_filter = None
+        selected_division_param = "ALL"
+    else:
+        # Specific division selected
+        division_filter = division_param
+        selected_division_param = division_param
     
     # Get matrix data for fixtures
     matrix_data = get_fixtures_matrix_data(data, division_filter)
     
-    # Also get traditional table data for compatibility/comparison (if needed)
-    fixtures_data = get_all_fixtures_data(data)
+    # Also get traditional table data with filter applied
+    fixtures_data = get_all_fixtures_data(data, division_filter)
     
     # Sort by date (most recent first)
     if not fixtures_data.empty and 'DateTime' in fixtures_data.columns:
@@ -287,6 +353,23 @@ def fixtures():
                          fixtures=fixtures_data,
                          matrix_data=matrix_data,
                          divisions=divisions,
+                         selected_division=selected_division_param,
+                         data_source_info=data_source_info)
+
+@app.route('/game-detail/<game_id>')
+def game_detail(game_id):
+    """Game detail page showing comprehensive information about a specific game"""
+    if data.empty:
+        return render_template('game_detail.html', error="No data available", data_source_info=data_source_info)
+    
+    # Get game details
+    game_details = get_game_details(data, game_id)
+    
+    if not game_details:
+        return render_template('game_detail.html', error=f"Game {game_id} not found", data_source_info=data_source_info)
+    
+    return render_template('game_detail.html',
+                         game=game_details,
                          data_source_info=data_source_info)
 
 @app.route('/admin')

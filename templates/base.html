@@ -303,7 +303,9 @@
             <a href="/fixtures" {% if request and request.endpoint == 'fixtures' %}class="active"{% endif %}>📅 Fixtures</a>
             <a href="/statistics" {% if request and request.endpoint == 'statistics' %}class="active"{% endif %}>📊 Statistics</a>
             <a href="/player-stats" {% if request and request.endpoint == 'player_stats' %}class="active"{% endif %}>👤 Player Stats</a>
+            <a href="/player-detail" {% if request and request.endpoint == 'player_detail' %}class="active"{% endif %}>🔍 Player Detail</a>
             <a href="/team-stats" {% if request and request.endpoint == 'team_stats' %}class="active"{% endif %}>🏆 Team Stats</a>
+            <a href="/referee-stats" {% if request and request.endpoint == 'referee_stats' %}class="active"{% endif %}>👨‍⚖️ Referee Stats</a>
             <a href="/deeper-analysis" {% if request and request.endpoint == 'deeper_analysis' %}class="active"{% endif %}>🔍 Deep Analysis</a>
             <a href="/admin" {% if request and request.endpoint == 'admin' %}class="active"{% endif %}>⚙️ Admin</a>
         </div>
@@ -331,6 +333,9 @@
                 {% endif %}
                 {% if data_source_info.last_update %}
                 | Last Update: {{ data_source_info.last_update }}
+                {% endif %}
+                {% if version_info %}
+                | Version: {{ version_info.version_string }}
                 {% endif %}
             </small>
         </div>

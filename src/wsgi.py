@@ -7,7 +7,7 @@ designed to work with various hosting platforms like Render, Railway, Heroku, et
 """
 
 import os
-from .app import app
+from src.app import app
 from flask import request, redirect
 
 # Production configuration

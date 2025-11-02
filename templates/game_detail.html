@@ -1,0 +1,427 @@
+{% extends "base.html" %}
+
+{% block title %}Game Details - FLBB Statistics{% endblock %}
+
+{% block page_title %}🏀 Game Details{% endblock %}
+{% block page_description %}Complete game information and statistics{% endblock %}
+
+{% block extra_styles %}
+    .game-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        text-align: center;
+    }
+
+    .game-header h2 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+    }
+
+    .final-score {
+        font-size: 3em;
+        font-weight: bold;
+        margin: 20px 0;
+    }
+
+    .game-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .info-card {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .info-card h3 {
+        color: #667eea;
+        margin-bottom: 10px;
+        font-size: 1.1em;
+    }
+
+    .info-card p {
+        color: #555;
+        margin: 5px 0;
+    }
+
+    .section {
+        background: white;
+        padding: 25px;
+        border-radius: 15px;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .section h2 {
+        color: #2c3e50;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 3px solid #667eea;
+    }
+
+    .teams-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-top: 20px;
+    }
+
+    .team-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+    }
+
+    .team-section h3 {
+        color: #667eea;
+        margin-bottom: 15px;
+        font-size: 1.5em;
+        text-align: center;
+    }
+
+    .player-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+
+    .player-table th {
+        background: #667eea;
+        color: white;
+        padding: 10px;
+        text-align: left;
+        font-weight: 600;
+    }
+
+    .player-table td {
+        padding: 10px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .player-table tr:hover {
+        background: rgba(102, 126, 234, 0.1);
+    }
+
+    .starting-five {
+        background: #e8f5e9;
+        font-weight: bold;
+    }
+
+    .events-timeline {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
+    .event-item {
+        padding: 12px;
+        margin-bottom: 10px;
+        border-left: 4px solid #667eea;
+        background: #f8f9fa;
+        border-radius: 5px;
+    }
+
+    .event-item.home-event {
+        border-left-color: #2980b9;
+    }
+
+    .event-item.away-event {
+        border-left-color: #e67e22;
+    }
+
+    .event-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+        font-weight: 600;
+    }
+
+    .event-details {
+        color: #666;
+        font-size: 0.9em;
+    }
+
+    .quarter-badge {
+        background: #667eea;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.8em;
+        margin-right: 10px;
+    }
+
+    .score-badge {
+        background: #2c3e50;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 5px;
+        font-size: 0.9em;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-top: 20px;
+    }
+
+    .score-evolution-chart {
+        width: 100%;
+        height: 100%;
+    }
+
+    .referee-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-top: 15px;
+    }
+
+    .referee-badge {
+        background: #667eea;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-weight: 500;
+    }
+
+    .back-button {
+        display: inline-block;
+        background: #667eea;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        text-decoration: none;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+
+    .back-button:hover {
+        background: #764ba2;
+        transform: translateY(-2px);
+    }
+
+    @media (max-width: 768px) {
+        .teams-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .game-info-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+{% endblock %}
+
+{% block content %}
+    <a href="/fixtures" class="back-button">← Back to Fixtures</a>
+
+    {% if error %}
+        <div class="error-message">{{ error }}</div>
+    {% elif game %}
+        <!-- Game Header -->
+        <div class="game-header">
+            <h2>{{ game.basic_info.home_team }} vs {{ game.basic_info.away_team }}</h2>
+            <div class="final-score">{{ game.basic_info.final_score }}</div>
+            <p>{{ game.basic_info.division }}</p>
+        </div>
+
+        <!-- Game Information -->
+        <div class="game-info-grid">
+            <div class="info-card">
+                <h3>📅 Date & Time</h3>
+                <p>{{ game.basic_info.date_time }}</p>
+            </div>
+            <div class="info-card">
+                <h3>📍 Location</h3>
+                <p>{{ game.basic_info.location.Name if game.basic_info.location else 'N/A' }}</p>
+            </div>
+            <div class="info-card">
+                <h3>🏆 Winner</h3>
+                <p>{{ game.basic_info.winner }}</p>
+            </div>
+            <div class="info-card">
+                <h3>🎯 League Points</h3>
+                <p>{{ game.basic_info.home_team }}: {{ game.basic_info.home_league_points }}</p>
+                <p>{{ game.basic_info.away_team }}: {{ game.basic_info.away_league_points }}</p>
+            </div>
+        </div>
+
+        <!-- Referees Section -->
+        {% if game.referees %}
+        <div class="section">
+            <h2>👨‍⚖️ Referees</h2>
+            <div class="referee-list">
+                {% for referee in game.referees %}
+                    <div class="referee-badge">{{ referee['Referee Name'] }}</div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Score Evolution Chart -->
+        {% if game.score_evolution %}
+        <div class="section">
+            <h2>📈 Score Evolution</h2>
+            <div class="chart-container">
+                <canvas id="scoreChart" class="score-evolution-chart"></canvas>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Player Statistics -->
+        <div class="section">
+            <h2>👥 Player Statistics</h2>
+            <div class="teams-grid">
+                {% for team in game.teams %}
+                <div class="team-section">
+                    <h3>{{ team.name }}</h3>
+                    <p style="text-align: center; color: #666; margin-bottom: 10px;">
+                        {{ team.result }} - {{ team.total_won_points }} points
+                    </p>
+                    <table class="player-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Player</th>
+                                <th>PTS</th>
+                                <th>1P</th>
+                                <th>2P</th>
+                                <th>3P</th>
+                                <th>Fouls</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for player in team.players %}
+                            <tr class="{% if player['Starting Five'] == 'true' %}starting-five{% endif %}">
+                                <td>{{ player['Player Number'] }}</td>
+                                <td>{{ player['Player Name'] }}</td>
+                                <td><strong>{{ player['Total Points'] }}</strong></td>
+                                <td>{{ player['1P Made Shots'] }}</td>
+                                <td>{{ player['2P Made Shots'] }}</td>
+                                <td>{{ player['3P Made Shots'] }}</td>
+                                <td>{{ player['Total Fouls'] }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                        <span style="background: #e8f5e9; padding: 2px 8px; border-radius: 3px;">
+                            ■ Starting Five
+                        </span>
+                    </p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Game Events Timeline -->
+        {% if game.events %}
+        <div class="section">
+            <h2>⏱️ Game Events ({{ game.events|length }} events)</h2>
+            <div class="events-timeline">
+                {% for event in game.events %}
+                <div class="event-item {% if event.EventTeam == game.basic_info.home_team %}home-event{% else %}away-event{% endif %}">
+                    <div class="event-header">
+                        <div>
+                            <span class="quarter-badge">Q{{ event.EventQuarter }}</span>
+                            <strong>{{ event.EventActor }}</strong> ({{ event.EventTeam }})
+                        </div>
+                        {% if event.EventScore %}
+                        <span class="score-badge">{{ event.EventScore }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="event-details">
+                        {{ event.EventAction }}
+                        {% if event.EventDateTime %}
+                        <span style="float: right; color: #999;">{{ event.EventDateTime }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    {% endif %}
+{% endblock %}
+
+{% block scripts %}
+    {% if game and game.score_evolution %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Prepare data for score evolution chart
+        const scoreData = {{ game.score_evolution | tojson }};
+        
+        // Extract quarters and scores
+        const labels = scoreData.map((point, index) => `Event ${index + 1}`);
+        const homeScores = scoreData.map(point => point.home_score);
+        const awayScores = scoreData.map(point => point.away_score);
+        
+        // Create the chart
+        const ctx = document.getElementById('scoreChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: '{{ game.basic_info.home_team }}',
+                        data: homeScores,
+                        borderColor: '#2980b9',
+                        backgroundColor: 'rgba(41, 128, 185, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: '{{ game.basic_info.away_team }}',
+                        data: awayScores,
+                        borderColor: '#e67e22',
+                        backgroundColor: 'rgba(230, 126, 34, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function(context) {
+                                const index = context[0].dataIndex;
+                                const point = scoreData[index];
+                                return `Quarter ${point.quarter}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Score'
+                        }
+                    },
+                    x: {
+                        display: false
+                    }
+                }
+            }
+        });
+    </script>
+    {% endif %}
+{% endblock %}

@@ -180,6 +180,20 @@
             font-size: 0.75em;
             line-height: 1.2;
             margin: 2px 0;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+
+        .game-info:hover {
+            background-color: rgba(102, 126, 234, 0.15);
+        }
+
+        .game-info:focus {
+            outline: 2px solid #667eea;
+            outline-offset: 2px;
+            background-color: rgba(102, 126, 234, 0.15);
         }
 
         .game-score {
@@ -191,11 +205,6 @@
         .game-date {
             color: #7f8c8d;
             font-size: 0.7em;
-        }
-
-        .game-location {
-            color: #8e44ad;
-            font-size: 0.65em;
         }
 
         .game-top-scorer {
@@ -266,7 +275,7 @@
     <div class="stats-summary">
         <h3>📊 Season Overview</h3>
         <p>Teams: {{ matrix_data.teams|length }} | 
-           Division: {{ matrix_data.current_division }}
+           Division: {% if selected_division == 'ALL' %}All Divisions{% else %}{{ selected_division }}{% endif %}
         </p>
     </div>
 
@@ -275,10 +284,10 @@
     <div class="filter-section">
         <label for="division-filter">Filter by Division:</label>
         <select id="division-filter" onchange="filterByDivision(this.value)">
-            <option value="">All Divisions</option>
+            <option value="ALL" {% if selected_division == 'ALL' %}selected{% endif %}>All Divisions</option>
             {% for division in matrix_data.divisions %}
                 <option value="{{ division }}" 
-                        {% if division == matrix_data.current_division %}selected{% endif %}>
+                        {% if division == selected_division %}selected{% endif %}>
                     {{ division }}
                 </option>
             {% endfor %}
@@ -327,14 +336,13 @@
                                 <td class="{% if home_team == away_team %}empty-cell{% endif %}">
                                     {% if home_team != away_team and games %}
                                         {% for game in games %}
-                                        <div class="game-info">
+                                        <div class="game-info" onclick="window.location.href='/game-detail/{{ game.game_id }}'" onkeydown="if(event.key==='Enter'||event.key===' '){window.location.href='/game-detail/{{ game.game_id }}';event.preventDefault();}" tabindex="0" role="button" aria-label="View details for {{ home_team }} vs {{ away_team }} on {{ game.date[:10] if game.date != 'TBD' else 'TBD' }}">
                                             {% if game.is_finished %}
                                                 <div class="game-score">{{ game.home_score }} - {{ game.away_score }}</div>
                                             {% else %}
                                                 <div class="game-score">vs</div>
                                             {% endif %}
                                             <div class="game-date">{{ game.date[:10] if game.date != 'TBD' else 'TBD' }}</div>
-                                            <div class="game-location">{{ game.location }}</div>
                                             {% if game.top_scorer.name %}
                                                 <div class="game-top-scorer">{{ game.top_scorer.name }} ({{ game.top_scorer.points }}pts)</div>
                                             {% endif %}
@@ -372,8 +380,8 @@
                 </thead>
                 <tbody>
                     {% for index, row in fixtures.iterrows() %}
-                    <tr class="fixture-row">
-                        <td>{{ row['GameId'] }}</td>
+                    <tr class="fixture-row" onclick="window.location.href='/game-detail/{{ row['GameId'] }}'" style="cursor: pointer;">
+                        <td><a href="/game-detail/{{ row['GameId'] }}" style="color: #667eea; text-decoration: none; font-weight: 600;">{{ row['GameId'] }}</a></td>
                         <td class="date-time">
                             {% if row['DateTime'] %}
                                 {{ row['DateTime'][:16].replace('T', ' ') if 'T' in (row['DateTime'] or '') else row['DateTime'][:16] }}
@@ -470,11 +478,8 @@
 
         function filterByDivision(division) {
             const params = new URLSearchParams(window.location.search);
-            if (division) {
-                params.set('division', division);
-            } else {
-                params.delete('division');
-            }
+            // Always set the division parameter, including "ALL"
+            params.set('division', division);
             window.location.search = params.toString();
         }
     </script>
