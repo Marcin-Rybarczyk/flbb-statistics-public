@@ -498,7 +498,20 @@ def get_starting_five_vs_bench_stats(data):
     data (DataFrame): The game data
     
     Returns:
-    dict: Statistics comparing starters vs bench
+    dict: Statistics comparing starters vs bench, including:
+        - starters_avg: Average points per game for starters
+        - bench_avg: Average points per game for bench players
+        - difference: Difference between starter and bench averages
+        - starters: DataFrame with top starting players
+        - bench: DataFrame with top bench players
+        - starters_total_players: Total unique starter players
+        - starters_total_games: Total game appearances by starters
+        - starters_avg_points: Average points per game for starters
+        - starters_total_points: Total points scored by starters
+        - starters_avg_fouls: Average fouls per game for starters
+        - starters_total_shots: Total shots made by starters
+        - starters_avg_shots_per_game: Average shots per game for starters
+        - (corresponding bench_* fields for bench players)
     """
     player_stats = extract_all_player_stats(data)
     
@@ -509,6 +522,10 @@ def get_starting_five_vs_bench_stats(data):
     starters = player_stats[player_stats['StartingFive'] == True]
     bench = player_stats[player_stats['StartingFive'] == False]
     
+    if starters.empty and bench.empty:
+        return {}
+    
+    # Calculate aggregate statistics for each group
     def get_group_stats(group, label):
         if group.empty:
             return {}
@@ -525,7 +542,51 @@ def get_starting_five_vs_bench_stats(data):
     starter_stats = get_group_stats(starters, 'starters')
     bench_stats = get_group_stats(bench, 'bench')
     
-    return {**starter_stats, **bench_stats}
+    # Calculate top performers for each group
+    def get_top_performers(group, top_n=20):
+        if group.empty:
+            return pd.DataFrame()
+        
+        # Group by player and calculate aggregate statistics
+        player_aggregated = group.groupby(['PlayerName', 'Team']).agg({
+            'TotalPoints': ['sum', 'mean'],
+            'GameId': 'count'
+        }).reset_index()
+        
+        # Flatten column names
+        player_aggregated.columns = ['PlayerName', 'Team', 'TotalPoints', 'AvgPointsPerGame', 'GamesPlayed']
+        
+        # Sort by total points and get top performers
+        player_aggregated = player_aggregated.sort_values('TotalPoints', ascending=False).head(top_n)
+        
+        return player_aggregated
+    
+    # Get top performers
+    top_starters = get_top_performers(starters, 20)
+    top_bench = get_top_performers(bench, 20)
+    
+    # Calculate summary averages for comparison
+    starters_avg = starter_stats.get('starters_avg_points', 0)
+    bench_avg = bench_stats.get('bench_avg_points', 0)
+    difference = round(starters_avg - bench_avg, 1) if starters_avg is not None and bench_avg is not None else 0
+    
+    # Build result dictionary with all required keys
+    result = {
+        **starter_stats,
+        **bench_stats,
+        'starters_avg': starters_avg,
+        'bench_avg': bench_avg,
+        'difference': difference,
+    }
+    
+    # Add DataFrames only if they have data
+    if not top_starters.empty:
+        result['starters'] = top_starters
+    
+    if not top_bench.empty:
+        result['bench'] = top_bench
+    
+    return result
 
 def get_double_digit_scorers(data, min_points=10):
     """
