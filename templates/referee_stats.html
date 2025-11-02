@@ -86,6 +86,17 @@
         .top-rank {
             background: linear-gradient(135deg, #f39c12, #e74c3c);
         }
+
+        table a {
+            color: #667eea;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        table a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
 {% endblock %}
 
 {% block content %}
@@ -142,7 +153,7 @@
                                 #{{ loop.index }}
                             </span>
                         </td>
-                        <td><strong>{{ row['RefereeName'] }}</strong></td>
+                        <td><strong><a href="/referee-detail/{{ row['RefereeName'] }}" style="color: #667eea; text-decoration: none; transition: all 0.2s ease;">{{ row['RefereeName'] }}</a></strong></td>
                         <td>{{ row['GamesRefereed'] }}</td>
                         <td>{{ row['FoulsCalledInGame'] }}</td>
                         <td>{{ "%.1f"|format(row['AvgFoulsPerGame']) }}</td>
@@ -175,7 +186,7 @@
                     {% for index, row in referee_fouls.head(20).iterrows() %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td><strong>{{ row['RefereeName'] }}</strong></td>
+                        <td><strong><a href="/referee-detail/{{ row['RefereeName'] }}" style="color: #667eea; text-decoration: none; transition: all 0.2s ease;">{{ row['RefereeName'] }}</a></strong></td>
                         <td>{{ row['GamesRefereed'] }}</td>
                         <td><strong style="color: #e74c3c;">{{ "%.1f"|format(row['AvgFoulsPerGame']) }}</strong></td>
                         <td>{{ row['FoulsCalledInGame'] }}</td>
@@ -203,7 +214,7 @@
                     {% for index, row in referee_least_fouls.head(20).iterrows() %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td><strong>{{ row['RefereeName'] }}</strong></td>
+                        <td><strong><a href="/referee-detail/{{ row['RefereeName'] }}" style="color: #667eea; text-decoration: none; transition: all 0.2s ease;">{{ row['RefereeName'] }}</a></strong></td>
                         <td>{{ row['GamesRefereed'] }}</td>
                         <td><strong style="color: #27ae60;">{{ "%.1f"|format(row['AvgFoulsPerGame']) }}</strong></td>
                         <td>{{ row['FoulsCalledInGame'] }}</td>
@@ -242,7 +253,7 @@
                     <tbody>
                         {% for ref in referee_impact['referee_summary'].head(30).to_dict('records') %}
                         <tr>
-                            <td><strong>{{ ref['RefereeName'] }}</strong></td>
+                            <td><strong><a href="/referee-detail/{{ ref['RefereeName'] }}" style="color: #667eea; text-decoration: none; transition: all 0.2s ease;">{{ ref['RefereeName'] }}</a></strong></td>
                             <td>{{ ref['TotalGames'] }}</td>
                             <td>{{ "%.1f"|format(ref['CloseGamePercentage']) }}%</td>
                             <td>{{ "%.1f"|format(ref['HighScoringPercentage']) }}%</td>
