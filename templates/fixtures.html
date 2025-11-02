@@ -180,6 +180,14 @@
             font-size: 0.75em;
             line-height: 1.2;
             margin: 2px 0;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+
+        .game-info:hover {
+            background-color: rgba(102, 126, 234, 0.15);
         }
 
         .game-score {
@@ -322,7 +330,7 @@
                                 <td class="{% if home_team == away_team %}empty-cell{% endif %}">
                                     {% if home_team != away_team and games %}
                                         {% for game in games %}
-                                        <div class="game-info">
+                                        <div class="game-info" onclick="window.location.href='/game-detail/{{ game.game_id }}'">
                                             {% if game.is_finished %}
                                                 <div class="game-score">{{ game.home_score }} - {{ game.away_score }}</div>
                                             {% else %}
