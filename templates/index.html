@@ -1,95 +1,106 @@
 {% extends "base.html" %}
 
-{% block title %}Division Standings - FLBB Statistics{% endblock %}
+{% block title %}Team Performance - FLBB Statistics{% endblock %}
 
-{% block page_title %}🏠 Division Standings{% endblock %}
-{% block page_description %}View team standings and results by division{% endblock %}
+{% block page_title %}🏠 Team Performance{% endblock %}
+{% block page_description %}View team games and performance statistics{% endblock %}
 
 {% block content %}
 
         <form method="post">
-            <label for="division">Select a Division:</label>
-            <select name="division" onchange="this.form.submit()">
-                <option value="">-- Choose Division --</option>
-                {% for division in divisions %}
-                <option value="{{ division }}" {% if selected_division == division %}selected{% endif %}>{{ division }}</option>
+            <label for="team">Select a Team:</label>
+            <select name="team" onchange="this.form.submit()">
+                <option value="">-- Choose Team --</option>
+                {% for team in all_teams %}
+                <option value="{{ team }}" {% if selected_team == team %}selected{% endif %}>{{ team }}</option>
                 {% endfor %}
             </select>
         </form>
 
-        {% if standings is not none %}
+        {% if selected_team and team_performance %}
         <div class="stats-section">
-            <h2>Standings for {{ selected_division }}</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Rank</th>
-                        <th>Team Name</th>
-                        <th>Games</th>
-                        <th>Wins</th>
-                        <th>Losses</th>
-                        <th>Points For</th>
-                        <th>Points Against</th>
-                        <th>Points Diff</th>
-                        <th>League Points</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for index, row in standings.iterrows() %}
-                    <tr>
-                        <td>{{ index }}</td>
-                        <td>
-                            {% set team_logo_url = get_team_logo_url(row['Team Name']) %}
-                            {% if team_logo_url %}
-                                <img src="{{ team_logo_url }}" alt="{{ row['Team Name'] }} logo" class="team-logo" style="width: 24px; height: 24px; object-fit: contain; vertical-align: middle; margin-right: 8px;">
-                            {% endif %}
-                            {{ row['Team Name'] }}
-                        </td>
-                        <td>{{ row['Games'] }}</td>
-                        <td>{{ row['W'] }}</td>
-                        <td>{{ row['L'] }}</td>
-                        <td>{{ row['F'] }}</td>
-                        <td>{{ row['A'] }}</td>
-                        <td>{{ row['Points Diff'] }}</td>
-                        <td>{{ row['Points'] }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <h2>
+                {% set team_logo_url = get_team_logo_url(selected_team) %}
+                {% if team_logo_url %}
+                    <img src="{{ team_logo_url }}" alt="{{ selected_team }} logo" class="team-logo-large" style="width: 48px; height: 48px; object-fit: contain; vertical-align: middle; margin-right: 12px;">
+                {% endif %}
+                {{ selected_team }} - Performance Summary
+            </h2>
+            
+            <div class="stat-summary">
+                <div class="stat-card">
+                    <h3>Win Percentage</h3>
+                    <p>{{ team_performance['WinPercentage'] }}%</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Games</h3>
+                    <p>{{ team_performance['TotalGames'] }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Avg Points Scored</h3>
+                    <p>{{ "%.1f"|format(team_performance['AvgPointsScored']) }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Point Differential</h3>
+                    <p>{{ "%.1f"|format(team_performance['PointsDifferential']) }}</p>
+                </div>
+            </div>
         </div>
         {% endif %}
 
-        {% if highest_games is not none and not highest_games.empty %}
+        {% if team_games is not none and not team_games.empty %}
         <div class="stats-section">
-            <h2>Highest Scoring Games in {{ selected_division }}</h2>
+            <h2>Recent Games for {{ selected_team }}</h2>
             <table>
                 <thead>
                     <tr>
                         <th>Game ID</th>
+                        <th>Date</th>
                         <th>Home Team</th>
                         <th>Away Team</th>
-                        <th>Home Score</th>
-                        <th>Away Score</th>
-                        <th>Total Score</th>
+                        <th>Score</th>
+                        <th>Division</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for index, row in highest_games.iterrows() %}
+                    {% for index, row in team_games.head(10).iterrows() %}
                     <tr>
                         <td>{{ row['GameId'] }}</td>
-                        <td>{{ row['HomeTeamName'] }}</td>
-                        <td>{{ row['AwayTeamName'] }}</td>
-                        <td>{{ row['FinalHomeScore'] }}</td>
-                        <td>{{ row['FinalAwayScore'] }}</td>
-                        <td><strong>{{ row['TotalScore'] }}</strong></td>
+                        <td>{{ row['DateTime'][:10] if row['DateTime'] else 'N/A' }}</td>
+                        <td>
+                            {% set home_logo_url = get_team_logo_url(row['HomeTeamName']) %}
+                            {% if home_logo_url %}
+                                <img src="{{ home_logo_url }}" alt="{{ row['HomeTeamName'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                            {% endif %}
+                            {{ row['HomeTeamName'] }}
+                        </td>
+                        <td>
+                            {% set away_logo_url = get_team_logo_url(row['AwayTeamName']) %}
+                            {% if away_logo_url %}
+                                <img src="{{ away_logo_url }}" alt="{{ row['AwayTeamName'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                            {% endif %}
+                            {{ row['AwayTeamName'] }}
+                        </td>
+                        <td><strong>{{ row['FinalHomeScore'] }} - {{ row['FinalAwayScore'] }}</strong></td>
+                        <td>{{ row['GameDivisionDisplay'] }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+            {% if team_games.shape[0] > 10 %}
+            <p><em>Showing 10 most recent games out of {{ team_games.shape[0] }} total games.</em></p>
+            {% endif %}
         </div>
         {% endif %}
         
-        {% if divisions|length == 0 %}
+        {% if not selected_team %}
+        <div class="stats-section">
+            <h2>Welcome to FLBB Statistics</h2>
+            <p>Select a team from the dropdown above to view their games and performance statistics.</p>
+        </div>
+        {% endif %}
+        
+        {% if all_teams|length == 0 %}
         <div class="error">
             <p>No data available. Please ensure the data files are properly loaded.</p>
         </div>

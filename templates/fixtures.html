@@ -265,24 +265,26 @@
     {% if matrix_data and matrix_data.teams %}
     <div class="stats-summary">
         <h3>📊 Season Overview</h3>
-        <p>Teams: {{ matrix_data.teams|length }} | 
-           Division: {{ matrix_data.current_division }}
+        <p>Teams: {{ matrix_data.teams|length }}{% if selected_team %} | 
+           Filtered by: {{ selected_team }}{% endif %}
         </p>
     </div>
 
-    <!-- Division Filter -->
-    {% if matrix_data.divisions|length > 1 %}
+    <!-- Team Filter -->
+    {% if all_teams|length > 0 %}
     <div class="filter-section">
-        <label for="division-filter">Filter by Division:</label>
-        <select id="division-filter" onchange="filterByDivision(this.value)">
-            <option value="">All Divisions</option>
-            {% for division in matrix_data.divisions %}
-                <option value="{{ division }}" 
-                        {% if division == matrix_data.current_division %}selected{% endif %}>
-                    {{ division }}
-                </option>
-            {% endfor %}
-        </select>
+        <form method="post">
+            <label for="team-filter">Filter by Team:</label>
+            <select name="team" id="team-filter" onchange="this.form.submit()">
+                <option value="">All Teams</option>
+                {% for team in all_teams %}
+                    <option value="{{ team }}" 
+                            {% if team == selected_team %}selected{% endif %}>
+                        {{ team }}
+                    </option>
+                {% endfor %}
+            </select>
+        </form>
     </div>
     {% endif %}
 
@@ -466,16 +468,6 @@
             document.querySelector('.matrix-view').classList.remove('active');
             document.getElementById('list-btn').classList.add('active');
             document.getElementById('matrix-btn').classList.remove('active');
-        }
-
-        function filterByDivision(division) {
-            const params = new URLSearchParams(window.location.search);
-            if (division) {
-                params.set('division', division);
-            } else {
-                params.delete('division');
-            }
-            window.location.search = params.toString();
         }
     </script>
 {% endblock %}

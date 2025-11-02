@@ -83,22 +83,36 @@ else:
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    selected_division = request.form.get('division')
-    standings = None
-    highest_games = None
+    # Get all unique teams for the filter
+    all_teams = []
+    if not data.empty:
+        home_teams = set(data['HomeTeamName'].unique())
+        away_teams = set(data['AwayTeamName'].unique())
+        all_teams = sorted(home_teams.union(away_teams))
+    
+    selected_team = request.form.get('team')
+    team_games = None
+    team_performance = None
 
-    if selected_division and not data.empty:
-        # Calculate standings for the selected division
-        standings = calculate_standings_by_division(data, selected_division)
-        # Get highest scoring games for the division
-        division_data = data[data['GameDivisionDisplay'] == selected_division]
-        highest_games = get_highest_scoring_games(division_data, 5)
+    if selected_team and not data.empty:
+        # Get games for the selected team
+        team_games = data[
+            (data['HomeTeamName'] == selected_team) | 
+            (data['AwayTeamName'] == selected_team)
+        ].copy()
+        
+        # Get team performance stats
+        if not team_games.empty:
+            team_perf_all = get_team_performance_stats(data)
+            team_perf_filtered = team_perf_all[team_perf_all['Team'] == selected_team]
+            if not team_perf_filtered.empty:
+                team_performance = team_perf_filtered.iloc[0].to_dict()
 
     return render_template('index.html', 
-                         divisions=divisions, 
-                         standings=standings, 
-                         highest_games=highest_games,
-                         selected_division=selected_division,
+                         all_teams=all_teams, 
+                         team_games=team_games, 
+                         team_performance=team_performance,
+                         selected_team=selected_team,
                          data_source_info=data_source_info)
 
 @app.route('/statistics')
@@ -174,7 +188,10 @@ def team_stats():
         
         # Process team-specific statistics
         if not team_games.empty:
-            team_specific_stats = team_performance[team_performance['Team'] == selected_team].iloc[0].to_dict()
+            # Safely get team stats - check if team exists in performance data
+            team_perf_filtered = team_performance[team_performance['Team'] == selected_team]
+            if not team_perf_filtered.empty:
+                team_specific_stats = team_perf_filtered.iloc[0].to_dict()
             
             # Add game-by-game analysis
             team_games['IsHome'] = team_games['HomeTeamName'] == selected_team
@@ -235,19 +252,27 @@ def player_stats():
                          divisions=divisions,
                          data_source_info=data_source_info)
 
-@app.route('/deeper-analysis')
+@app.route('/deeper-analysis', methods=['GET', 'POST'])
 def deeper_analysis():
     """Deep game analysis page with advanced metrics"""
     if data.empty:
-        return render_template('deeper_analysis.html', error="No data available", divisions=divisions, data_source_info=data_source_info)
+        return render_template('deeper_analysis.html', error="No data available", data_source_info=data_source_info)
     
-    # Get division filter from query parameters
-    division_filter = request.args.get('division')
+    # Get all unique teams for the filter
+    home_teams = set(data['HomeTeamName'].unique())
+    away_teams = set(data['AwayTeamName'].unique())
+    all_teams = sorted(home_teams.union(away_teams))
     
-    # Apply division filter if provided
+    # Get team filter from query parameters or form
+    team_filter = request.args.get('team') or request.form.get('team')
+    
+    # Apply team filter if provided
     filtered_data = data.copy()
-    if division_filter:
-        filtered_data = filtered_data[filtered_data['GameDivisionDisplay'] == division_filter]
+    if team_filter:
+        filtered_data = filtered_data[
+            (filtered_data['HomeTeamName'] == team_filter) | 
+            (filtered_data['AwayTeamName'] == team_filter)
+        ]
     
     # Get comprehensive deeper analysis with filtered data
     player_impact = get_player_game_impact_analysis(filtered_data, 20)
@@ -260,24 +285,36 @@ def deeper_analysis():
                          foul_impact=foul_impact,
                          player_combinations=player_combinations,
                          referee_impact=referee_impact,
-                         divisions=divisions,
-                         selected_division=division_filter,
+                         all_teams=all_teams,
+                         selected_team=team_filter,
                          data_source_info=data_source_info)
 
-@app.route('/fixtures')
+@app.route('/fixtures', methods=['GET', 'POST'])
 def fixtures():
     """Fixtures page with games displayed as a matrix table"""
     if data.empty:
-        return render_template('fixtures.html', error="No data available", divisions=divisions, data_source_info=data_source_info)
+        return render_template('fixtures.html', error="No data available", data_source_info=data_source_info)
     
-    # Get division filter from query parameters
-    division_filter = request.args.get('division')
+    # Get all unique teams for the filter
+    home_teams = set(data['HomeTeamName'].unique())
+    away_teams = set(data['AwayTeamName'].unique())
+    all_teams = sorted(home_teams.union(away_teams))
+    
+    # Get team filter from query parameters or form
+    team_filter = request.args.get('team') or request.form.get('team')
     
     # Get matrix data for fixtures
-    matrix_data = get_fixtures_matrix_data(data, division_filter)
+    matrix_data = get_fixtures_matrix_data(data, team_filter)
     
-    # Also get traditional table data for compatibility/comparison (if needed)
+    # Also get traditional table data
     fixtures_data = get_all_fixtures_data(data)
+    
+    # Apply team filter if provided
+    if team_filter and not fixtures_data.empty:
+        fixtures_data = fixtures_data[
+            (fixtures_data['HomeTeamName'] == team_filter) | 
+            (fixtures_data['AwayTeamName'] == team_filter)
+        ]
     
     # Sort by date (most recent first)
     if not fixtures_data.empty and 'DateTime' in fixtures_data.columns:
@@ -286,7 +323,8 @@ def fixtures():
     return render_template('fixtures.html',
                          fixtures=fixtures_data,
                          matrix_data=matrix_data,
-                         divisions=divisions,
+                         all_teams=all_teams,
+                         selected_team=team_filter,
                          data_source_info=data_source_info)
 
 @app.route('/admin')

@@ -159,30 +159,32 @@
 {% endblock %}
 
 {% block content %}
-        <!-- Division Filter -->
-        {% if divisions|length > 1 %}
+        <!-- Team Filter -->
+        {% if all_teams|length > 0 %}
         <div class="filter-section">
-            <label for="division-filter">Filter by Division:</label>
-            <select id="division-filter" onchange="filterByDivision(this.value)">
-                <option value="">All Divisions</option>
-                {% for division in divisions %}
-                    <option value="{{ division }}" 
-                            {% if division == selected_division %}selected{% endif %}>
-                        {{ division }}
-                    </option>
-                {% endfor %}
-            </select>
+            <form method="post">
+                <label for="team-filter">Filter by Team:</label>
+                <select name="team" id="team-filter" onchange="this.form.submit()">
+                    <option value="">All Teams</option>
+                    {% for team in all_teams %}
+                        <option value="{{ team }}" 
+                                {% if team == selected_team %}selected{% endif %}>
+                            {{ team }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </form>
         </div>
         {% endif %}
 
-        <!-- Division Info -->
-        {% if selected_division %}
+        <!-- Team Info -->
+        {% if selected_team %}
         <div class="division-info">
-            📊 Showing analysis for: <strong>{{ selected_division }}</strong>
+            📊 Showing analysis for: <strong>{{ selected_team }}</strong>
         </div>
         {% else %}
         <div class="division-info">
-            📊 Showing analysis for: <strong>All Divisions</strong>
+            📊 Showing analysis for: <strong>All Teams</strong>
         </div>
         {% endif %}
 
@@ -393,16 +395,6 @@
 
             // Add active class to clicked tab
             event.target.classList.add('active');
-        }
-
-        function filterByDivision(division) {
-            const params = new URLSearchParams(window.location.search);
-            if (division) {
-                params.set('division', division);
-            } else {
-                params.delete('division');
-            }
-            window.location.search = params.toString();
         }
     </script>
 {% endblock %}
