@@ -12,7 +12,7 @@ __build_number__ = "1"
 def get_last_modification_date():
     """
     Get the last modification date from Git commit history.
-    Falls back to current date if Git is not available.
+    Falls back to release date if Git is not available.
     """
     try:
         # Get the directory of this file
@@ -30,7 +30,8 @@ def get_last_modification_date():
         
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip()
-    except Exception:
+    except (subprocess.SubprocessError, subprocess.TimeoutExpired, FileNotFoundError, OSError):
+        # Git command failed or Git is not installed
         pass
     
     # Fallback to release date if Git command fails
