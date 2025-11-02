@@ -491,17 +491,22 @@ def create_players_database(data, output_filepath=None):
     
     return players_db
 
-def get_top_scorers(data, top_n=20):
+def get_top_scorers(data, top_n=20, division=None):
     """
     Get top N scorers across all games.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of top scorers to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Top scorers with their statistics
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     player_stats = extract_all_player_stats(data)
     
     if player_stats.empty:
@@ -522,17 +527,22 @@ def get_top_scorers(data, top_n=20):
     # Sort by total points and return top N
     return scorer_stats.sort_values('TotalPoints', ascending=False).head(top_n).reset_index(drop=True)
 
-def get_highest_single_game_score(data, top_n=30):
+def get_highest_single_game_score(data, top_n=10, division=None):
     """
     Get the highest single game scores by any player, with one entry per player (their best game).
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of top single game scores to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Players with highest single game scores (unique players)
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     player_stats = extract_all_player_stats(data)
     
     if player_stats.empty:
@@ -545,17 +555,22 @@ def get_highest_single_game_score(data, top_n=30):
     
     return top_single_games
 
-def get_player_shooting_efficiency(data, top_n=20):
+def get_player_shooting_efficiency(data, top_n=20, division=None):
     """
     Get player shooting efficiency statistics.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of top players to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Players with shooting efficiency statistics
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     player_stats = extract_all_player_stats(data)
     
     if player_stats.empty:
@@ -591,12 +606,13 @@ def get_player_shooting_efficiency(data, top_n=20):
     
     return efficiency_stats.sort_values('PointsPerShot', ascending=False).head(top_n).reset_index(drop=True)
 
-def get_starting_five_vs_bench_stats(data):
+def get_starting_five_vs_bench_stats(data, division=None):
     """
     Compare starting five players vs bench players statistics.
     
     Parameters:
     data (DataFrame): The game data
+    division (str): Optional division filter
     
     Returns:
     dict: Statistics comparing starters vs bench, including:
@@ -614,6 +630,10 @@ def get_starting_five_vs_bench_stats(data):
         - starters_avg_shots_per_game: Average shots per game for starters
         - (corresponding bench_* fields for bench players)
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     player_stats = extract_all_player_stats(data)
     
     if player_stats.empty:
@@ -689,17 +709,22 @@ def get_starting_five_vs_bench_stats(data):
     
     return result
 
-def get_double_digit_scorers(data, min_points=10):
+def get_double_digit_scorers(data, min_points=10, division=None):
     """
     Get players with double-digit scoring games.
     
     Parameters:
     data (DataFrame): The game data
     min_points (int): Minimum points for double-digit game
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Players with double-digit scoring statistics
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     player_stats = extract_all_player_stats(data)
     
     if player_stats.empty:
@@ -731,17 +756,22 @@ def get_double_digit_scorers(data, min_points=10):
     
     return double_digit_stats.sort_values('DoubleDigitGames', ascending=False).head(20).reset_index(drop=True)
 
-def get_consistent_scorers(data, min_games=5):
+def get_consistent_scorers(data, min_games=5, division=None):
     """
     Get players who consistently score well across multiple games.
     
     Parameters:
     data (DataFrame): The game data
     min_games (int): Minimum games to be considered
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Most consistent scorers
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     player_stats = extract_all_player_stats(data)
     
     if player_stats.empty:
@@ -771,17 +801,22 @@ def get_consistent_scorers(data, min_games=5):
         
     return consistency_df.sort_values('ConsistencyScore', ascending=False).head(20).reset_index(drop=True)
 
-def get_top_three_pointers(data, top_n=10):
+def get_top_three_pointers(data, top_n=10, division=None):
     """
     Get top N three-point shooters.
     
     Parameters:
     data (DataFrame): The game data  
     top_n (int): Number of top three-point shooters to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Top three-point shooters with their statistics
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     player_stats = extract_all_player_stats(data)
     
     if player_stats.empty:
@@ -800,17 +835,22 @@ def get_top_three_pointers(data, top_n=10):
     # Sort by total three-pointers made and return top N
     return three_point_stats.sort_values('3PMadeShots', ascending=False).head(top_n).reset_index(drop=True)
 
-def get_top_foulers(data, top_n=10):
+def get_top_foulers(data, top_n=10, division=None):
     """
     Get players with the most fouls.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of top foulers to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Top foulers with their statistics
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     player_stats = extract_all_player_stats(data)
     
     if player_stats.empty:
@@ -2446,3 +2486,142 @@ def _analyze_player_quarters(data, player_name):
             continue
     
     return quarter_stats
+
+
+def get_game_details(data, game_id):
+    """
+    Get comprehensive details for a specific game.
+    
+    Parameters:
+    data (DataFrame): The game data
+    game_id (str or int): The game ID to retrieve details for
+    
+    Returns:
+    dict: Dictionary containing all game details including:
+        - basic_info: Game metadata (location, date, division, etc.)
+        - teams: Team information and player statistics
+        - events: Timeline of game events
+        - score_evolution: Score progression throughout the game
+        - referees: Referee information
+    """
+    import ast
+    
+    # Convert game_id to string for comparison
+    game_id = str(game_id)
+    
+    # Find the game
+    game_row = data[data['GameId'].astype(str) == game_id]
+    
+    if game_row.empty:
+        return None
+    
+    game = game_row.iloc[0]
+    
+    # Parse complex fields
+    try:
+        teams = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
+    except:
+        teams = []
+    
+    try:
+        events = ast.literal_eval(game['GameEvents']) if isinstance(game['GameEvents'], str) else game['GameEvents']
+    except:
+        events = []
+    
+    try:
+        referees = ast.literal_eval(game['Referres']) if isinstance(game['Referres'], str) else game['Referres']
+    except:
+        referees = []
+    
+    try:
+        location = ast.literal_eval(game['GameLocation']) if isinstance(game['GameLocation'], str) else game['GameLocation']
+    except:
+        location = {}
+    
+    # Build basic info
+    basic_info = {
+        'game_id': game_id,
+        'location': location,
+        'division': game['GameDivisionDisplay'],
+        'date_time': game['DateTime'],
+        'home_team': game['HomeTeamName'],
+        'away_team': game['AwayTeamName'],
+        'final_score': game['GameFinalScore'],
+        'home_score': game['FinalHomeScore'],
+        'away_score': game['FinalAwayScore'],
+        'winner': game['GameWinner'],
+        'loser': game['GameLoser'],
+        'home_league_points': game.get('HomeTeamLeaguePoints', 0),
+        'away_league_points': game.get('AwayTeamLeaguePoints', 0)
+    }
+    
+    # Calculate score evolution from events
+    score_evolution = _calculate_score_evolution(events, game['HomeTeamName'], game['AwayTeamName'])
+    
+    # Process teams and players
+    teams_data = []
+    for team in teams:
+        team_info = {
+            'name': team.get('Team Name', ''),
+            'name_short': team.get('Team Name Short', ''),
+            'role': team.get('Team Role', ''),
+            'result': team.get('Result Outcome', ''),
+            'league_points': team.get('League Points', 0),
+            'total_won_points': team.get('Total Won Points', 0),
+            'total_lost_points': team.get('Total Lost Points', 0),
+            'players': team.get('Players', [])
+        }
+        teams_data.append(team_info)
+    
+    # Sort events by time (most recent first for display, but we'll reverse for chronological)
+    sorted_events = sorted(events, key=lambda x: x.get('EventDateTime', ''), reverse=False)
+    
+    return {
+        'basic_info': basic_info,
+        'teams': teams_data,
+        'events': sorted_events,
+        'score_evolution': score_evolution,
+        'referees': referees
+    }
+
+
+def _calculate_score_evolution(events, home_team, away_team):
+    """
+    Calculate score evolution throughout the game from events.
+    
+    Parameters:
+    events (list): List of game events
+    home_team (str): Home team name
+    away_team (str): Away team name
+    
+    Returns:
+    list: List of score points with quarters and scores
+    """
+    score_points = []
+    
+    # Sort events chronologically
+    sorted_events = sorted(events, key=lambda x: x.get('EventDateTime', ''))
+    
+    for event in sorted_events:
+        if event.get('EventScore'):
+            score_str = event.get('EventScore', '')
+            quarter = event.get('EventQuarter', 0)
+            
+            # Parse score "X : Y"
+            if ':' in score_str:
+                try:
+                    parts = score_str.split(':')
+                    home_score = int(parts[0].strip())
+                    away_score = int(parts[1].strip())
+                    
+                    score_points.append({
+                        'quarter': quarter,
+                        'home_score': home_score,
+                        'away_score': away_score,
+                        'time': event.get('EventDateTime', ''),
+                        'event': event.get('EventAction', '')
+                    })
+                except:
+                    pass
+    
+    return score_points

@@ -80,6 +80,25 @@
 {% endblock %}
 
 {% block content %}
+        <!-- Division Filter -->
+        <div class="stats-section" style="background: rgba(255, 255, 255, 0.95); padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); margin-bottom: 30px;">
+            <h2>Filter by Division</h2>
+            <form method="post" style="margin-top: 15px;">
+                <select name="division" onchange="this.form.submit()" style="padding: 10px; font-size: 16px; border-radius: 8px; border: 2px solid #667eea; background: white; cursor: pointer; min-width: 250px;">
+                    <option value="">-- All Divisions --</option>
+                    {% for division in divisions %}
+                    <option value="{{ division }}" {% if selected_division == division %}selected{% endif %}>{{ division }}</option>
+                    {% endfor %}
+                </select>
+                <noscript><input type="submit" value="Filter" style="padding: 10px 20px; font-size: 16px; margin-left: 10px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;"></noscript>
+            </form>
+            {% if selected_division %}
+            <p style="margin-top: 10px; color: #667eea; font-weight: 600;">Showing statistics for: {{ selected_division }}</p>
+            {% else %}
+            <p style="margin-top: 10px; color: #7f8c8d;">Showing statistics for all divisions</p>
+            {% endif %}
+        </div>
+
         {% if top_scorers is not none and not top_scorers.empty %}
         
         <div class="stat-summary">

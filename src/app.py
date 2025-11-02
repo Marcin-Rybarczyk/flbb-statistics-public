@@ -13,7 +13,7 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
                    get_best_player_combinations, get_referee_game_impact_analysis, get_all_fixtures_data,
                    get_fixtures_matrix_data, get_data_source_info, get_season_info, 
                    get_website_config, list_available_archives, import_season_archive,
-                   get_all_players_list, get_player_detail_stats)
+                   get_all_players_list, get_player_detail_stats, get_game_details)
 from src.version import get_version_info
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
@@ -209,23 +209,26 @@ def team_stats():
                          divisions=divisions,
                          data_source_info=data_source_info)
 
-@app.route('/player-stats')
+@app.route('/player-stats', methods=['GET', 'POST'])
 def player_stats():
     """Dedicated player statistics page"""
     if data.empty:
         return render_template('player_stats.html', error="No data available", data_source_info=data_source_info)
     
-    # Get comprehensive player statistics
-    top_scorers = get_top_scorers(data, 50)  # Get top 50 for comprehensive view
-    highest_single_scores = get_highest_single_game_score(data, 30)  # Top 30 unique players
-    top_three_pointers = get_top_three_pointers(data, 20)
-    top_foulers = get_top_foulers(data, 20)
+    # Get selected division from form
+    selected_division = request.form.get('division')
+    
+    # Get comprehensive player statistics (filtered by division if selected)
+    top_scorers = get_top_scorers(data, 50, division=selected_division)  # Get top 50 for comprehensive view
+    highest_single_scores = get_highest_single_game_score(data, 10, division=selected_division)  # Now returns top 10
+    top_three_pointers = get_top_three_pointers(data, 20, division=selected_division)
+    top_foulers = get_top_foulers(data, 20, division=selected_division)
     
     # New basketball-specific statistics
-    shooting_efficiency = get_player_shooting_efficiency(data, 20)
-    starter_bench_stats = get_starting_five_vs_bench_stats(data)
-    double_digit_scorers = get_double_digit_scorers(data)
-    consistent_scorers = get_consistent_scorers(data)
+    shooting_efficiency = get_player_shooting_efficiency(data, 20, division=selected_division)
+    starter_bench_stats = get_starting_five_vs_bench_stats(data, division=selected_division)
+    double_digit_scorers = get_double_digit_scorers(data, division=selected_division)
+    consistent_scorers = get_consistent_scorers(data, division=selected_division)
     
     return render_template('player_stats.html',
                          top_scorers=top_scorers,
@@ -237,6 +240,7 @@ def player_stats():
                          double_digit_scorers=double_digit_scorers,
                          consistent_scorers=consistent_scorers,
                          divisions=divisions,
+                         selected_division=selected_division,
                          data_source_info=data_source_info)
 
 @app.route('/player-detail')
@@ -330,6 +334,22 @@ def fixtures():
                          matrix_data=matrix_data,
                          divisions=divisions,
                          selected_division=selected_division_param,
+                         data_source_info=data_source_info)
+
+@app.route('/game-detail/<game_id>')
+def game_detail(game_id):
+    """Game detail page showing comprehensive information about a specific game"""
+    if data.empty:
+        return render_template('game_detail.html', error="No data available", data_source_info=data_source_info)
+    
+    # Get game details
+    game_details = get_game_details(data, game_id)
+    
+    if not game_details:
+        return render_template('game_detail.html', error=f"Game {game_id} not found", data_source_info=data_source_info)
+    
+    return render_template('game_detail.html',
+                         game=game_details,
                          data_source_info=data_source_info)
 
 @app.route('/admin')
