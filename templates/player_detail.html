@@ -291,12 +291,20 @@
                     <div class="number">{{ player_stats.basic_stats.p3_fouls }}</div>
                 </div>
                 <div class="foul-card">
+                    <h4>Technical Fouls (T1)</h4>
+                    <div class="number">{{ player_stats.basic_stats.t1_fouls }}</div>
+                </div>
+                <div class="foul-card">
                     <h4>U1 Fouls</h4>
                     <div class="number">{{ player_stats.basic_stats.u1_fouls }}</div>
                 </div>
                 <div class="foul-card">
                     <h4>U2 Fouls</h4>
                     <div class="number">{{ player_stats.basic_stats.u2_fouls }}</div>
+                </div>
+                <div class="foul-card">
+                    <h4>U3 Fouls</h4>
+                    <div class="number">{{ player_stats.basic_stats.u3_fouls }}</div>
                 </div>
                 <div class="foul-card">
                     <h4>GD Fouls</h4>
@@ -375,8 +383,10 @@
                         <th>P1</th>
                         <th>P2</th>
                         <th>P3</th>
+                        <th>T1</th>
                         <th>U1</th>
                         <th>U2</th>
+                        <th>U3</th>
                         <th>GD</th>
                     </tr>
                 </thead>
@@ -402,8 +412,10 @@
                         <td>{{ game.P1Fouls }}</td>
                         <td>{{ game.P2Fouls }}</td>
                         <td>{{ game.P3Fouls }}</td>
+                        <td>{{ game.T1Fouls }}</td>
                         <td>{{ game.U1Fouls }}</td>
                         <td>{{ game.U2Fouls }}</td>
+                        <td>{{ game.U3Fouls }}</td>
                         <td>{{ game.GDFouls }}</td>
                     </tr>
                     {% endfor %}
