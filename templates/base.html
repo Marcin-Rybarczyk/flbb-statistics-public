@@ -384,7 +384,6 @@
                 headers.forEach((header, index) => {
                     header.classList.add('sortable');
                     header.setAttribute('data-column', index);
-                    header.style.cursor = 'pointer';
                     
                     header.addEventListener('click', function() {
                         sortTable(table, index, header);
