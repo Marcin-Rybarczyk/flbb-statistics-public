@@ -23,9 +23,11 @@ def inject_season_info():
     """Make season information available to all templates"""
     season_info = get_season_info()
     website_config = get_website_config()
+    version_info = get_version_info()
     return {
         'season_info': season_info,
-        'website_config': website_config
+        'website_config': website_config,
+        'version_info': version_info
     }
 
 # Logo utility functions

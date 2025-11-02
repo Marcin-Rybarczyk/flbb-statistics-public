@@ -333,6 +333,9 @@
                 {% if data_source_info.last_update %}
                 | Last Update: {{ data_source_info.last_update }}
                 {% endif %}
+                {% if version_info %}
+                | Version: {{ version_info.version_string }}
+                {% endif %}
             </small>
         </div>
         {% endif %}
