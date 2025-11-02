@@ -93,9 +93,23 @@
             </div>
         </div>
 
+        <!-- Team Filter Form -->
+        <div class="stats-section" style="margin-bottom: 20px;">
+            <form method="POST" action="/player-stats" style="display: flex; align-items: center; gap: 15px;">
+                <label for="team" style="font-weight: bold; font-size: 1.1em;">Filter by Team:</label>
+                <select name="team" id="team" style="padding: 10px; font-size: 1em; border-radius: 5px; border: 1px solid #ddd; min-width: 250px;">
+                    <option value="">-- All Teams --</option>
+                    {% for team in all_teams %}
+                    <option value="{{ team }}" {% if selected_team == team %}selected{% endif %}>{{ team }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" style="padding: 10px 20px; font-size: 1em; background-color: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Filter</button>
+            </form>
+        </div>
+
         <!-- Tabbed Interface -->
         <div class="tabs">
-            <div class="tab active" onclick="showTab('scorers')">Top Scorers</div>
+            <div class="tab {% if not selected_team %}active{% endif %}" onclick="showTab('scorers')">Top Scorers</div>
             <div class="tab" onclick="showTab('three-pointers')">3-Point Leaders</div>
             <div class="tab" onclick="showTab('fouls')">Most Fouls</div>
             <div class="tab" onclick="showTab('single-game')">Single Game Records</div>
@@ -103,10 +117,11 @@
             <div class="tab" onclick="showTab('double-digit')">Double-Digit Scorers</div>
             <div class="tab" onclick="showTab('consistency')">Most Consistent</div>
             <div class="tab" onclick="showTab('starter-bench')">Starters vs Bench</div>
+            <div class="tab {% if selected_team %}active{% endif %}" onclick="showTab('filtered-stats')">🔍 Filtered by Team</div>
         </div>
 
         <!-- Top Scorers Tab -->
-        <div id="scorers" class="tab-content active">
+        <div id="scorers" class="tab-content {% if not selected_team %}active{% endif %}">
             <div class="stats-section">
                 <h2>Top 50 Scorers - Overall League Statistics</h2>
                 <table>
@@ -819,6 +834,68 @@
                 </div>
                 {% else %}
                 <p><em>No starter vs bench comparison data available.</em></p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Filtered by Team Tab -->
+        <div id="filtered-stats" class="tab-content {% if selected_team %}active{% endif %}">
+            <div class="stats-section">
+                {% if selected_team %}
+                <h2>Comprehensive Player Statistics - {{ selected_team }}</h2>
+                {% if comprehensive_stats is not none and not comprehensive_stats.empty %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Player Number(s)</th>
+                            <th>Games</th>
+                            <th>Total Points</th>
+                            <th>Points/Game</th>
+                            <th>Total Fouls</th>
+                            <th>Fouls/Game</th>
+                            <th>P Fouls</th>
+                            <th>P1 Fouls</th>
+                            <th>P2 Fouls</th>
+                            <th>P3 Fouls</th>
+                            <th>Starting Five</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for index, row in comprehensive_stats.iterrows() %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td>{{ row['PlayerNumber'] if row['PlayerNumber'] else 'N/A' }}</td>
+                            <td>{{ row['GamesPlayed'] }}</td>
+                            <td><strong>{{ row['TotalPoints'] }}</strong></td>
+                            <td>{{ "%.2f"|format(row['PointsPerGame']) }}</td>
+                            <td><strong>{{ row['TotalFouls'] }}</strong></td>
+                            <td>{{ "%.2f"|format(row['FoulsPerGame']) }}</td>
+                            <td>{{ row['PFouls'] }}</td>
+                            <td>{{ row['P1Fouls'] }}</td>
+                            <td>{{ row['P2Fouls'] }}</td>
+                            <td>{{ row['P3Fouls'] }}</td>
+                            <td>{{ row['StartingFiveCount'] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div style="margin-top: 20px;">
+                    <h3>Statistics Summary</h3>
+                    <p>
+                        <strong>Total Players:</strong> {{ comprehensive_stats.shape[0] }} | 
+                        <strong>Average Points/Game:</strong> {{ "%.2f"|format(comprehensive_stats['PointsPerGame'].mean()) }} | 
+                        <strong>Average Fouls/Game:</strong> {{ "%.2f"|format(comprehensive_stats['FoulsPerGame'].mean()) }}
+                    </p>
+                </div>
+                {% else %}
+                <p><em>No player data available for {{ selected_team }}.</em></p>
+                {% endif %}
+                {% else %}
+                <h2>Team Filter</h2>
+                <p>Please select a team from the filter above to view comprehensive player statistics.</p>
                 {% endif %}
             </div>
         </div>

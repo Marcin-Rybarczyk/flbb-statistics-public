@@ -671,6 +671,54 @@ def get_top_foulers(data, top_n=10):
     # Sort by total fouls and return top N
     return foul_stats.sort_values('TotalFouls', ascending=False).head(top_n).reset_index(drop=True)
 
+def get_comprehensive_player_stats(data, team_filter=None):
+    """
+    Get comprehensive player statistics with optional team filtering.
+    
+    Parameters:
+    data (DataFrame): The game data
+    team_filter (str): Optional team name to filter by
+    
+    Returns:
+    DataFrame: Comprehensive player statistics including points, fouls by type, starting five count, and player numbers
+    """
+    player_stats = extract_all_player_stats(data)
+    
+    if player_stats.empty:
+        return pd.DataFrame()
+    
+    # Apply team filter if provided
+    if team_filter and team_filter != '':
+        player_stats = player_stats[player_stats['Team'] == team_filter]
+    
+    if player_stats.empty:
+        return pd.DataFrame()
+    
+    # Group by player and team, calculate comprehensive stats
+    comprehensive_stats = player_stats.groupby(['PlayerName', 'Team']).agg({
+        'TotalPoints': 'sum',
+        'GameId': 'count',  # Games played
+        'TotalFouls': 'sum',
+        'PFouls': 'sum',
+        'P1Fouls': 'sum',
+        'P2Fouls': 'sum',
+        'P3Fouls': 'sum',
+        'StartingFive': 'sum',  # Count of times in starting five
+        'PlayerNumber': lambda x: ', '.join(sorted(set(str(int(n)) for n in x if pd.notna(n) and n != 0)))  # Collect unique player numbers
+    }).reset_index()
+    
+    comprehensive_stats.rename(columns={'GameId': 'GamesPlayed'}, inplace=True)
+    
+    # Calculate averages
+    comprehensive_stats['PointsPerGame'] = (comprehensive_stats['TotalPoints'] / comprehensive_stats['GamesPlayed']).round(2)
+    comprehensive_stats['FoulsPerGame'] = (comprehensive_stats['TotalFouls'] / comprehensive_stats['GamesPlayed']).round(2)
+    comprehensive_stats['StartingFiveCount'] = comprehensive_stats['StartingFive'].astype(int)
+    
+    # Sort by total points descending
+    comprehensive_stats = comprehensive_stats.sort_values('TotalPoints', ascending=False).reset_index(drop=True)
+    
+    return comprehensive_stats
+
 def get_top_players_by_score(data, top_n=50):
     """
     Get top N players by average score per game.

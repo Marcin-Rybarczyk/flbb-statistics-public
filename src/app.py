@@ -12,7 +12,8 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
                    get_player_game_impact_analysis, get_player_foul_impact_analysis,
                    get_best_player_combinations, get_referee_game_impact_analysis, get_all_fixtures_data,
                    get_fixtures_matrix_data, get_data_source_info, get_season_info, 
-                   get_website_config, list_available_archives, import_season_archive)
+                   get_website_config, list_available_archives, import_season_archive, 
+                   get_comprehensive_player_stats, extract_all_player_stats)
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
 
@@ -205,11 +206,18 @@ def team_stats():
                          divisions=divisions,
                          data_source_info=data_source_info)
 
-@app.route('/player-stats')
+@app.route('/player-stats', methods=['GET', 'POST'])
 def player_stats():
-    """Dedicated player statistics page"""
+    """Dedicated player statistics page with team filtering"""
     if data.empty:
         return render_template('player_stats.html', error="No data available", data_source_info=data_source_info)
+    
+    # Get all unique teams for the filter dropdown
+    player_stats_data = extract_all_player_stats(data)
+    all_teams = sorted(player_stats_data['Team'].unique()) if not player_stats_data.empty else []
+    
+    # Get selected team from form
+    selected_team = request.form.get('team') if request.method == 'POST' else None
     
     # Get comprehensive player statistics
     top_scorers = get_top_scorers(data, 50)  # Get top 50 for comprehensive view
@@ -223,6 +231,9 @@ def player_stats():
     double_digit_scorers = get_double_digit_scorers(data)
     consistent_scorers = get_consistent_scorers(data)
     
+    # Get comprehensive player stats with team filtering (for new filtered view)
+    comprehensive_stats = get_comprehensive_player_stats(data, selected_team)
+    
     return render_template('player_stats.html',
                          top_scorers=top_scorers,
                          highest_single_scores=highest_single_scores,  # Updated variable name
@@ -232,6 +243,9 @@ def player_stats():
                          starter_bench_stats=starter_bench_stats,
                          double_digit_scorers=double_digit_scorers,
                          consistent_scorers=consistent_scorers,
+                         all_teams=all_teams,
+                         selected_team=selected_team,
+                         comprehensive_stats=comprehensive_stats,
                          divisions=divisions,
                          data_source_info=data_source_info)
 
