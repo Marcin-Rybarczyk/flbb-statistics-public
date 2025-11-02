@@ -109,6 +109,10 @@
         background: rgba(102, 126, 234, 0.1);
     }
 
+    .player-table a:hover {
+        text-decoration: underline;
+    }
+
     .starting-five {
         background: #e8f5e9;
         font-weight: bold;
@@ -228,36 +232,12 @@
             <h2>{{ game.basic_info.home_team }} vs {{ game.basic_info.away_team }}</h2>
             <div class="final-score">{{ game.basic_info.final_score }}</div>
             <p>{{ game.basic_info.division }}</p>
+            <p style="margin-top: 15px; font-size: 1.1em;">
+                📅 {{ game.basic_info.date_time }} | 📍 {{ game.basic_info.location.Name if game.basic_info.location else 'N/A' }}
+            </p>
         </div>
 
-        <!-- Game Information -->
-        <div class="game-info-grid">
-            <div class="info-card">
-                <h3>📅 Date & Time</h3>
-                <p>{{ game.basic_info.date_time }}</p>
-            </div>
-            <div class="info-card">
-                <h3>📍 Location</h3>
-                <p>{{ game.basic_info.location.Name if game.basic_info.location else 'N/A' }}</p>
-            </div>
-            {% if game.referees %}
-            <div class="info-card">
-                <h3>👨‍⚖️ Referees</h3>
-                {% for referee in game.referees %}
-                    <p>{{ referee['Referee Name'] }}</p>
-                {% endfor %}
-            </div>
-            {% endif %}
-            <div class="info-card">
-                <h3>🏆 Winner</h3>
-                <p>{{ game.basic_info.winner }}</p>
-            </div>
-            <div class="info-card">
-                <h3>🎯 League Points</h3>
-                <p>{{ game.basic_info.home_team }}: {{ game.basic_info.home_league_points }}</p>
-                <p>{{ game.basic_info.away_team }}: {{ game.basic_info.away_league_points }}</p>
-            </div>
-        </div>
+
 
         <!-- Game Statistics -->
         {% if game.game_stats %}
@@ -319,7 +299,7 @@
                             {% for player in team.players %}
                             <tr class="{% if player['Starting Five'] == 'true' %}starting-five{% endif %}">
                                 <td>{{ player['Player Number'] }}</td>
-                                <td>{{ player['Player Name'] }}</td>
+                                <td><a href="/player-detail?player={{ player['Player Name']|urlencode }}" style="color: #667eea; text-decoration: none; font-weight: 500;">{{ player['Player Name'] }}</a></td>
                                 <td><strong>{{ player['Total Points'] }}</strong></td>
                                 <td>{{ player['1P Made Shots'] }}</td>
                                 <td>{{ player['2P Made Shots'] }}</td>
@@ -386,33 +366,75 @@
         // Prepare data for score evolution chart
         const scoreData = {{ game.score_evolution | tojson }};
         
-        // Extract quarters and scores
-        const labels = scoreData.map((point, index) => `Event ${index + 1}`);
+        // Extract data for chart
+        const labels = scoreData.map((point, index) => index + 1);
         const homeScores = scoreData.map(point => point.home_score);
         const awayScores = scoreData.map(point => point.away_score);
+        const homeFouls = scoreData.map(point => point.home_fouls || 0);
+        const awayFouls = scoreData.map(point => point.away_fouls || 0);
+        const quarters = scoreData.map(point => point.quarter);
+        
+        // Create quarter labels for x-axis
+        const xLabels = scoreData.map((point, index) => {
+            // Check if this is the start of a new quarter
+            if (index === 0 || (index > 0 && point.quarter !== scoreData[index - 1].quarter)) {
+                return `Q${point.quarter}`;
+            }
+            return '';
+        });
         
         // Create the chart
         const ctx = document.getElementById('scoreChart').getContext('2d');
         new Chart(ctx, {
             type: 'line',
             data: {
-                labels: labels,
+                labels: xLabels,
                 datasets: [
                     {
-                        label: '{{ game.basic_info.home_team }}',
+                        label: '{{ game.basic_info.home_team }} Score',
                         data: homeScores,
                         borderColor: '#2980b9',
                         backgroundColor: 'rgba(41, 128, 185, 0.1)',
                         tension: 0.4,
-                        fill: true
+                        fill: true,
+                        yAxisID: 'y',
+                        pointRadius: 2,
+                        borderWidth: 2
                     },
                     {
-                        label: '{{ game.basic_info.away_team }}',
+                        label: '{{ game.basic_info.away_team }} Score',
                         data: awayScores,
                         borderColor: '#e67e22',
                         backgroundColor: 'rgba(230, 126, 34, 0.1)',
                         tension: 0.4,
-                        fill: true
+                        fill: true,
+                        yAxisID: 'y',
+                        pointRadius: 2,
+                        borderWidth: 2
+                    },
+                    {
+                        label: '{{ game.basic_info.home_team }} Fouls',
+                        data: homeFouls,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                        tension: 0.4,
+                        fill: false,
+                        borderDash: [5, 5],
+                        pointRadius: 3,
+                        borderWidth: 2,
+                        yAxisID: 'y1'
+                    },
+                    {
+                        label: '{{ game.basic_info.away_team }} Fouls',
+                        data: awayFouls,
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                        tension: 0.4,
+                        fill: false,
+                        borderDash: [5, 5],
+                        pointRadius: 3,
+                        borderWidth: 2,
+                        yAxisID: 'y1'
                     }
                 ]
             },
@@ -426,28 +448,107 @@
                 plugins: {
                     legend: {
                         display: true,
-                        position: 'top'
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: {
+                                size: 11
+                            }
+                        }
                     },
                     tooltip: {
                         callbacks: {
                             title: function(context) {
                                 const index = context[0].dataIndex;
                                 const point = scoreData[index];
-                                return `Quarter ${point.quarter}`;
+                                return `Quarter ${point.quarter} - Event ${index + 1}`;
+                            },
+                            afterBody: function(context) {
+                                const index = context[0].dataIndex;
+                                const point = scoreData[index];
+                                return [
+                                    '',
+                                    `{{ game.basic_info.home_team }} Fouls: ${point.home_fouls || 0}`,
+                                    `{{ game.basic_info.away_team }} Fouls: ${point.away_fouls || 0}`
+                                ];
                             }
                         }
                     }
                 },
                 scales: {
                     y: {
+                        type: 'linear',
+                        position: 'left',
                         beginAtZero: true,
                         title: {
                             display: true,
-                            text: 'Score'
+                            text: 'Score',
+                            font: {
+                                weight: 'bold',
+                                size: 12
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        position: 'right',
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Fouls',
+                            font: {
+                                weight: 'bold',
+                                size: 12
+                            }
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        },
+                        ticks: {
+                            stepSize: 1
                         }
                     },
                     x: {
-                        display: false
+                        title: {
+                            display: true,
+                            text: 'Game Progress (Quarter Markers)',
+                            font: {
+                                weight: 'bold',
+                                size: 12
+                            }
+                        },
+                        ticks: {
+                            maxRotation: 0,
+                            autoSkip: false,
+                            font: {
+                                size: 11,
+                                weight: 'bold'
+                            },
+                            callback: function(value, index) {
+                                // Only show non-empty labels (quarter markers)
+                                return xLabels[index] || '';
+                            }
+                        },
+                        grid: {
+                            color: function(context) {
+                                // Highlight quarter boundaries with darker grid lines
+                                if (xLabels[context.index]) {
+                                    return 'rgba(102, 126, 234, 0.3)';
+                                }
+                                return 'rgba(0, 0, 0, 0.05)';
+                            },
+                            lineWidth: function(context) {
+                                // Make quarter boundary lines thicker
+                                if (xLabels[context.index]) {
+                                    return 2;
+                                }
+                                return 1;
+                            }
+                        }
                     }
                 }
             }
