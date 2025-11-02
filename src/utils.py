@@ -397,6 +397,9 @@ def extract_all_player_stats(data):
                     'P1Fouls': player.get('P1 Fouls', 0),
                     'P2Fouls': player.get('P2 Fouls', 0),
                     'P3Fouls': player.get('P3 Fouls', 0),
+                    'U1Fouls': player.get('U1 Fouls', 0),
+                    'U2Fouls': player.get('U2 Fouls', 0),
+                    'GDFouls': player.get('GD Fouls', 0),
                     'StartingFive': player.get('Starting Five', 'false') == 'true'
                 }
                 all_players.append(player_record)
@@ -438,6 +441,9 @@ def create_players_database(data, output_filepath=None):
         'P1Fouls': 'sum',
         'P2Fouls': 'sum',
         'P3Fouls': 'sum',
+        'U1Fouls': 'sum',
+        'U2Fouls': 'sum',
+        'GDFouls': 'sum',
         'StartingFive': 'sum'  # Count how many games they started
     }
     
@@ -475,7 +481,7 @@ def create_players_database(data, output_filepath=None):
         'TotalPoints', 'AvgPointsPerGame', 
         '1PMadeShots', '2PMadeShots', '3PMadeShots', 'TotalFieldGoalsMade', 
         'AvgShotsPerGame', 'PointsPerShot',
-        'TotalFouls', 'AvgFoulsPerGame', 'PFouls', 'P1Fouls', 'P2Fouls', 'P3Fouls'
+        'TotalFouls', 'AvgFoulsPerGame', 'PFouls', 'P1Fouls', 'P2Fouls', 'P3Fouls', 'U1Fouls', 'U2Fouls', 'GDFouls'
     ]
     
     players_db = players_db[column_order]
@@ -2386,6 +2392,9 @@ def get_player_detail_stats(data, player_name):
         'p1_fouls': int(player_games['P1Fouls'].sum()),
         'p2_fouls': int(player_games['P2Fouls'].sum()),
         'p3_fouls': int(player_games['P3Fouls'].sum()),
+        'u1_fouls': int(player_games['U1Fouls'].sum()),
+        'u2_fouls': int(player_games['U2Fouls'].sum()),
+        'gd_fouls': int(player_games['GDFouls'].sum()),
         'starting_five_games': int(player_games['StartingFive'].sum()),
         'bench_games': int((~player_games['StartingFive']).sum()),
     }
