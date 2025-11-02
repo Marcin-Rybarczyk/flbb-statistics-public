@@ -481,17 +481,22 @@ def create_players_database(data, output_filepath=None):
     
     return players_db
 
-def get_top_scorers(data, top_n=20):
+def get_top_scorers(data, top_n=20, division=None):
     """
     Get top N scorers across all games.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of top scorers to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Top scorers with their statistics
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     player_stats = extract_all_player_stats(data)
     
     if player_stats.empty:
@@ -512,17 +517,22 @@ def get_top_scorers(data, top_n=20):
     # Sort by total points and return top N
     return scorer_stats.sort_values('TotalPoints', ascending=False).head(top_n).reset_index(drop=True)
 
-def get_highest_single_game_score(data, top_n=10):
+def get_highest_single_game_score(data, top_n=10, division=None):
     """
     Get the highest single game scores by any player.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of top single game scores to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Players with highest single game scores
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     player_stats = extract_all_player_stats(data)
     
     if player_stats.empty:
@@ -533,17 +543,22 @@ def get_highest_single_game_score(data, top_n=10):
     
     return top_single_games
 
-def get_player_shooting_efficiency(data, top_n=20):
+def get_player_shooting_efficiency(data, top_n=20, division=None):
     """
     Get player shooting efficiency statistics.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of top players to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Players with shooting efficiency statistics
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     player_stats = extract_all_player_stats(data)
     
     if player_stats.empty:
@@ -579,12 +594,13 @@ def get_player_shooting_efficiency(data, top_n=20):
     
     return efficiency_stats.sort_values('PointsPerShot', ascending=False).head(top_n).reset_index(drop=True)
 
-def get_starting_five_vs_bench_stats(data):
+def get_starting_five_vs_bench_stats(data, division=None):
     """
     Compare starting five players vs bench players statistics.
     
     Parameters:
     data (DataFrame): The game data
+    division (str): Optional division filter
     
     Returns:
     dict: Statistics comparing starters vs bench, including:
@@ -602,6 +618,10 @@ def get_starting_five_vs_bench_stats(data):
         - starters_avg_shots_per_game: Average shots per game for starters
         - (corresponding bench_* fields for bench players)
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     player_stats = extract_all_player_stats(data)
     
     if player_stats.empty:
@@ -677,17 +697,22 @@ def get_starting_five_vs_bench_stats(data):
     
     return result
 
-def get_double_digit_scorers(data, min_points=10):
+def get_double_digit_scorers(data, min_points=10, division=None):
     """
     Get players with double-digit scoring games.
     
     Parameters:
     data (DataFrame): The game data
     min_points (int): Minimum points for double-digit game
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Players with double-digit scoring statistics
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     player_stats = extract_all_player_stats(data)
     
     if player_stats.empty:
@@ -719,17 +744,22 @@ def get_double_digit_scorers(data, min_points=10):
     
     return double_digit_stats.sort_values('DoubleDigitGames', ascending=False).head(20).reset_index(drop=True)
 
-def get_consistent_scorers(data, min_games=5):
+def get_consistent_scorers(data, min_games=5, division=None):
     """
     Get players who consistently score well across multiple games.
     
     Parameters:
     data (DataFrame): The game data
     min_games (int): Minimum games to be considered
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Most consistent scorers
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     player_stats = extract_all_player_stats(data)
     
     if player_stats.empty:
@@ -759,17 +789,22 @@ def get_consistent_scorers(data, min_games=5):
         
     return consistency_df.sort_values('ConsistencyScore', ascending=False).head(20).reset_index(drop=True)
 
-def get_top_three_pointers(data, top_n=10):
+def get_top_three_pointers(data, top_n=10, division=None):
     """
     Get top N three-point shooters.
     
     Parameters:
     data (DataFrame): The game data  
     top_n (int): Number of top three-point shooters to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Top three-point shooters with their statistics
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     player_stats = extract_all_player_stats(data)
     
     if player_stats.empty:
@@ -788,17 +823,22 @@ def get_top_three_pointers(data, top_n=10):
     # Sort by total three-pointers made and return top N
     return three_point_stats.sort_values('3PMadeShots', ascending=False).head(top_n).reset_index(drop=True)
 
-def get_top_foulers(data, top_n=10):
+def get_top_foulers(data, top_n=10, division=None):
     """
     Get players with the most fouls.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of top foulers to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Top foulers with their statistics
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     player_stats = extract_all_player_stats(data)
     
     if player_stats.empty:
