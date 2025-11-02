@@ -13,6 +13,7 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
                    get_best_player_combinations, get_referee_game_impact_analysis, get_all_fixtures_data,
                    get_fixtures_matrix_data, get_data_source_info, get_season_info, 
                    get_website_config, list_available_archives, import_season_archive)
+from src.version import get_version_info
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
 
@@ -22,9 +23,11 @@ def inject_season_info():
     """Make season information available to all templates"""
     season_info = get_season_info()
     website_config = get_website_config()
+    version_info = get_version_info()
     return {
         'season_info': season_info,
-        'website_config': website_config
+        'website_config': website_config,
+        'version_info': version_info
     }
 
 # Logo utility functions
