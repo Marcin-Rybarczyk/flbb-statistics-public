@@ -867,7 +867,7 @@
                         <tr>
                             <td>{{ loop.index }}</td>
                             <td><strong>{{ row['PlayerName'] }}</strong></td>
-                            <td>{{ row['PlayerNumber'] if row['PlayerNumber'] else 'N/A' }}</td>
+                            <td>{{ row['PlayerNumber'] if (row['PlayerNumber'] and row['PlayerNumber'] != '') else 'N/A' }}</td>
                             <td>{{ row['GamesPlayed'] }}</td>
                             <td><strong>{{ row['TotalPoints'] }}</strong></td>
                             <td>{{ "%.2f"|format(row['PointsPerGame']) }}</td>

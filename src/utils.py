@@ -680,7 +680,18 @@ def get_comprehensive_player_stats(data, team_filter=None):
     team_filter (str): Optional team name to filter by
     
     Returns:
-    DataFrame: Comprehensive player statistics including points, fouls by type, starting five count, and player numbers
+    DataFrame: Comprehensive player statistics with columns:
+        - PlayerName: Player's name
+        - Team: Team name
+        - TotalPoints: Sum of all points scored
+        - GamesPlayed: Number of games played
+        - TotalFouls: Sum of all fouls
+        - PFouls, P1Fouls, P2Fouls, P3Fouls: Fouls by type
+        - StartingFive: Count of games in starting five
+        - PlayerNumber: Comma-separated list of player numbers used
+        - PointsPerGame: Average points per game
+        - FoulsPerGame: Average fouls per game
+        - StartingFiveCount: Number of times in starting five (alias of StartingFive)
     """
     player_stats = extract_all_player_stats(data)
     
@@ -704,7 +715,10 @@ def get_comprehensive_player_stats(data, team_filter=None):
         'P2Fouls': 'sum',
         'P3Fouls': 'sum',
         'StartingFive': 'sum',  # Count of times in starting five
-        'PlayerNumber': lambda x: ', '.join(sorted(set(str(int(n)) for n in x if pd.notna(n) and n != 0)))  # Collect unique player numbers
+        'PlayerNumber': lambda x: ', '.join(sorted(set(
+            str(int(float(n))) for n in x 
+            if pd.notna(n) and n != 0 and str(n).replace('.', '').replace('-', '').isdigit()
+        )))  # Collect unique player numbers, handling various numeric formats
     }).reset_index()
     
     comprehensive_stats.rename(columns={'GameId': 'GamesPlayed'}, inplace=True)
