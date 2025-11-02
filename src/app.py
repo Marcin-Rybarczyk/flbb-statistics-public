@@ -2,17 +2,29 @@ import os
 import re
 from flask import Flask, render_template, request
 import pandas as pd
-from src.utils import (calculate_standings_by_division, get_highest_scoring_games, 
-                   load_game_data, get_top_players_by_score, get_team_performance_stats,
-                   get_top_scorers, get_highest_single_game_score, get_top_three_pointers, 
-                   get_top_foulers, get_referee_statistics, get_referee_fouls_per_game,
-                   get_referees_least_fouls_per_game, get_biggest_wins, get_biggest_leads,
-                   get_most_tie_scores, get_most_lead_changes, get_player_shooting_efficiency,
-                   get_starting_five_vs_bench_stats, get_double_digit_scorers, get_consistent_scorers,
-                   get_player_game_impact_analysis, get_player_foul_impact_analysis,
-                   get_best_player_combinations, get_referee_game_impact_analysis, get_all_fixtures_data,
-                   get_fixtures_matrix_data, get_data_source_info, get_season_info, 
-                   get_website_config, list_available_archives, import_season_archive)
+
+# Import from modular statistics package
+from src.statistics import (
+    # Base functions
+    load_game_data, get_data_source_info, get_season_info, get_website_config,
+    # Player statistics
+    get_top_players_by_score, get_top_scorers, get_highest_single_game_score,
+    get_top_three_pointers, get_top_foulers, get_player_shooting_efficiency,
+    get_starting_five_vs_bench_stats, get_double_digit_scorers, get_consistent_scorers,
+    # Team statistics
+    calculate_standings_by_division, get_highest_scoring_games, get_team_performance_stats,
+    # Referee statistics
+    get_referee_statistics, get_referee_fouls_per_game, get_referees_least_fouls_per_game,
+    # Game analysis
+    get_biggest_wins, get_biggest_leads, get_most_tie_scores, get_most_lead_changes,
+    # Advanced analysis
+    get_player_game_impact_analysis, get_player_foul_impact_analysis,
+    get_best_player_combinations, get_referee_game_impact_analysis,
+    # Fixtures
+    get_all_fixtures_data, get_fixtures_matrix_data,
+    # Archive
+    list_available_archives, import_season_archive
+)
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
 
