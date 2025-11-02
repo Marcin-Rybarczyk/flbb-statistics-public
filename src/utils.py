@@ -9,6 +9,7 @@ from datetime import datetime
 
 FULL_GAME_STATS_OUTPUT_DIR = "full-game-stats-output"
 CSV_FILEPATH = "data/full-game-stats.csv"
+PLAYERS_DATABASE_CSV_FILEPATH = "data/players-database.csv"
 FORCE_TO_CREATE_CSV = True
 
 # Configuration file paths
@@ -391,6 +392,94 @@ def extract_all_player_stats(data):
                 all_players.append(player_record)
     
     return pd.DataFrame(all_players)
+
+def create_players_database(data, output_filepath=None):
+    """
+    Create a comprehensive player database CSV with aggregated statistics.
+    
+    Parameters:
+    data (DataFrame): The game data
+    output_filepath (str): Path for the output CSV file. If None, uses PLAYERS_DATABASE_CSV_FILEPATH
+    
+    Returns:
+    DataFrame: Aggregated player statistics
+    """
+    if output_filepath is None:
+        output_filepath = PLAYERS_DATABASE_CSV_FILEPATH
+    
+    # Extract all player stats from games
+    player_stats = extract_all_player_stats(data)
+    
+    if player_stats.empty:
+        print("No player data to create database")
+        return pd.DataFrame()
+    
+    # Aggregate statistics for each player
+    # Group by PlayerName and Team (a player might play for different teams)
+    player_aggregations = {
+        'PlayerNumber': lambda x: x.mode()[0] if not x.mode().empty else x.iloc[0],  # Most common player number
+        'GameId': 'count',  # Total games played
+        'TotalPoints': 'sum',
+        '1PMadeShots': 'sum',
+        '2PMadeShots': 'sum',
+        '3PMadeShots': 'sum',
+        'TotalFouls': 'sum',
+        'PFouls': 'sum',
+        'P1Fouls': 'sum',
+        'P2Fouls': 'sum',
+        'P3Fouls': 'sum',
+        'StartingFive': 'sum'  # Count how many games they started
+    }
+    
+    players_db = player_stats.groupby(['PlayerName', 'Team']).agg(player_aggregations).reset_index()
+    
+    # Rename columns for clarity
+    players_db.rename(columns={
+        'GameId': 'GamesPlayed',
+        'StartingFive': 'GamesStarted'
+    }, inplace=True)
+    
+    # Calculate derived statistics
+    players_db['AvgPointsPerGame'] = (players_db['TotalPoints'] / players_db['GamesPlayed']).round(2)
+    players_db['AvgFoulsPerGame'] = (players_db['TotalFouls'] / players_db['GamesPlayed']).round(2)
+    players_db['TotalFieldGoalsMade'] = (players_db['1PMadeShots'] + 
+                                         players_db['2PMadeShots'] + 
+                                         players_db['3PMadeShots'])
+    players_db['AvgShotsPerGame'] = (players_db['TotalFieldGoalsMade'] / players_db['GamesPlayed']).round(2)
+    players_db['StartingPercentage'] = ((players_db['GamesStarted'] / players_db['GamesPlayed']) * 100).round(1)
+    
+    # Calculate points per shot (efficiency metric)
+    # Set to 0 for players with no field goals made (more accurate than division by 1)
+    players_db['PointsPerShot'] = 0.0
+    mask = players_db['TotalFieldGoalsMade'] > 0
+    players_db.loc[mask, 'PointsPerShot'] = (
+        players_db.loc[mask, 'TotalPoints'] / players_db.loc[mask, 'TotalFieldGoalsMade']
+    ).round(2)
+    
+    # Sort by total points (most productive players first)
+    players_db = players_db.sort_values('TotalPoints', ascending=False).reset_index(drop=True)
+    
+    # Reorder columns for better readability
+    column_order = [
+        'PlayerName', 'Team', 'PlayerNumber', 'GamesPlayed', 'GamesStarted', 'StartingPercentage',
+        'TotalPoints', 'AvgPointsPerGame', 
+        '1PMadeShots', '2PMadeShots', '3PMadeShots', 'TotalFieldGoalsMade', 
+        'AvgShotsPerGame', 'PointsPerShot',
+        'TotalFouls', 'AvgFoulsPerGame', 'PFouls', 'P1Fouls', 'P2Fouls', 'P3Fouls'
+    ]
+    
+    players_db = players_db[column_order]
+    
+    # Save to CSV
+    try:
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
+        players_db.to_csv(output_filepath, index=False, encoding='utf-8')
+        print(f"✅ Player database created: {output_filepath} with {len(players_db)} player records")
+    except Exception as e:
+        print(f"⚠️  Error saving player database to {output_filepath}: {e}")
+    
+    return players_db
 
 def get_top_scorers(data, top_n=20):
     """
@@ -1200,6 +1289,8 @@ def load_game_data():
             if FORCE_TO_CREATE_CSV:
                 try:
                     data.to_csv(CSV_FILEPATH, index=False)
+                    # Also create player database CSV
+                    create_players_database(data)
                 except:
                     pass  # Don't fail if we can't save backup
             
@@ -1224,6 +1315,14 @@ def load_game_data():
                 }
                 
                 print(f"⚠️  Using backup data: {len(data)} games loaded from repository CSV")
+                
+                # Create player database from backup CSV if it doesn't exist or is outdated
+                if FORCE_TO_CREATE_CSV:
+                    try:
+                        create_players_database(data)
+                    except:
+                        pass  # Don't fail if we can't create player database
+                
                 return data
             else:
                 print(f"Warning: {CSV_FILEPATH} exists but is empty")
