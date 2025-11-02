@@ -2577,6 +2577,9 @@ def get_game_details(data, game_id):
     # Calculate score evolution from events
     score_evolution = _calculate_score_evolution(events, game['HomeTeamName'], game['AwayTeamName'])
     
+    # Calculate advanced game statistics
+    game_stats = _calculate_game_statistics(score_evolution)
+    
     # Process teams and players
     teams_data = []
     for team in teams:
@@ -2600,6 +2603,7 @@ def get_game_details(data, game_id):
         'teams': teams_data,
         'events': sorted_events,
         'score_evolution': score_evolution,
+        'game_stats': game_stats,
         'referees': referees
     }
 
@@ -2672,3 +2676,65 @@ def _calculate_score_evolution(events, home_team, away_team):
                     pass
     
     return score_points
+
+
+def _calculate_game_statistics(score_evolution):
+    """
+    Calculate advanced game statistics from score evolution.
+    
+    Parameters:
+    score_evolution (list): List of score points throughout the game
+    
+    Returns:
+    dict: Dictionary containing:
+        - tied_scores: Number of times the score was tied
+        - lead_changes: Number of times the lead changed
+        - home_highest_lead: Highest lead for home team (or None if never led)
+        - away_highest_lead: Highest lead for away team (or None if never led)
+    """
+    if not score_evolution:
+        return {
+            'tied_scores': 0,
+            'lead_changes': 0,
+            'home_highest_lead': None,
+            'away_highest_lead': None
+        }
+    
+    tied_scores = 0
+    lead_changes = 0
+    home_highest_lead = 0
+    away_highest_lead = 0
+    previous_leader = None  # 'home', 'away', or 'tied'
+    
+    for point in score_evolution:
+        home_score = point['home_score']
+        away_score = point['away_score']
+        
+        # Count tied scores
+        if home_score == away_score:
+            tied_scores += 1
+            current_leader = 'tied'
+        else:
+            # Determine current leader
+            if home_score > away_score:
+                current_leader = 'home'
+                lead = home_score - away_score
+                home_highest_lead = max(home_highest_lead, lead)
+            else:
+                current_leader = 'away'
+                lead = away_score - home_score
+                away_highest_lead = max(away_highest_lead, lead)
+            
+            # Count lead changes (only when lead switches between teams, not including ties)
+            if previous_leader and previous_leader != 'tied' and current_leader != 'tied' and previous_leader != current_leader:
+                lead_changes += 1
+        
+        previous_leader = current_leader
+    
+    # Return None for highest lead if team never led
+    return {
+        'tied_scores': tied_scores,
+        'lead_changes': lead_changes,
+        'home_highest_lead': home_highest_lead if home_highest_lead > 0 else None,
+        'away_highest_lead': away_highest_lead if away_highest_lead > 0 else None
+    }

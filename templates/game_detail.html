@@ -239,24 +239,36 @@
 
 
 
-        <!-- Referees Section -->
-        {% if game.referees %}
-        <div class="section">
-            <h2>👨‍⚖️ Referees</h2>
-            <div class="referee-list">
-                {% for referee in game.referees %}
-                    <div class="referee-badge">{{ referee['Referee Name'] }}</div>
-                {% endfor %}
+        <!-- Game Statistics -->
+        {% if game.game_stats %}
+        <div class="game-info-grid" style="margin-top: 20px;">
+            <div class="info-card">
+                <h3>🔄 Lead Changes</h3>
+                <p style="font-size: 2em; font-weight: bold; color: #667eea;">{{ game.game_stats.lead_changes }}</p>
             </div>
-        </div>
-        {% endif %}
-
-        <!-- Score Evolution Chart -->
-        {% if game.score_evolution %}
-        <div class="section">
-            <h2>📈 Score Evolution</h2>
-            <div class="chart-container">
-                <canvas id="scoreChart" class="score-evolution-chart"></canvas>
+            <div class="info-card">
+                <h3>⚖️ Tied Scores</h3>
+                <p style="font-size: 2em; font-weight: bold; color: #667eea;">{{ game.game_stats.tied_scores }}</p>
+            </div>
+            <div class="info-card">
+                <h3>📊 {{ game.basic_info.home_team }} Highest Lead</h3>
+                <p style="font-size: 2em; font-weight: bold; color: #2980b9;">
+                    {% if game.game_stats.home_highest_lead %}
+                        +{{ game.game_stats.home_highest_lead }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </p>
+            </div>
+            <div class="info-card">
+                <h3>📊 {{ game.basic_info.away_team }} Highest Lead</h3>
+                <p style="font-size: 2em; font-weight: bold; color: #e67e22;">
+                    {% if game.game_stats.away_highest_lead %}
+                        +{{ game.game_stats.away_highest_lead }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </p>
             </div>
         </div>
         {% endif %}
@@ -306,6 +318,16 @@
                 {% endfor %}
             </div>
         </div>
+
+        <!-- Score Evolution Chart -->
+        {% if game.score_evolution %}
+        <div class="section">
+            <h2>📈 Score Evolution</h2>
+            <div class="chart-container">
+                <canvas id="scoreChart" class="score-evolution-chart"></canvas>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Game Events Timeline -->
         {% if game.events %}
