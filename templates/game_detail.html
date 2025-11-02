@@ -51,6 +51,37 @@
         margin: 5px 0;
     }
 
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-label {
+        font-size: 0.9em;
+        color: #666;
+        margin-bottom: 5px;
+    }
+
+    .stat-value {
+        font-size: 1.5em;
+        font-weight: bold;
+        color: #667eea;
+    }
+
+    .stat-value.home-team {
+        color: #2980b9;
+    }
+
+    .stat-value.away-team {
+        color: #e67e22;
+    }
+
     .section {
         background: white;
         padding: 25px;
@@ -218,6 +249,10 @@
         .game-info-grid {
             grid-template-columns: 1fr;
         }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
     }
 {% endblock %}
 
@@ -243,18 +278,18 @@
         {% if game.game_stats %}
         <div class="info-card" style="margin-top: 20px;">
             <h3>📊 Game Flow Statistics</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px;">
-                <div style="text-align: center;">
-                    <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">🔄 Lead Changes</div>
-                    <div style="font-size: 1.5em; font-weight: bold; color: #667eea;">{{ game.game_stats.lead_changes }}</div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">🔄 Lead Changes</div>
+                    <div class="stat-value">{{ game.game_stats.lead_changes }}</div>
                 </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">⚖️ Tied Scores</div>
-                    <div style="font-size: 1.5em; font-weight: bold; color: #667eea;">{{ game.game_stats.tied_scores }}</div>
+                <div class="stat-item">
+                    <div class="stat-label">⚖️ Tied Scores</div>
+                    <div class="stat-value">{{ game.game_stats.tied_scores }}</div>
                 </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">{{ game.basic_info.home_team }} Lead</div>
-                    <div style="font-size: 1.5em; font-weight: bold; color: #2980b9;">
+                <div class="stat-item">
+                    <div class="stat-label">{{ game.basic_info.home_team }} Lead</div>
+                    <div class="stat-value home-team">
                         {% if game.game_stats.home_highest_lead %}
                             +{{ game.game_stats.home_highest_lead }}
                         {% else %}
@@ -262,9 +297,9 @@
                         {% endif %}
                     </div>
                 </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">{{ game.basic_info.away_team }} Lead</div>
-                    <div style="font-size: 1.5em; font-weight: bold; color: #e67e22;">
+                <div class="stat-item">
+                    <div class="stat-label">{{ game.basic_info.away_team }} Lead</div>
+                    <div class="stat-value away-team">
                         {% if game.game_stats.away_highest_lead %}
                             +{{ game.game_stats.away_highest_lead }}
                         {% else %}
