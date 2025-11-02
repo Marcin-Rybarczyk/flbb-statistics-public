@@ -65,6 +65,29 @@
             color: #7f8c8d;
             font-size: 0.9em;
         }
+
+        .player-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+
+        .player-link:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        
+        .info-tooltip {
+            cursor: help;
+            color: #667eea;
+            font-size: 0.9em;
+            margin-left: 5px;
+            display: inline-block;
+        }
+        
+        .info-tooltip:hover {
+            color: #4a5fc1;
+        }
 {% endblock %}
 
 {% block content %}
@@ -97,13 +120,13 @@
             <div class="stat-card">
                 <h3>Top Scorer</h3>
                 <div class="number">{{ top_scorers.iloc[0]['TotalPoints'] }}</div>
-                <small>{{ top_scorers.iloc[0]['PlayerName'] }}</small>
+                <small><a href="/player-detail?player={{ top_scorers.iloc[0]['PlayerName']|urlencode }}" class="player-link">{{ top_scorers.iloc[0]['PlayerName'] }}</a></small>
             </div>
             {% if highest_single_scores is not none and not highest_single_scores.empty %}
             <div class="stat-card">
                 <h3>Highest Single Game</h3>
                 <div class="number">{{ highest_single_scores.iloc[0]['TotalPoints'] }}</div>
-                <small>{{ highest_single_scores.iloc[0]['PlayerName'] }}</small>
+                <small><a href="/player-detail?player={{ highest_single_scores.iloc[0]['PlayerName']|urlencode }}" class="player-link">{{ highest_single_scores.iloc[0]['PlayerName'] }}</a></small>
             </div>
             {% endif %}
             <div class="stat-card">
@@ -143,7 +166,7 @@
                         {% for index, row in top_scorers.iterrows() %}
                         <tr>
                             <td>{{ loop.index }}</td>
-                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
                             <td>{{ row['Team'] }}</td>
                             <td>{{ row['GamesPlayed'] }}</td>
                             <td><strong>{{ row['TotalPoints'] }}</strong></td>
@@ -174,7 +197,7 @@
                         {% for index, row in top_three_pointers.iterrows() %}
                         <tr>
                             <td>{{ loop.index }}</td>
-                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
                             <td>{{ row['Team'] }}</td>
                             <td><strong>{{ row['3PMadeShots'] }}</strong></td>
                             <td>{{ row['GamesPlayed'] }}</td>
@@ -205,7 +228,7 @@
                         {% for index, row in top_foulers.iterrows() %}
                         <tr>
                             <td>{{ loop.index }}</td>
-                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
                             <td>{{ row['Team'] }}</td>
                             <td><strong>{{ row['TotalFouls'] }}</strong></td>
                             <td>{{ row['GamesPlayed'] }}</td>
@@ -220,7 +243,7 @@
         <!-- Single Game Records Tab -->
         <div id="single-game" class="tab-content">
             <div class="stats-section">
-                <h2>Single Game Scoring Records</h2>
+                <h2>Top 30 Single Game Scoring Records</h2>
                 <table>
                     <thead>
                         <tr>
@@ -237,7 +260,7 @@
                         {% for index, row in highest_single_scores.iterrows() %}
                         <tr>
                             <td>{{ loop.index }}</td>
-                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
                             <td>{{ row['Team'] }}</td>
                             <td><strong>{{ row['TotalPoints'] }}</strong></td>
                             <td>{{ row.get('GameDate', 'N/A') }}</td>
@@ -271,7 +294,7 @@
                         {% for index, row in shooting_efficiency.iterrows() %}
                         <tr {% if loop.index <= 3 %}class="top-performer"{% endif %}>
                             <td>{{ loop.index }}</td>
-                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
                             <td>{{ row['Team'] }}</td>
                             <td><strong>{{ row['TotalFreeThrowsMade'] }}</strong></td>
                             <td>{{ row['GamesPlayed'] }}</td>
@@ -306,7 +329,7 @@
                         {% for index, row in double_digit_scorers.iterrows() %}
                         <tr>
                             <td>{{ loop.index }}</td>
-                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
                             <td>{{ row['Team'] }}</td>
                             <td><strong>{{ row['DoubleDigitGames'] }}</strong></td>
                             <td>{{ row['TotalGames'] }}</td>
@@ -339,7 +362,7 @@
                         {% for index, row in consistent_scorers.iterrows() %}
                         <tr>
                             <td>{{ loop.index }}</td>
-                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
                             <td>{{ row['Team'] }}</td>
                             <td>{{ "%.1f"|format(row['AvgPoints']) }}</td>
                             <td>{{ "%.1f"|format(row['StdDevPoints']) }}</td>
@@ -380,6 +403,7 @@
                             <th>Rank</th>
                             <th>Player</th>
                             <th>Team</th>
+                            <th>Total Points</th>
                             <th>Avg Points</th>
                             <th>Games</th>
                         </tr>
@@ -388,8 +412,9 @@
                         {% for index, row in starter_bench_stats['starters'].iterrows() %}
                         <tr>
                             <td>{{ loop.index }}</td>
-                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
                             <td>{{ row['Team'] }}</td>
+                            <td><strong>{{ row['TotalPoints'] }}</strong></td>
                             <td>{{ "%.1f"|format(row['AvgPointsPerGame']) }}</td>
                             <td>{{ row['GamesPlayed'] }}</td>
                         </tr>
@@ -406,6 +431,7 @@
                             <th>Rank</th>
                             <th>Player</th>
                             <th>Team</th>
+                            <th>Total Points</th>
                             <th>Avg Points</th>
                             <th>Games</th>
                         </tr>
@@ -414,8 +440,9 @@
                         {% for index, row in starter_bench_stats['bench'].iterrows() %}
                         <tr>
                             <td>{{ loop.index }}</td>
-                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
                             <td>{{ row['Team'] }}</td>
+                            <td><strong>{{ row['TotalPoints'] }}</strong></td>
                             <td>{{ "%.1f"|format(row['AvgPointsPerGame']) }}</td>
                             <td>{{ row['GamesPlayed'] }}</td>
                         </tr>
@@ -517,13 +544,13 @@
             <div class="stat-card">
                 <h3>Top Scorer</h3>
                 <div class="number">{{ top_scorers.iloc[0]['TotalPoints'] }}</div>
-                <small>{{ top_scorers.iloc[0]['PlayerName'] }}</small>
+                <small><a href="/player-detail?player={{ top_scorers.iloc[0]['PlayerName']|urlencode }}" class="player-link">{{ top_scorers.iloc[0]['PlayerName'] }}</a></small>
             </div>
             {% if highest_single_scores is not none and not highest_single_scores.empty %}
             <div class="stat-card">
                 <h3>Highest Single Game</h3>
                 <div class="number">{{ highest_single_scores.iloc[0]['TotalPoints'] }}</div>
-                <small>{{ highest_single_scores.iloc[0]['PlayerName'] }}</small>
+                <small><a href="/player-detail?player={{ highest_single_scores.iloc[0]['PlayerName']|urlencode }}" class="player-link">{{ highest_single_scores.iloc[0]['PlayerName'] }}</a></small>
             </div>
             {% endif %}
             <div class="stat-card">
@@ -563,7 +590,7 @@
                         {% for index, row in top_scorers.iterrows() %}
                         <tr {% if loop.index <= 3 %}class="top-performer"{% endif %}>
                             <td>{{ loop.index }}</td>
-                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
                             <td>{{ row['Team'] }}</td>
                             <td>{{ row['GamesPlayed'] }}</td>
                             <td><strong>{{ row['TotalPoints'] }}</strong></td>
@@ -596,7 +623,7 @@
                         {% for index, row in top_three_pointers.iterrows() %}
                         <tr {% if loop.index <= 3 %}class="top-performer"{% endif %}>
                             <td>{{ loop.index }}</td>
-                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
                             <td>{{ row['Team'] }}</td>
                             <td>{{ row['GamesPlayed'] }}</td>
                             <td><strong>{{ row['3PMadeShots'] }}</strong></td>
@@ -631,7 +658,7 @@
                         {% for index, row in top_foulers.iterrows() %}
                         <tr>
                             <td>{{ loop.index }}</td>
-                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
                             <td>{{ row['Team'] }}</td>
                             <td>{{ row['GamesPlayed'] }}</td>
                             <td><strong>{{ row['TotalFouls'] }}</strong></td>
@@ -666,7 +693,7 @@
                         {% for index, row in highest_single_scores.iterrows() %}
                         <tr {% if loop.index <= 3 %}class="top-performer"{% endif %}>
                             <td>{{ loop.index }}</td>
-                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
                             <td>{{ row['Team'] }}</td>
                             <td><strong>{{ row['TotalPoints'] }}</strong></td>
                             <td>{{ row['GameId'] }}</td>
@@ -702,7 +729,7 @@
                         {% for index, row in shooting_efficiency.iterrows() %}
                         <tr {% if loop.index <= 3 %}class="top-performer"{% endif %}>
                             <td>{{ loop.index }}</td>
-                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
                             <td>{{ row['Team'] }}</td>
                             <td><strong>{{ row['TotalFreeThrowsMade'] }}</strong></td>
                             <td>{{ row['GamesPlayed'] }}</td>
@@ -739,7 +766,7 @@
                         {% for index, row in double_digit_scorers.iterrows() %}
                         <tr {% if loop.index <= 3 %}class="top-performer"{% endif %}>
                             <td>{{ loop.index }}</td>
-                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
                             <td>{{ row['Team'] }}</td>
                             <td><strong>{{ row['DoubleDigitGames'] }}</strong></td>
                             <td>{{ row['TotalGamesActual'] }}</td>
@@ -780,7 +807,7 @@
                         {% for index, row in consistent_scorers.iterrows() %}
                         <tr {% if loop.index <= 3 %}class="top-performer"{% endif %}>
                             <td>{{ loop.index }}</td>
-                            <td><strong>{{ row['PlayerName'] }}</strong></td>
+                            <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
                             <td>{{ row['Team'] }}</td>
                             <td>{{ row['GamesPlayed'] }}</td>
                             <td>{{ row['AvgPoints'] }}</td>
