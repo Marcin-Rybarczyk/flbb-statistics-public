@@ -261,7 +261,7 @@
                 <div style="background: rgba(231, 76, 60, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 25px; border-left: 4px solid #e74c3c;">
                     <h3 style="margin-top: 0; color: #e74c3c;">⚠️ Understanding Foul Impact</h3>
                     <ul style="margin: 10px 0; padding-left: 20px; line-height: 1.8;">
-                        <li><strong>Foul Impact:</strong> Percentage change in team foul rate when this player is on the court compared to when they're not. Positive values indicate the team commits more fouls with this player, negative values indicate fewer fouls.</li>
+                        <li><strong>Foul Impact (Team Rate Change):</strong> Percentage change in team's total foul rate when this player is on the court compared to when they're not. Positive values indicate the team commits more fouls with this player, negative values indicate fewer fouls.</li>
                         <li><strong>Fouls/Game:</strong> Average personal fouls committed by the player per game. Lower values indicate better discipline.</li>
                         <li><strong>Win Rate w/ Fouls:</strong> Team's win percentage in games where this player commits fouls, showing whether their aggressive play style correlates with team success.</li>
                     </ul>
@@ -366,10 +366,10 @@
                 <div style="background: rgba(155, 89, 182, 0.1); padding: 20px; border-radius: 10px; margin-bottom: 25px; border-left: 4px solid #9b59b6;">
                     <h3 style="margin-top: 0; color: #9b59b6;">🟣 Understanding Referee Impact Metrics</h3>
                     <ul style="margin: 10px 0; padding-left: 20px; line-height: 1.8;">
-                        <li><strong>Score Impact:</strong> How much the average total game score deviates from the league average when this referee officiates. Positive values indicate higher-scoring games, negative values indicate lower-scoring games.</li>
-                        <li><strong>Foul Impact:</strong> How much the average fouls per game deviates from the league average with this referee. Positive values mean more fouls are called (stricter), negative values mean fewer fouls (more lenient).</li>
-                        <li><strong>Overall Impact (Competitiveness Impact):</strong> How much the close game rate (games decided by 5 points or less) deviates from the league average with this referee. Positive values indicate more competitive games, negative values indicate more blowouts.</li>
-                        <li><strong>Interpretation:</strong> These metrics help identify refereeing styles - some refs allow more physical play (lower fouls), while others maintain tighter control (higher fouls). Score and competitiveness impacts show how referee decisions influence game flow.</li>
+                        <li><strong>Score Impact (League Deviation):</strong> How much the average total game score deviates from the league average when this referee officiates. Positive values indicate higher-scoring games, negative values indicate lower-scoring games.</li>
+                        <li><strong>Foul Impact (League Deviation):</strong> How much the average fouls per game deviates from the league average with this referee. Positive values mean more fouls are called (stricter officiating), negative values mean fewer fouls (more lenient officiating).</li>
+                        <li><strong>Overall Impact (Competitiveness):</strong> Measures how much the rate of close games (decided by 5 points or less) deviates from the league average. Positive values indicate this referee's games are more competitive (closer scores), while negative values indicate more lopsided games.</li>
+                        <li><strong>Interpretation:</strong> These metrics help identify refereeing styles - some refs allow more physical play (negative foul impact), while others maintain tighter control (positive foul impact). Score and competitiveness impacts show how referee decisions influence game flow and outcomes.</li>
                     </ul>
                 </div>
                 
