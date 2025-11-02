@@ -1347,8 +1347,8 @@ def load_game_data():
             if FORCE_TO_CREATE_CSV:
                 try:
                     data.to_csv(CSV_FILEPATH, index=False)
-                    # Also create player database CSV
-                    create_players_database(data)
+                    # Player database CSV generation disabled - can be called manually if needed
+                    # create_players_database(data)
                 except:
                     pass  # Don't fail if we can't save backup
             
@@ -1374,12 +1374,12 @@ def load_game_data():
                 
                 print(f"⚠️  Using backup data: {len(data)} games loaded from repository CSV")
                 
-                # Create player database from backup CSV if it doesn't exist or is outdated
-                if FORCE_TO_CREATE_CSV:
-                    try:
-                        create_players_database(data)
-                    except:
-                        pass  # Don't fail if we can't create player database
+                # Player database CSV generation disabled - can be called manually if needed
+                # if FORCE_TO_CREATE_CSV:
+                #     try:
+                #         create_players_database(data)
+                #     except:
+                #         pass  # Don't fail if we can't create player database
                 
                 return data
             else:
