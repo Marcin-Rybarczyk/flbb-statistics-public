@@ -347,6 +347,8 @@ def extract_all_player_stats(data):
     for _, game in data.iterrows():
         game_id = game['GameId']
         game_date = game['DateTime']
+        home_team = game.get('HomeTeamName', 'Unknown')
+        away_team = game.get('AwayTeamName', 'Unknown')
         
         # Parse Teams data (it's stored as string representation of list)
         try:
@@ -368,6 +370,13 @@ def extract_all_player_stats(data):
                 
             team_name = team.get('Team Name', team.get('Team Name Short', 'Unknown'))
             
+            # Determine opponent team
+            opponent_team = 'Unknown'
+            if team_name == home_team:
+                opponent_team = away_team
+            elif team_name == away_team:
+                opponent_team = home_team
+            
             for player in team.get('Players', []):
                 if not isinstance(player, dict):
                     continue
@@ -378,6 +387,7 @@ def extract_all_player_stats(data):
                     'PlayerName': player.get('Player Name', 'Unknown'),
                     'PlayerNumber': player.get('Player Number', 0),
                     'Team': team_name,
+                    'OpponentTeam': opponent_team,
                     'TotalPoints': player.get('Total Points', 0),
                     '1PMadeShots': player.get('1P Made Shots', 0),
                     '2PMadeShots': player.get('2P Made Shots', 0),
