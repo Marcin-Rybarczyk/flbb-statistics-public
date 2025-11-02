@@ -555,7 +555,11 @@ def get_highest_single_game_score(data, top_n=10, division=None):
 
 def get_player_shooting_efficiency(data, top_n=20, division=None):
     """
-    Get player shooting efficiency statistics.
+    Get player free throw statistics (leaders by total free throws made).
+    
+    Note: This function name is kept for backward compatibility, but it now shows
+    free throw production instead of shooting efficiency, since per-player shot
+    attempts data is not available in the dataset.
     
     Parameters:
     data (DataFrame): The game data
@@ -563,7 +567,7 @@ def get_player_shooting_efficiency(data, top_n=20, division=None):
     division (str): Optional division filter
     
     Returns:
-    DataFrame: Players with shooting efficiency statistics
+    DataFrame: Players with free throw statistics
     """
     # Filter by division if specified
     if division:
@@ -574,35 +578,31 @@ def get_player_shooting_efficiency(data, top_n=20, division=None):
     if player_stats.empty:
         return pd.DataFrame()
     
-    # Group by player and calculate shooting stats
-    efficiency_stats = player_stats.groupby(['PlayerName', 'Team']).agg({
-        'TotalPoints': 'sum',
+    # Group by player and calculate free throw stats
+    ft_stats = player_stats.groupby(['PlayerName', 'Team']).agg({
         '1PMadeShots': 'sum',
-        '2PMadeShots': 'sum', 
-        '3PMadeShots': 'sum',
+        'TotalPoints': 'sum',
         'GameId': 'count'  # Games played
     }).reset_index()
     
-    efficiency_stats.rename(columns={'GameId': 'GamesPlayed'}, inplace=True)
+    ft_stats.rename(columns={
+        'GameId': 'GamesPlayed',
+        '1PMadeShots': 'TotalFreeThrowsMade'
+    }, inplace=True)
     
-    # Calculate shooting metrics
-    efficiency_stats['TotalFieldGoals'] = (efficiency_stats['1PMadeShots'] + 
-                                          efficiency_stats['2PMadeShots'] + 
-                                          efficiency_stats['3PMadeShots'])
-    efficiency_stats['PointsPerShot'] = (efficiency_stats['TotalPoints'] / 
-                                        efficiency_stats['TotalFieldGoals'].replace(0, 1)).round(2)
-    efficiency_stats['AvgPointsPerGame'] = (efficiency_stats['TotalPoints'] / 
-                                           efficiency_stats['GamesPlayed']).round(1)
-    efficiency_stats['ShotsPerGame'] = (efficiency_stats['TotalFieldGoals'] / 
-                                       efficiency_stats['GamesPlayed']).round(1)
+    # Calculate average free throws per game
+    ft_stats['AvgFreeThrowsPerGame'] = (ft_stats['TotalFreeThrowsMade'] / 
+                                         ft_stats['GamesPlayed']).round(2)
+    ft_stats['AvgPointsPerGame'] = (ft_stats['TotalPoints'] / 
+                                    ft_stats['GamesPlayed']).round(1)
     
-    # Filter players with at least 5 games and 10 total shots
-    efficiency_stats = efficiency_stats[
-        (efficiency_stats['GamesPlayed'] >= 5) & 
-        (efficiency_stats['TotalFieldGoals'] >= 10)
+    # Filter players with at least 5 games and at least 5 total free throws made
+    ft_stats = ft_stats[
+        (ft_stats['GamesPlayed'] >= 5) & 
+        (ft_stats['TotalFreeThrowsMade'] >= 5)
     ]
     
-    return efficiency_stats.sort_values('PointsPerShot', ascending=False).head(top_n).reset_index(drop=True)
+    return ft_stats.sort_values('TotalFreeThrowsMade', ascending=False).head(top_n).reset_index(drop=True)
 
 def get_starting_five_vs_bench_stats(data, division=None):
     """

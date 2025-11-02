@@ -118,7 +118,7 @@
             <div class="tab" onclick="showTab('three-pointers')">3-Point Leaders</div>
             <div class="tab" onclick="showTab('fouls')">Most Fouls</div>
             <div class="tab" onclick="showTab('single-game')">Single Game Records</div>
-            <div class="tab" onclick="showTab('shooting-efficiency')">Shooting Efficiency</div>
+            <div class="tab" onclick="showTab('shooting-efficiency')">Free Throw Leaders</div>
             <div class="tab" onclick="showTab('double-digit')">Double-Digit Scorers</div>
             <div class="tab" onclick="showTab('consistency')">Most Consistent</div>
             <div class="tab" onclick="showTab('starter-bench')">Starters vs Bench</div>
@@ -250,33 +250,36 @@
             </div>
         </div>
 
-        <!-- Shooting Efficiency Tab -->
+        <!-- Free Throw Leaders Tab -->
         <div id="shooting-efficiency" class="tab-content">
             <div class="stats-section">
-                <h2>Shooting Efficiency Leaders</h2>
+                <h2>Free Throw Leaders</h2>
+                <p><em>Players ranked by total free throws made (minimum 5 games and 5 free throws)</em></p>
                 <table>
                     <thead>
                         <tr>
                             <th>Rank</th>
                             <th>Player</th>
                             <th>Team</th>
-                            <th>Avg Points</th>
-                            <th>Min Games</th>
-                            <th>Efficiency Score</th>
+                            <th>Total FT Made</th>
+                            <th>Games Played</th>
+                            <th>Avg FT/Game</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% if shooting_efficiency is not none and not shooting_efficiency.empty %}
                         {% for index, row in shooting_efficiency.iterrows() %}
-                        <tr>
+                        <tr {% if loop.index <= 3 %}class="top-performer"{% endif %}>
                             <td>{{ loop.index }}</td>
                             <td><strong>{{ row['PlayerName'] }}</strong></td>
                             <td>{{ row['Team'] }}</td>
-                            <td>{{ "%.1f"|format(row['AvgPointsPerGame']) }}</td>
+                            <td><strong>{{ row['TotalFreeThrowsMade'] }}</strong></td>
                             <td>{{ row['GamesPlayed'] }}</td>
-                            <td><strong>{{ "%.2f"|format(row['PointsPerShot']) }}</strong></td>
+                            <td>{{ "%.2f"|format(row['AvgFreeThrowsPerGame']) }}</td>
                         </tr>
                         {% endfor %}
+                        {% else %}
+                        <p><em>No free throw data available.</em></p>
                         {% endif %}
                     </tbody>
                 </table>
@@ -535,7 +538,7 @@
             <div class="tab" onclick="showTab('three-pointers')">3-Point Leaders</div>
             <div class="tab" onclick="showTab('fouls')">Most Fouls</div>
             <div class="tab" onclick="showTab('single-game')">Single Game Records</div>
-            <div class="tab" onclick="showTab('shooting-efficiency')">Shooting Efficiency</div>
+            <div class="tab" onclick="showTab('shooting-efficiency')">Free Throw Leaders</div>
             <div class="tab" onclick="showTab('double-digit')">Double-Digit Scorers</div>
             <div class="tab" onclick="showTab('consistency')">Most Consistent</div>
             <div class="tab" onclick="showTab('starter-bench')">Starters vs Bench</div>
@@ -678,11 +681,11 @@
             </div>
         </div>
 
-        <!-- Shooting Efficiency Tab -->
+        <!-- Free Throw Leaders Tab -->
         <div id="shooting-efficiency" class="tab-content">
             <div class="stats-section">
-                <h2>Top 20 Most Efficient Shooters</h2>
-                <p><em>Players with at least 5 games played and 10 total shots</em></p>
+                <h2>Free Throw Leaders</h2>
+                <p><em>Players ranked by total free throws made (minimum 5 games and 5 free throws)</em></p>
                 {% if shooting_efficiency is not none and not shooting_efficiency.empty %}
                 <table>
                     <thead>
@@ -690,12 +693,9 @@
                             <th>Rank</th>
                             <th>Player</th>
                             <th>Team</th>
+                            <th>Total FT Made</th>
                             <th>Games</th>
-                            <th>Total Points</th>
-                            <th>Total Shots</th>
-                            <th>Points/Shot</th>
-                            <th>Avg Points/Game</th>
-                            <th>Shots/Game</th>
+                            <th>Avg FT/Game</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -704,18 +704,15 @@
                             <td>{{ loop.index }}</td>
                             <td><strong>{{ row['PlayerName'] }}</strong></td>
                             <td>{{ row['Team'] }}</td>
+                            <td><strong>{{ row['TotalFreeThrowsMade'] }}</strong></td>
                             <td>{{ row['GamesPlayed'] }}</td>
-                            <td>{{ row['TotalPoints'] }}</td>
-                            <td>{{ row['TotalFieldGoals'] }}</td>
-                            <td><strong>{{ row['PointsPerShot'] }}</strong></td>
-                            <td>{{ row['AvgPointsPerGame'] }}</td>
-                            <td>{{ row['ShotsPerGame'] }}</td>
+                            <td>{{ "%.2f"|format(row['AvgFreeThrowsPerGame']) }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
                 {% else %}
-                <p><em>No shooting efficiency data available.</em></p>
+                <p><em>No free throw data available.</em></p>
                 {% endif %}
             </div>
         </div>
