@@ -1,5 +1,6 @@
 import os
 import re
+from urllib.parse import unquote
 from flask import Flask, render_template, request
 import pandas as pd
 from src.utils import (calculate_standings_by_division, get_highest_scoring_games, 
@@ -289,6 +290,9 @@ def referee_stats():
 @app.route('/referee-detail/<referee_name>')
 def referee_detail(referee_name):
     """Individual referee detail page with comprehensive statistics"""
+    # URL decode the referee name to handle special characters
+    referee_name = unquote(referee_name)
+    
     if data.empty:
         return render_template('referee_detail.html', error="No data available", data_source_info=data_source_info)
     
