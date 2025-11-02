@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}Referee Statistics - FLBB Statistics{% endblock %}
+
+{% block page_title %}👨‍⚖️ Referee Statistics{% endblock %}
+{% block page_description %}Comprehensive referee performance analysis and games arbitrated{% endblock %}
+
+{% block extra_styles %}
+        .referee-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .referee-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .referee-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .referee-metric {
+            display: inline-block;
+            margin: 5px 15px 5px 0;
+            color: #555;
+        }
+
+        .referee-metric strong {
+            color: #667eea;
+        }
+
+        .impact-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .summary-card h3 {
+            color: #667eea;
+            font-size: 2em;
+            margin: 10px 0;
+        }
+
+        .summary-card p {
+            color: #555;
+            font-size: 0.95em;
+        }
+
+        .rank-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+            margin-right: 10px;
+        }
+
+        .top-rank {
+            background: linear-gradient(135deg, #f39c12, #e74c3c);
+        }
+{% endblock %}
+
+{% block content %}
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% else %}
+        <!-- Summary Statistics -->
+        <div class="stats-section">
+            <h2>Overview</h2>
+            
+            {% if referee_stats is defined and not referee_stats.empty %}
+            <div class="stat-summary">
+                <div class="summary-card">
+                    <p>Total Referees</p>
+                    <h3>{{ referee_stats|length }}</h3>
+                </div>
+                <div class="summary-card">
+                    <p>Total Games Refereed</p>
+                    <h3>{{ referee_stats['GamesRefereed'].sum() }}</h3>
+                </div>
+                <div class="summary-card">
+                    <p>Average Games per Referee</p>
+                    <h3>{{ "%.1f"|format(referee_stats['GamesRefereed'].mean()) }}</h3>
+                </div>
+                <div class="summary-card">
+                    <p>Avg Fouls per Game</p>
+                    <h3>{{ "%.1f"|format(referee_stats['AvgFoulsPerGame'].mean()) }}</h3>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- All Referees Statistics -->
+        <div class="stats-section">
+            <h2>Referee Performance</h2>
+            
+            <h3>All Referees - Games Arbitrated</h3>
+            {% if referee_stats is defined and not referee_stats.empty %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Referee Name</th>
+                        <th>Games Refereed</th>
+                        <th>Total Fouls Called</th>
+                        <th>Avg Fouls/Game</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for index, row in referee_stats.iterrows() %}
+                    <tr>
+                        <td>
+                            <span class="rank-badge {% if loop.index <= 3 %}top-rank{% endif %}">
+                                #{{ loop.index }}
+                            </span>
+                        </td>
+                        <td><strong>{{ row['RefereeName'] }}</strong></td>
+                        <td>{{ row['GamesRefereed'] }}</td>
+                        <td>{{ row['FoulsCalledInGame'] }}</td>
+                        <td>{{ "%.1f"|format(row['AvgFoulsPerGame']) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+                <p class="error">No referee statistics available.</p>
+            {% endif %}
+        </div>
+
+        <!-- Referees by Fouls Per Game -->
+        <div class="stats-section">
+            <h2>Foul Statistics</h2>
+            
+            <h3>Referees by Most Fouls Called Per Game</h3>
+            {% if referee_fouls is defined and not referee_fouls.empty %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Referee Name</th>
+                        <th>Games Refereed</th>
+                        <th>Avg Fouls/Game</th>
+                        <th>Total Fouls</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for index, row in referee_fouls.head(20).iterrows() %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><strong>{{ row['RefereeName'] }}</strong></td>
+                        <td>{{ row['GamesRefereed'] }}</td>
+                        <td><strong style="color: #e74c3c;">{{ "%.1f"|format(row['AvgFoulsPerGame']) }}</strong></td>
+                        <td>{{ row['FoulsCalledInGame'] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+                <p class="error">No referee foul statistics available.</p>
+            {% endif %}
+
+            <h3>Referees with Least Fouls Per Game (Min 2 Games)</h3>
+            {% if referee_least_fouls is defined and not referee_least_fouls.empty %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Referee Name</th>
+                        <th>Games Refereed</th>
+                        <th>Avg Fouls/Game</th>
+                        <th>Total Fouls</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for index, row in referee_least_fouls.head(20).iterrows() %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><strong>{{ row['RefereeName'] }}</strong></td>
+                        <td>{{ row['GamesRefereed'] }}</td>
+                        <td><strong style="color: #27ae60;">{{ "%.1f"|format(row['AvgFoulsPerGame']) }}</strong></td>
+                        <td>{{ row['FoulsCalledInGame'] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+                <p class="error">No referee least foul statistics available.</p>
+            {% endif %}
+        </div>
+
+        <!-- Referee Impact Analysis -->
+        <div class="stats-section">
+            <h2>Referee Impact Analysis</h2>
+            
+            {% if referee_impact is defined and referee_impact %}
+            <div class="impact-section">
+                <h3>Game Characteristics by Referee</h3>
+                <p style="margin-bottom: 15px; color: #555;">
+                    Analysis of game patterns and outcomes based on referee assignments.
+                </p>
+                
+                {% if 'referee_summary' in referee_impact %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Referee Name</th>
+                            <th>Games</th>
+                            <th>Close Games %</th>
+                            <th>High Scoring %</th>
+                            <th>Avg Total Score</th>
+                            <th>Avg Fouls</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ref in referee_impact['referee_summary'].head(30).to_dict('records') %}
+                        <tr>
+                            <td><strong>{{ ref['RefereeName'] }}</strong></td>
+                            <td>{{ ref['TotalGames'] }}</td>
+                            <td>{{ "%.1f"|format(ref['CloseGamePercentage']) }}%</td>
+                            <td>{{ "%.1f"|format(ref['HighScoringPercentage']) }}%</td>
+                            <td>{{ "%.1f"|format(ref['AvgTotalScore']) }}</td>
+                            <td>{{ "%.1f"|format(ref['AvgFouls']) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                    <p>Detailed impact analysis data not available.</p>
+                {% endif %}
+            </div>
+            {% else %}
+                <p class="error">No referee impact analysis available.</p>
+            {% endif %}
+        </div>
+
+        <!-- Additional Information -->
+        <div class="stats-section">
+            <h2>About Referee Statistics</h2>
+            <div style="background: rgba(102, 126, 234, 0.05); padding: 20px; border-radius: 10px; margin-top: 20px;">
+                <h3 style="color: #667eea; margin-bottom: 10px;">Understanding the Metrics</h3>
+                <ul style="line-height: 1.8; color: #555;">
+                    <li><strong>Games Refereed:</strong> Total number of games officiated by each referee</li>
+                    <li><strong>Avg Fouls/Game:</strong> Average number of fouls called per game (shared among all referees in a game)</li>
+                    <li><strong>Close Games:</strong> Games decided by 5 points or less</li>
+                    <li><strong>High Scoring:</strong> Games with total score over 100 points</li>
+                    <li><strong>Referee Impact:</strong> Analysis of game patterns and characteristics when specific referees officiate</li>
+                </ul>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

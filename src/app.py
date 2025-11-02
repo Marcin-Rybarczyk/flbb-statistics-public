@@ -266,6 +266,26 @@ def player_detail():
                          divisions=divisions,
                          data_source_info=data_source_info)
 
+@app.route('/referee-stats')
+def referee_stats():
+    """Dedicated referee statistics page"""
+    if data.empty:
+        return render_template('referee_stats.html', error="No data available", data_source_info=data_source_info)
+    
+    # Get comprehensive referee statistics
+    referee_stats_data = get_referee_statistics(data)
+    referee_fouls = get_referee_fouls_per_game(data)
+    referee_least_fouls = get_referees_least_fouls_per_game(data)
+    referee_impact = get_referee_game_impact_analysis(data)
+    
+    return render_template('referee_stats.html',
+                         referee_stats=referee_stats_data,
+                         referee_fouls=referee_fouls,
+                         referee_least_fouls=referee_least_fouls,
+                         referee_impact=referee_impact,
+                         divisions=divisions,
+                         data_source_info=data_source_info)
+
 @app.route('/deeper-analysis')
 def deeper_analysis():
     """Deep game analysis page with advanced metrics"""
