@@ -11,6 +11,9 @@ FULL_GAME_STATS_OUTPUT_DIR = "full-game-stats-output"
 CSV_FILEPATH = "data/full-game-stats.csv"
 PLAYERS_DATABASE_CSV_FILEPATH = "data/players-database.csv"
 FORCE_TO_CREATE_CSV = True
+# Flag to control automatic player database CSV generation during data load
+# Set to False to disable automatic generation (can still be called manually)
+AUTO_CREATE_PLAYER_DATABASE = False
 
 # Configuration file paths
 CONFIG_FILEPATH = "data/config.json"
@@ -1347,8 +1350,9 @@ def load_game_data():
             if FORCE_TO_CREATE_CSV:
                 try:
                     data.to_csv(CSV_FILEPATH, index=False)
-                    # Player database CSV generation disabled - can be called manually if needed
-                    # create_players_database(data)
+                    # Create player database CSV if enabled
+                    if AUTO_CREATE_PLAYER_DATABASE:
+                        create_players_database(data)
                 except:
                     pass  # Don't fail if we can't save backup
             
@@ -1374,12 +1378,12 @@ def load_game_data():
                 
                 print(f"⚠️  Using backup data: {len(data)} games loaded from repository CSV")
                 
-                # Player database CSV generation disabled - can be called manually if needed
-                # if FORCE_TO_CREATE_CSV:
-                #     try:
-                #         create_players_database(data)
-                #     except:
-                #         pass  # Don't fail if we can't create player database
+                # Create player database from backup CSV if enabled
+                if FORCE_TO_CREATE_CSV and AUTO_CREATE_PLAYER_DATABASE:
+                    try:
+                        create_players_database(data)
+                    except:
+                        pass  # Don't fail if we can't create player database
                 
                 return data
             else:
