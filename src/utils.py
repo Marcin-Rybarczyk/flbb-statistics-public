@@ -1761,9 +1761,9 @@ def get_all_fixtures_data(data, division_filter=None):
     Returns:
     DataFrame: Enhanced fixtures data
     """
-    # Apply division filter if provided
+    # Apply division filter if provided (check for None explicitly to handle empty strings)
     filtered_data = data.copy()
-    if division_filter:
+    if division_filter is not None:
         filtered_data = filtered_data[filtered_data['GameDivisionDisplay'] == division_filter]
     
     return get_top_scorer_by_game(filtered_data)

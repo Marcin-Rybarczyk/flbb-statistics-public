@@ -272,14 +272,21 @@ def fixtures():
     
     # Get division filter from query parameters
     # Default to "M-Division 1:" if no filter is provided (first time visit)
-    division_filter = request.args.get('division')
-    if division_filter is None:
+    DEFAULT_DIVISION = "M-Division 1:"
+    division_param = request.args.get('division')
+    
+    if division_param is None:
         # First time visit - default to "M-Division 1:"
-        division_filter = "M-Division 1:"
-    elif division_filter == "ALL":
+        division_filter = DEFAULT_DIVISION
+        selected_division_param = DEFAULT_DIVISION
+    elif division_param == "ALL":
         # User explicitly selected "All Divisions" - show all
         division_filter = None
-    # else: division_filter has a specific division value
+        selected_division_param = "ALL"
+    else:
+        # Specific division selected
+        division_filter = division_param
+        selected_division_param = division_param
     
     # Get matrix data for fixtures
     matrix_data = get_fixtures_matrix_data(data, division_filter)
@@ -290,9 +297,6 @@ def fixtures():
     # Sort by date (most recent first)
     if not fixtures_data.empty and 'DateTime' in fixtures_data.columns:
         fixtures_data = fixtures_data.sort_values('DateTime', ascending=False)
-    
-    # Pass the original division parameter for template to use in dropdown
-    selected_division_param = request.args.get('division') if request.args.get('division') else "M-Division 1:"
     
     return render_template('fixtures.html',
                          fixtures=fixtures_data,
