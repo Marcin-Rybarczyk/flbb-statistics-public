@@ -325,12 +325,6 @@
                         </td>
                         <td>
                             <form method="post" action="/team-stats" style="display: inline;">
-                                <input type="hidden" name="team" value="{{ row['HomeTeam'] }}">
-                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['HomeTeam'] }}</button>
-                            </form>
-                        </td>
-                        <td>
-                            <form method="post" action="/team-stats" style="display: inline;">
                                 <input type="hidden" name="team" value="{{ row['AwayTeam'] }}">
                                 <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['AwayTeam'] }}</button>
                             </form>

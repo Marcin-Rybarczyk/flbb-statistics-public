@@ -284,7 +284,13 @@
                             </td>
                             <td><strong>{{ row['TotalPoints'] }}</strong></td>
                             <td>{{ row.get('GameDate', 'N/A') }}</td>
-                            <td><a href="/game-detail/{{ row.get('GameId', '') }}" style="color: #667eea; text-decoration: underline;">{{ row.get('GameId', 'N/A') }}</a></td>
+                            <td>
+                                {% if row.get('GameId') %}
+                                <a href="/game-detail/{{ row['GameId'] }}" style="color: #667eea; text-decoration: underline;">{{ row['GameId'] }}</a>
+                                {% else %}
+                                N/A
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                         {% endif %}
