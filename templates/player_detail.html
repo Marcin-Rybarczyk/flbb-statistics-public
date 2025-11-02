@@ -245,22 +245,22 @@
                 <div class="stat-card">
                     <h3>1-Point Shots</h3>
                     <p>{{ player_stats.basic_stats.total_1p_made }}</p>
-                    <small>{{ "%.1f"|format(player_stats.basic_stats.total_1p_made / player_stats.basic_stats.games_played) }} per game</small>
+                    <small>{{ "%.1f"|format(player_stats.basic_stats.total_1p_made / player_stats.basic_stats.games_played) if player_stats.basic_stats.games_played > 0 else "0.0" }} per game</small>
                 </div>
                 <div class="stat-card">
                     <h3>2-Point Shots</h3>
                     <p>{{ player_stats.basic_stats.total_2p_made }}</p>
-                    <small>{{ "%.1f"|format(player_stats.basic_stats.total_2p_made / player_stats.basic_stats.games_played) }} per game</small>
+                    <small>{{ "%.1f"|format(player_stats.basic_stats.total_2p_made / player_stats.basic_stats.games_played) if player_stats.basic_stats.games_played > 0 else "0.0" }} per game</small>
                 </div>
                 <div class="stat-card">
                     <h3>3-Point Shots</h3>
                     <p>{{ player_stats.basic_stats.total_3p_made }}</p>
-                    <small>{{ "%.1f"|format(player_stats.basic_stats.total_3p_made / player_stats.basic_stats.games_played) }} per game</small>
+                    <small>{{ "%.1f"|format(player_stats.basic_stats.total_3p_made / player_stats.basic_stats.games_played) if player_stats.basic_stats.games_played > 0 else "0.0" }} per game</small>
                 </div>
                 <div class="stat-card">
                     <h3>Total Field Goals</h3>
                     <p>{{ player_stats.basic_stats.total_field_goals }}</p>
-                    <small>{{ "%.1f"|format(player_stats.basic_stats.total_field_goals / player_stats.basic_stats.games_played) }} per game</small>
+                    <small>{{ "%.1f"|format(player_stats.basic_stats.total_field_goals / player_stats.basic_stats.games_played) if player_stats.basic_stats.games_played > 0 else "0.0" }} per game</small>
                 </div>
             </div>
         </div>
@@ -300,12 +300,12 @@
                 <div class="stat-card">
                     <h3>Started</h3>
                     <p>{{ player_stats.basic_stats.starting_five_games }}</p>
-                    <small>{{ "%.1f"|format(player_stats.basic_stats.starting_five_games / player_stats.basic_stats.games_played * 100) }}% of games</small>
+                    <small>{{ "%.1f"|format(player_stats.basic_stats.starting_five_games / player_stats.basic_stats.games_played * 100) if player_stats.basic_stats.games_played > 0 else "0.0" }}% of games</small>
                 </div>
                 <div class="stat-card">
                     <h3>From Bench</h3>
                     <p>{{ player_stats.basic_stats.bench_games }}</p>
-                    <small>{{ "%.1f"|format(player_stats.basic_stats.bench_games / player_stats.basic_stats.games_played * 100) }}% of games</small>
+                    <small>{{ "%.1f"|format(player_stats.basic_stats.bench_games / player_stats.basic_stats.games_played * 100) if player_stats.basic_stats.games_played > 0 else "0.0" }}% of games</small>
                 </div>
                 <div class="stat-card">
                     <h3>Avg as Starter</h3>
@@ -327,15 +327,15 @@
                 {% for quarter in [1, 2, 3, 4] %}
                 <div class="quarter-bar">
                     <div class="quarter-bar-container">
-                        {% set max_points = [player_stats.quarter_analysis[1].points, player_stats.quarter_analysis[2].points, player_stats.quarter_analysis[3].points, player_stats.quarter_analysis[4].points]|max %}
-                        {% set height_percent = (player_stats.quarter_analysis[quarter].points / max_points * 100) if max_points > 0 else 0 %}
+                        {% set max_points = [player_stats.quarter_analysis[1]['points'], player_stats.quarter_analysis[2]['points'], player_stats.quarter_analysis[3]['points'], player_stats.quarter_analysis[4]['points']]|max %}
+                        {% set height_percent = (player_stats.quarter_analysis[quarter]['points'] / max_points * 100) if max_points > 0 else 0 %}
                         <div class="quarter-bar-fill" style="height: {{ height_percent }}%;">
-                            <div>{{ player_stats.quarter_analysis[quarter].points }}</div>
+                            <div>{{ player_stats.quarter_analysis[quarter]['points'] }}</div>
                             <small style="font-size: 0.7em;">pts</small>
                         </div>
                     </div>
                     <div class="quarter-label">Q{{ quarter }}</div>
-                    <small style="color: #7f8c8d;">{{ player_stats.quarter_analysis[quarter].fouls }} fouls</small>
+                    <small style="color: #7f8c8d;">{{ player_stats.quarter_analysis[quarter]['fouls'] }} fouls</small>
                 </div>
                 {% endfor %}
             </div>

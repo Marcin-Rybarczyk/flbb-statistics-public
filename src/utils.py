@@ -2175,13 +2175,19 @@ def get_player_detail_stats(data, player_name):
     # Calculate shooting percentages
     if basic_stats['starting_five_games'] > 0:
         starting_games = player_games[player_games['StartingFive']]
-        basic_stats['avg_points_as_starter'] = round(starting_games['TotalPoints'].mean(), 1)
+        if not starting_games.empty:
+            basic_stats['avg_points_as_starter'] = round(starting_games['TotalPoints'].mean(), 1)
+        else:
+            basic_stats['avg_points_as_starter'] = 0
     else:
         basic_stats['avg_points_as_starter'] = 0
         
     if basic_stats['bench_games'] > 0:
         bench_games = player_games[~player_games['StartingFive']]
-        basic_stats['avg_points_from_bench'] = round(bench_games['TotalPoints'].mean(), 1)
+        if not bench_games.empty:
+            basic_stats['avg_points_from_bench'] = round(bench_games['TotalPoints'].mean(), 1)
+        else:
+            basic_stats['avg_points_from_bench'] = 0
     else:
         basic_stats['avg_points_from_bench'] = 0
     
