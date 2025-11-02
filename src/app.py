@@ -13,7 +13,7 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
                    get_best_player_combinations, get_referee_game_impact_analysis, get_all_fixtures_data,
                    get_fixtures_matrix_data, get_data_source_info, get_season_info, 
                    get_website_config, list_available_archives, import_season_archive,
-                   get_all_players_list, get_player_detail_stats)
+                   get_all_players_list, get_player_detail_stats, get_game_details)
 from src.version import get_version_info
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
@@ -334,6 +334,22 @@ def fixtures():
                          matrix_data=matrix_data,
                          divisions=divisions,
                          selected_division=selected_division_param,
+                         data_source_info=data_source_info)
+
+@app.route('/game-detail/<game_id>')
+def game_detail(game_id):
+    """Game detail page showing comprehensive information about a specific game"""
+    if data.empty:
+        return render_template('game_detail.html', error="No data available", data_source_info=data_source_info)
+    
+    # Get game details
+    game_details = get_game_details(data, game_id)
+    
+    if not game_details:
+        return render_template('game_detail.html', error=f"Game {game_id} not found", data_source_info=data_source_info)
+    
+    return render_template('game_detail.html',
+                         game=game_details,
                          data_source_info=data_source_info)
 
 @app.route('/admin')
