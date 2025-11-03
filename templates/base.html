@@ -307,6 +307,130 @@
             font-size: 0.9em;
         }
 
+        /* Hover Tooltip Styles */
+        .hoverable-item {
+            cursor: pointer;
+            position: relative;
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .hoverable-item:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .hover-tooltip {
+            position: fixed;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            min-width: 250px;
+            max-width: 400px;
+            display: none;
+            pointer-events: none;
+        }
+
+        .hover-tooltip.show {
+            display: block;
+        }
+
+        .hover-tooltip h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 1.1em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+
+        .hover-tooltip .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 0.95em;
+        }
+
+        .hover-tooltip .stat-label {
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+
+        .hover-tooltip .stat-value {
+            color: #2c3e50;
+            font-weight: bold;
+        }
+
+        .hover-tooltip .streak {
+            display: inline-block;
+            padding: 2px 6px;
+            margin: 0 2px;
+            border-radius: 3px;
+            font-weight: bold;
+            font-size: 0.85em;
+        }
+
+        .hover-tooltip .streak.win {
+            background: #27ae60;
+            color: white;
+        }
+
+        .hover-tooltip .streak.loss {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .hover-tooltip .loading {
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+
+        /* Context Menu Styles */
+        .context-menu {
+            position: fixed;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 10001;
+            min-width: 180px;
+            display: none;
+            overflow: hidden;
+        }
+
+        .context-menu.show {
+            display: block;
+        }
+
+        .context-menu-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            border-bottom: 1px solid #eee;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        .context-menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .context-menu-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+
+        .context-menu-item i {
+            margin-right: 10px;
+            width: 16px;
+            display: inline-block;
+            text-align: center;
+        }
+
         {% block extra_styles %}{% endblock %}
     </style>
 </head>
@@ -484,6 +608,403 @@
             const num = parseFloat(cleaned);
             return num;
         }
+    </script>
+
+    <!-- Hover Tooltip -->
+    <div id="hoverTooltip" class="hover-tooltip"></div>
+
+    <!-- Context Menu -->
+    <div id="contextMenu" class="context-menu"></div>
+
+    <script>
+        // Hover Tooltip and Context Menu Functionality
+        (function() {
+            const tooltip = document.getElementById('hoverTooltip');
+            const contextMenu = document.getElementById('contextMenu');
+            let currentHoverItem = null;
+            let hoverTimeout = null;
+            let tooltipVisible = false;
+
+            // Auto-detect and enhance elements on page load
+            function autoEnhanceElements() {
+                // Enhance player detail links
+                document.querySelectorAll('a[href*="/player-detail?player="]').forEach(link => {
+                    if (!link.classList.contains('hoverable-item')) {
+                        const url = new URL(link.href, window.location.origin);
+                        const playerName = url.searchParams.get('player');
+                        if (playerName) {
+                            link.classList.add('hoverable-item');
+                            link.dataset.type = 'player';
+                            link.dataset.id = playerName;
+                        }
+                    }
+                });
+
+                // Enhance team detail links
+                document.querySelectorAll('a[href*="/team-detail?team="]').forEach(link => {
+                    if (!link.classList.contains('hoverable-item')) {
+                        const url = new URL(link.href, window.location.origin);
+                        const teamName = url.searchParams.get('team');
+                        if (teamName) {
+                            link.classList.add('hoverable-item');
+                            link.dataset.type = 'team';
+                            link.dataset.id = teamName;
+                        }
+                    }
+                });
+
+                // Enhance referee detail links
+                document.querySelectorAll('a[href*="/referee-detail?referee="]').forEach(link => {
+                    if (!link.classList.contains('hoverable-item')) {
+                        const url = new URL(link.href, window.location.origin);
+                        const refereeName = url.searchParams.get('referee');
+                        if (refereeName) {
+                            link.classList.add('hoverable-item');
+                            link.dataset.type = 'referee';
+                            link.dataset.id = refereeName;
+                        }
+                    }
+                });
+
+                // Enhance game detail links
+                document.querySelectorAll('a[href*="/game-detail/"]').forEach(link => {
+                    if (!link.classList.contains('hoverable-item')) {
+                        const match = link.href.match(/\/game-detail\/(\d+)/);
+                        if (match) {
+                            link.classList.add('hoverable-item');
+                            link.dataset.type = 'game';
+                            link.dataset.id = match[1];
+                        }
+                    }
+                });
+
+                // Enhance form buttons for teams
+                document.querySelectorAll('form[action="/team-stats"] button[type="submit"]').forEach(button => {
+                    if (!button.closest('.hoverable-item')) {
+                        const form = button.closest('form');
+                        const teamInput = form ? form.querySelector('input[name="team"]') : null;
+                        if (teamInput && teamInput.value) {
+                            const wrapper = document.createElement('span');
+                            wrapper.classList.add('hoverable-item');
+                            wrapper.dataset.type = 'team';
+                            wrapper.dataset.id = teamInput.value;
+                            button.parentNode.insertBefore(wrapper, button);
+                            wrapper.appendChild(button);
+                        }
+                    }
+                });
+            }
+
+            // Run enhancement on load
+            autoEnhanceElements();
+            
+            // Also run after any dynamic content changes (e.g., tab switches)
+            const observer = new MutationObserver(function(mutations) {
+                autoEnhanceElements();
+            });
+            
+            // Observe the content div for changes
+            const contentDiv = document.querySelector('.content');
+            if (contentDiv) {
+                observer.observe(contentDiv, { childList: true, subtree: true });
+            }
+
+            // Hide tooltip helper
+            function hideTooltip() {
+                tooltip.classList.remove('show');
+                tooltipVisible = false;
+            }
+
+            // Hide context menu helper
+            function hideContextMenu() {
+                contextMenu.classList.remove('show');
+            }
+
+            // Position tooltip near mouse
+            function positionTooltip(e) {
+                const tooltipRect = tooltip.getBoundingClientRect();
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                
+                let left = e.clientX + 15;
+                let top = e.clientY + 15;
+
+                // Adjust if tooltip would go off screen
+                if (left + tooltipRect.width > viewportWidth - 20) {
+                    left = e.clientX - tooltipRect.width - 15;
+                }
+                if (top + tooltipRect.height > viewportHeight - 20) {
+                    top = e.clientY - tooltipRect.height - 15;
+                }
+
+                // Ensure tooltip stays within viewport
+                left = Math.max(10, Math.min(left, viewportWidth - tooltipRect.width - 10));
+                top = Math.max(10, Math.min(top, viewportHeight - tooltipRect.height - 10));
+
+                tooltip.style.left = left + 'px';
+                tooltip.style.top = top + 'px';
+            }
+
+            // Fetch and display tooltip
+            async function showTooltip(element, e) {
+                const type = element.dataset.type;
+                const id = element.dataset.id;
+                
+                if (!type || !id) return;
+
+                // Show loading state
+                tooltip.innerHTML = '<div class="loading">Loading...</div>';
+                tooltip.classList.add('show');
+                tooltipVisible = true;
+                positionTooltip(e);
+
+                try {
+                    const response = await fetch(`/api/hover/${type}/${encodeURIComponent(id)}`);
+                    if (!response.ok) {
+                        throw new Error('Failed to load data');
+                    }
+
+                    const data = await response.json();
+                    
+                    // Format tooltip content based on type
+                    let content = '';
+                    
+                    if (type === 'player') {
+                        content = `
+                            <h4>🏀 ${id}</h4>
+                            <div class="stat-row">
+                                <span class="stat-label">Games Played:</span>
+                                <span class="stat-value">${data.games_played}</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Avg Score:</span>
+                                <span class="stat-value">${data.avg_score} pts</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Fouls/Game:</span>
+                                <span class="stat-value">${data.fouls_per_game}</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Best Score:</span>
+                                <span class="stat-value">${data.best_score} pts</span>
+                            </div>
+                        `;
+                    } else if (type === 'team') {
+                        const streakHtml = data.last_five.map(result => 
+                            `<span class="streak ${result === 'W' ? 'win' : 'loss'}">${result}</span>`
+                        ).join('');
+                        
+                        content = `
+                            <h4>🏆 ${id}</h4>
+                            <div class="stat-row">
+                                <span class="stat-label">Record:</span>
+                                <span class="stat-value">${data.wins}W - ${data.losses}L</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Last 5 Games:</span>
+                                <span class="stat-value">${streakHtml}</span>
+                            </div>
+                        `;
+                    } else if (type === 'referee') {
+                        content = `
+                            <h4>👨‍⚖️ ${id}</h4>
+                            <div class="stat-row">
+                                <span class="stat-label">Games:</span>
+                                <span class="stat-value">${data.games}</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Fouls/Game:</span>
+                                <span class="stat-value">${data.fouls_per_game}</span>
+                            </div>
+                        `;
+                    } else if (type === 'game') {
+                        const refereesHtml = data.referees.join(', ') || 'N/A';
+                        content = `
+                            <h4>🏀 Game ${id}</h4>
+                            <div class="stat-row">
+                                <span class="stat-label">Result:</span>
+                                <span class="stat-value" style="font-size: 0.85em;">${data.result}</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Date:</span>
+                                <span class="stat-value">${data.date_time}</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Lead Changes:</span>
+                                <span class="stat-value">${data.lead_changes}</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Tied Scores:</span>
+                                <span class="stat-value">${data.ties}</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Referees:</span>
+                                <span class="stat-value" style="font-size: 0.85em;">${refereesHtml}</span>
+                            </div>
+                        `;
+                    }
+
+                    tooltip.innerHTML = content;
+                    // Reposition after content is loaded
+                    positionTooltip(e);
+                } catch (error) {
+                    console.error('Error loading tooltip:', error);
+                    tooltip.innerHTML = '<div class="loading">Failed to load data</div>';
+                }
+            }
+
+            // Show context menu
+            function showContextMenu(element, e) {
+                e.preventDefault();
+                
+                const type = element.dataset.type;
+                const id = element.dataset.id;
+                
+                if (!type || !id) return;
+
+                // Build context menu based on type
+                let menuHtml = '';
+                
+                if (type === 'player') {
+                    menuHtml = `
+                        <div class="context-menu-item" data-action="details" data-type="player" data-id="${id}">
+                            <i>🔍</i>Open Player Details
+                        </div>
+                    `;
+                } else if (type === 'team') {
+                    menuHtml = `
+                        <div class="context-menu-item" data-action="details" data-type="team" data-id="${id}">
+                            <i>🔍</i>Open Team Details
+                        </div>
+                    `;
+                } else if (type === 'referee') {
+                    menuHtml = `
+                        <div class="context-menu-item" data-action="details" data-type="referee" data-id="${id}">
+                            <i>🔍</i>Open Referee Details
+                        </div>
+                    `;
+                } else if (type === 'game') {
+                    menuHtml = `
+                        <div class="context-menu-item" data-action="details" data-type="game" data-id="${id}">
+                            <i>🔍</i>Open Game Details
+                        </div>
+                    `;
+                }
+
+                contextMenu.innerHTML = menuHtml;
+                contextMenu.classList.add('show');
+
+                // Position context menu
+                const menuRect = contextMenu.getBoundingClientRect();
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                
+                let left = e.clientX;
+                let top = e.clientY;
+
+                // Adjust if menu would go off screen
+                if (left + menuRect.width > viewportWidth - 20) {
+                    left = viewportWidth - menuRect.width - 20;
+                }
+                if (top + menuRect.height > viewportHeight - 20) {
+                    top = viewportHeight - menuRect.height - 20;
+                }
+
+                contextMenu.style.left = left + 'px';
+                contextMenu.style.top = top + 'px';
+
+                // Add click handlers to menu items
+                contextMenu.querySelectorAll('.context-menu-item').forEach(item => {
+                    item.addEventListener('click', function() {
+                        const action = this.dataset.action;
+                        const menuType = this.dataset.type;
+                        const menuId = this.dataset.id;
+                        
+                        if (action === 'details') {
+                            if (menuType === 'player') {
+                                window.location.href = `/player-detail?player=${encodeURIComponent(menuId)}`;
+                            } else if (menuType === 'team') {
+                                window.location.href = `/team-detail?team=${encodeURIComponent(menuId)}`;
+                            } else if (menuType === 'referee') {
+                                window.location.href = `/referee-detail?referee=${encodeURIComponent(menuId)}`;
+                            } else if (menuType === 'game') {
+                                window.location.href = `/game-detail/${menuId}`;
+                            }
+                        }
+                        
+                        hideContextMenu();
+                    });
+                });
+            }
+
+            // Event delegation for hoverable items
+            document.addEventListener('mouseover', function(e) {
+                const hoverable = e.target.closest('.hoverable-item');
+                
+                if (hoverable && hoverable !== currentHoverItem) {
+                    currentHoverItem = hoverable;
+                    
+                    // Clear any existing timeout
+                    if (hoverTimeout) {
+                        clearTimeout(hoverTimeout);
+                    }
+                    
+                    // Show tooltip after a short delay
+                    hoverTimeout = setTimeout(() => {
+                        showTooltip(hoverable, e);
+                    }, 300);
+                }
+            });
+
+            // Update tooltip position as mouse moves
+            document.addEventListener('mousemove', function(e) {
+                if (tooltipVisible) {
+                    positionTooltip(e);
+                }
+            });
+
+            document.addEventListener('mouseout', function(e) {
+                const hoverable = e.target.closest('.hoverable-item');
+                
+                if (hoverable && hoverable === currentHoverItem) {
+                    // Check if we're leaving the element
+                    if (!hoverable.contains(e.relatedTarget)) {
+                        currentHoverItem = null;
+                        
+                        // Clear timeout
+                        if (hoverTimeout) {
+                            clearTimeout(hoverTimeout);
+                            hoverTimeout = null;
+                        }
+                        
+                        // Hide tooltip after a short delay
+                        setTimeout(hideTooltip, 100);
+                    }
+                }
+            });
+
+            // Context menu on right click
+            document.addEventListener('contextmenu', function(e) {
+                const hoverable = e.target.closest('.hoverable-item');
+                
+                if (hoverable) {
+                    showContextMenu(hoverable, e);
+                    hideTooltip();
+                } else {
+                    hideContextMenu();
+                }
+            });
+
+            // Hide context menu and tooltip on click anywhere
+            document.addEventListener('click', function(e) {
+                if (!contextMenu.contains(e.target)) {
+                    hideContextMenu();
+                }
+            });
+
+            // Hide context menu on scroll
+            document.addEventListener('scroll', hideContextMenu);
+        })();
     </script>
 
     {% block scripts %}{% endblock %}

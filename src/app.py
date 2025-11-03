@@ -1,7 +1,7 @@
 import os
 import re
 from urllib.parse import unquote
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 import pandas as pd
 from src.utils import (calculate_standings_by_division, get_highest_scoring_games, 
                    load_game_data, get_top_players_by_score, get_team_performance_stats,
@@ -15,7 +15,8 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
                    get_fixtures_matrix_data, get_data_source_info, get_season_info, 
                    get_website_config, list_available_archives, import_season_archive,
                    get_all_players_list, get_player_detail_stats, get_game_details, get_referee_detail_stats,
-                   get_team_detail_stats, get_all_referees_list, get_all_games_list)
+                   get_team_detail_stats, get_all_referees_list, get_all_games_list,
+                   get_player_hover_stats, get_team_hover_stats, get_referee_hover_stats, get_game_hover_stats)
 from src.version import get_version_info
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
@@ -528,6 +529,64 @@ def import_season_data():
                 
     except Exception as e:
         return {'success': False, 'error': f'Import failed: {str(e)}'}, 500
+
+# API endpoints for hover tooltips
+@app.route('/api/hover/player/<player_name>')
+def api_player_hover(player_name):
+    """API endpoint to get player hover statistics"""
+    if data.empty:
+        return jsonify({'error': 'No data available'}), 404
+    
+    # URL decode the player name
+    player_name = unquote(player_name)
+    
+    stats = get_player_hover_stats(data, player_name)
+    if stats is None:
+        return jsonify({'error': 'Player not found'}), 404
+    
+    return jsonify(stats)
+
+@app.route('/api/hover/team/<team_name>')
+def api_team_hover(team_name):
+    """API endpoint to get team hover statistics"""
+    if data.empty:
+        return jsonify({'error': 'No data available'}), 404
+    
+    # URL decode the team name
+    team_name = unquote(team_name)
+    
+    stats = get_team_hover_stats(data, team_name)
+    if stats is None:
+        return jsonify({'error': 'Team not found'}), 404
+    
+    return jsonify(stats)
+
+@app.route('/api/hover/referee/<referee_name>')
+def api_referee_hover(referee_name):
+    """API endpoint to get referee hover statistics"""
+    if data.empty:
+        return jsonify({'error': 'No data available'}), 404
+    
+    # URL decode the referee name
+    referee_name = unquote(referee_name)
+    
+    stats = get_referee_hover_stats(data, referee_name)
+    if stats is None:
+        return jsonify({'error': 'Referee not found'}), 404
+    
+    return jsonify(stats)
+
+@app.route('/api/hover/game/<game_id>')
+def api_game_hover(game_id):
+    """API endpoint to get game hover statistics"""
+    if data.empty:
+        return jsonify({'error': 'No data available'}), 404
+    
+    stats = get_game_hover_stats(data, game_id)
+    if stats is None:
+        return jsonify({'error': 'Game not found'}), 404
+    
+    return jsonify(stats)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

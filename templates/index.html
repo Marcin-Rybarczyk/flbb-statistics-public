@@ -43,10 +43,12 @@
                             {% if team_logo_url %}
                                 <img src="{{ team_logo_url }}" alt="{{ row['Team Name'] }} logo" class="team-logo" style="width: 24px; height: 24px; object-fit: contain; vertical-align: middle; margin-right: 8px;">
                             {% endif %}
-                            <form method="post" action="/team-stats" style="display: inline;">
-                                <input type="hidden" name="team" value="{{ row['Team Name'] }}">
-                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team Name'] }}</button>
-                            </form>
+                            <span class="hoverable-item" data-type="team" data-id="{{ row['Team Name'] }}">
+                                <form method="post" action="/team-stats" style="display: inline;">
+                                    <input type="hidden" name="team" value="{{ row['Team Name'] }}">
+                                    <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team Name'] }}</button>
+                                </form>
+                            </span>
                         </td>
                         <td>{{ row['Games'] }}</td>
                         <td>{{ row['W'] }}</td>
@@ -79,9 +81,9 @@
                 <tbody>
                     {% for index, row in highest_games.iterrows() %}
                     <tr>
-                        <td><a href="/game-detail/{{ row['GameId'] }}" style="color: #667eea; text-decoration: underline;">{{ row['GameId'] }}</a></td>
-                        <td>{{ row['HomeTeamName'] }}</td>
-                        <td>{{ row['AwayTeamName'] }}</td>
+                        <td><span class="hoverable-item" data-type="game" data-id="{{ row['GameId'] }}"><a href="/game-detail/{{ row['GameId'] }}" style="color: #667eea; text-decoration: underline;">{{ row['GameId'] }}</a></span></td>
+                        <td><span class="hoverable-item" data-type="team" data-id="{{ row['HomeTeamName'] }}">{{ row['HomeTeamName'] }}</span></td>
+                        <td><span class="hoverable-item" data-type="team" data-id="{{ row['AwayTeamName'] }}">{{ row['AwayTeamName'] }}</span></td>
                         <td>{{ row['FinalHomeScore'] }}</td>
                         <td>{{ row['FinalAwayScore'] }}</td>
                         <td><strong>{{ row['TotalScore'] }}</strong></td>
