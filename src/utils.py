@@ -2160,6 +2160,186 @@ def get_referee_game_impact_analysis(data):
         'most_competitive_refs': qualified_refs.nlargest(10, 'CloseGameRate')[['RefereeName', 'GamesRefereed', 'CloseGameRate']]
     }
 
+def calculate_referee_performance_index(data):
+    """
+    Calculate a comprehensive Referee Performance Index (RPI) based on multiple metrics:
+    - Fairness: balance in fouls called for home vs away teams
+    - Consistency: variance in fouls called per game
+    - Game Control: ratio of technical/unsportsmanlike fouls
+    - Experience: number of games officiated
+    
+    Parameters:
+    data (DataFrame): The game data
+    
+    Returns:
+    DataFrame: Referee performance rankings with detailed metrics
+    """
+    import ast
+    import numpy as np
+    
+    if data.empty:
+        return pd.DataFrame()
+    
+    referee_data = []
+    
+    # Process each game to collect referee-specific metrics
+    for _, game in data.iterrows():
+        try:
+            # Parse referee data
+            if isinstance(game['Referres'], str):
+                refs_data = ast.literal_eval(game['Referres'])
+            else:
+                refs_data = game['Referres']
+        except:
+            continue
+            
+        if not isinstance(refs_data, list):
+            continue
+        
+        # Parse game events
+        home_fouls = 0
+        away_fouls = 0
+        technical_fouls = 0  # T1, U1, U2, C1, B1, D2
+        total_fouls = 0
+        
+        try:
+            if isinstance(game['GameEvents'], str):
+                events_data = ast.literal_eval(game['GameEvents'])
+            else:
+                events_data = game['GameEvents']
+            
+            home_team = game['HomeTeamName']
+            away_team = game['AwayTeamName']
+            
+            for event in events_data:
+                if isinstance(event, dict) and 'EventAction' in event:
+                    action = event['EventAction']
+                    
+                    if 'Foul Added' in action:
+                        total_fouls += 1
+                        
+                        # Determine if it's a technical/unsportsmanlike foul
+                        if any(foul_type in action for foul_type in ['T1', 'U1', 'U2', 'C1', 'B1', 'D2']):
+                            technical_fouls += 1
+                        
+                        # Determine which team committed the foul
+                        event_team = event.get('EventTeam', '')
+                        if event_team == home_team:
+                            home_fouls += 1
+                        elif event_team == away_team:
+                            away_fouls += 1
+        except:
+            pass
+        
+        # Calculate game metrics
+        total_score = game['FinalHomeScore'] + game['FinalAwayScore']
+        score_difference = abs(game['FinalHomeScore'] - game['FinalAwayScore'])
+        foul_differential = abs(home_fouls - away_fouls)
+        technical_foul_rate = (technical_fouls / total_fouls * 100) if total_fouls > 0 else 0
+        
+        # Record metrics for each referee in this game
+        for ref in refs_data:
+            if isinstance(ref, dict) and 'Referee Name' in ref:
+                referee_data.append({
+                    'RefereeName': ref['Referee Name'],
+                    'GameId': game['GameId'],
+                    'TotalFouls': total_fouls,
+                    'HomeFouls': home_fouls,
+                    'AwayFouls': away_fouls,
+                    'FoulDifferential': foul_differential,
+                    'TechnicalFouls': technical_fouls,
+                    'TechnicalFoulRate': technical_foul_rate,
+                    'TotalScore': total_score,
+                    'ScoreDifference': score_difference,
+                    'CloseGame': score_difference <= 10
+                })
+    
+    if not referee_data:
+        return pd.DataFrame()
+    
+    ref_df = pd.DataFrame(referee_data)
+    
+    # Aggregate referee statistics
+    ref_summary = ref_df.groupby('RefereeName').agg({
+        'GameId': 'count',
+        'TotalFouls': ['mean', 'std'],
+        'FoulDifferential': ['mean', 'std'],
+        'TechnicalFoulRate': 'mean',
+        'TotalScore': 'mean',
+        'ScoreDifference': 'mean',
+        'CloseGame': 'sum'
+    }).round(2)
+    
+    # Flatten column names
+    ref_summary.columns = ['_'.join(str(col)).strip() for col in ref_summary.columns]
+    ref_summary = ref_summary.reset_index()
+    
+    # Rename and calculate derived metrics
+    ref_summary['GamesRefereed'] = ref_summary['GameId_count']
+    ref_summary['AvgFoulsPerGame'] = ref_summary['TotalFouls_mean']
+    ref_summary['FoulVariance'] = ref_summary['TotalFouls_std'].fillna(0)
+    ref_summary['AvgFoulDifferential'] = ref_summary['FoulDifferential_mean']
+    ref_summary['FoulDifferentialVariance'] = ref_summary['FoulDifferential_std'].fillna(0)
+    ref_summary['AvgTechnicalFoulRate'] = ref_summary['TechnicalFoulRate_mean']
+    ref_summary['AvgTotalScore'] = ref_summary['TotalScore_mean']
+    ref_summary['AvgScoreDifference'] = ref_summary['ScoreDifference_mean']
+    ref_summary['CloseGamesCount'] = ref_summary['CloseGame_sum']
+    
+    # Filter referees with at least 3 games for meaningful statistics
+    qualified_refs = ref_summary[ref_summary['GamesRefereed'] >= 3].copy()
+    
+    if qualified_refs.empty:
+        return pd.DataFrame()
+    
+    # Calculate normalized scores (0-100 scale, higher is better)
+    
+    # 1. Fairness Score (lower foul differential is better)
+    max_diff = qualified_refs['AvgFoulDifferential'].max()
+    if max_diff > 0:
+        qualified_refs['FairnessScore'] = ((max_diff - qualified_refs['AvgFoulDifferential']) / max_diff * 100).round(1)
+    else:
+        qualified_refs['FairnessScore'] = 100.0
+    
+    # 2. Consistency Score (lower variance is better)
+    max_variance = qualified_refs['FoulVariance'].max()
+    if max_variance > 0:
+        qualified_refs['ConsistencyScore'] = ((max_variance - qualified_refs['FoulVariance']) / max_variance * 100).round(1)
+    else:
+        qualified_refs['ConsistencyScore'] = 100.0
+    
+    # 3. Game Control Score (lower technical foul rate is better, but not zero)
+    # Normalize technical foul rate - ideal is around 5-10%
+    qualified_refs['GameControlScore'] = qualified_refs['AvgTechnicalFoulRate'].apply(
+        lambda x: max(0, 100 - abs(x - 7.5) * 5)  # Penalty increases as we deviate from 7.5%
+    ).round(1)
+    
+    # 4. Experience Score (more games is better, with diminishing returns)
+    max_games = qualified_refs['GamesRefereed'].max()
+    qualified_refs['ExperienceScore'] = (np.log1p(qualified_refs['GamesRefereed']) / np.log1p(max_games) * 100).round(1)
+    
+    # Calculate Composite RPI (weighted average)
+    # Weights: Fairness 30%, Consistency 30%, Game Control 25%, Experience 15%
+    qualified_refs['RPI'] = (
+        qualified_refs['FairnessScore'] * 0.30 +
+        qualified_refs['ConsistencyScore'] * 0.30 +
+        qualified_refs['GameControlScore'] * 0.25 +
+        qualified_refs['ExperienceScore'] * 0.15
+    ).round(1)
+    
+    # Add ranking
+    qualified_refs = qualified_refs.sort_values('RPI', ascending=False)
+    qualified_refs['Rank'] = range(1, len(qualified_refs) + 1)
+    
+    # Select and order columns for output
+    output_columns = [
+        'Rank', 'RefereeName', 'GamesRefereed', 'RPI',
+        'FairnessScore', 'ConsistencyScore', 'GameControlScore', 'ExperienceScore',
+        'AvgFoulsPerGame', 'FoulVariance', 'AvgFoulDifferential', 'FoulDifferentialVariance',
+        'AvgTechnicalFoulRate', 'AvgTotalScore', 'AvgScoreDifference', 'CloseGamesCount'
+    ]
+    
+    return qualified_refs[output_columns].reset_index(drop=True)
+
 def get_top_scorer_by_game(data):
     """
     Get the top scorer for each game.
