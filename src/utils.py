@@ -959,12 +959,13 @@ def get_top_foulers(data, top_n=10, division=None):
                 escaped_title = html.escape(title)
                 escaped_foul_code = html.escape(foul_code)
                 escaped_blocks = html.escape(blocks)
+                escaped_color = html.escape(color)
                 
                 # Create HTML for this foul type
                 foul_html = (
                     f'<div class="foul-card" title="{escaped_title}">'
                     f'<span class="foul-label">{escaped_foul_code}:</span>'
-                    f'<span class="foul-blocks" style="color: {color};">{escaped_blocks}</span> '
+                    f'<span class="foul-blocks" style="color: {escaped_color};">{escaped_blocks}</span> '
                     f'<span class="foul-count">({count})</span>'
                     f'</div>'
                 )
