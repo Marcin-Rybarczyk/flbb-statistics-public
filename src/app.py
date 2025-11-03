@@ -15,7 +15,7 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
                    get_fixtures_matrix_data, get_data_source_info, get_season_info, 
                    get_website_config, list_available_archives, import_season_archive,
                    get_all_players_list, get_player_detail_stats, get_game_details, get_referee_detail_stats,
-                   get_team_detail_stats, get_all_referees_list)
+                   get_team_detail_stats, get_all_referees_list, get_all_games_list)
 from src.version import get_version_info
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
@@ -388,6 +388,29 @@ def game_detail(game_id):
     
     return render_template('game_detail.html',
                          game=game_details,
+                         data_source_info=data_source_info)
+
+@app.route('/game-details')
+def game_details_search():
+    """Game details search page with searchable functionality similar to player detail"""
+    if data.empty:
+        return render_template('game_details.html', error="No data available", data_source_info=data_source_info)
+    
+    # Get all games for autocomplete
+    all_games = get_all_games_list(data)
+    
+    # Get selected game from query parameter
+    game_id = request.args.get('game')
+    game_details_data = None
+    
+    if game_id:
+        game_details_data = get_game_details(data, game_id)
+    
+    return render_template('game_details.html',
+                         all_games=all_games,
+                         game_id=game_id,
+                         game=game_details_data,
+                         divisions=divisions,
                          data_source_info=data_source_info)
 
 @app.route('/admin')

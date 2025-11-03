@@ -2582,6 +2582,40 @@ def get_all_referees_list(data):
     
     return unique_referees
 
+def get_all_games_list(data):
+    """
+    Get a list of all games with key information for autocomplete/search.
+    
+    Parameters:
+    data (DataFrame): The game data
+    
+    Returns:
+    list: List of dictionaries with game details for search
+    """
+    if data.empty:
+        return []
+    
+    # Select relevant columns and create game list
+    games_list = []
+    
+    for idx, row in data.iterrows():
+        game_info = {
+            'GameId': row.get('GameId', ''),
+            'HomeTeam': row.get('HomeTeamName', ''),
+            'AwayTeam': row.get('AwayTeamName', ''),
+            'FinalScore': f"{row.get('FinalHomeScore', 0)}-{row.get('FinalAwayScore', 0)}",
+            'Division': row.get('GameDivisionDisplay', ''),
+            'Date': row.get('DateTime', ''),
+            'Location': row.get('GameLocation', '')
+        }
+        games_list.append(game_info)
+    
+    # Sort by date (most recent first) if date is available
+    if games_list and 'Date' in games_list[0] and games_list[0]['Date']:
+        games_list = sorted(games_list, key=lambda x: x.get('Date', ''), reverse=True)
+    
+    return games_list
+
 def get_player_detail_stats(data, player_name):
     """
     Get comprehensive statistics for a specific player.
