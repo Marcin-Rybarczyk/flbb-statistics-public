@@ -3193,6 +3193,7 @@ def get_team_detail_stats(data, team_name):
             'date': row['DateTime'][:10] if row['DateTime'] else 'N/A',
             'scored': int(row['TeamScore']),
             'allowed': int(row['OpponentScore']),
+            'margin': int(row['Margin']),
             'cumulative_scored': cumulative_scored,
             'cumulative_allowed': cumulative_allowed,
         })
