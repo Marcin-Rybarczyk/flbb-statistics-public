@@ -2204,7 +2204,7 @@ def get_top_scorer_by_game(data):
                         player_name = event['EventActor']
                         team = event.get('EventTeam', '')
                         
-                        # Check for scoring actions
+                        # Check for scoring actions (both added and deleted)
                         points = 0
                         if '1P Points Added' in action:
                             points = 1
@@ -2212,8 +2212,14 @@ def get_top_scorer_by_game(data):
                             points = 2
                         elif '3P Points Added' in action:
                             points = 3
+                        elif '1P Points Deleted' in action:
+                            points = -1
+                        elif '2P Points Deleted' in action:
+                            points = -2
+                        elif '3P Points Deleted' in action:
+                            points = -3
                         
-                        if points > 0 and player_name:
+                        if points != 0 and player_name:
                             if player_name not in player_stats:
                                 player_stats[player_name] = {'points': 0, 'team': team}
                             
@@ -2429,7 +2435,7 @@ def get_game_top_scorer(game):
                     player_name = event['EventActor']
                     team = event.get('EventTeam', '')
                     
-                    # Check for scoring actions
+                    # Check for scoring actions (both added and deleted)
                     points = 0
                     if '1P Points Added' in action:
                         points = 1
@@ -2437,8 +2443,14 @@ def get_game_top_scorer(game):
                         points = 2
                     elif '3P Points Added' in action:
                         points = 3
+                    elif '1P Points Deleted' in action:
+                        points = -1
+                    elif '2P Points Deleted' in action:
+                        points = -2
+                    elif '3P Points Deleted' in action:
+                        points = -3
                     
-                    if points > 0 and player_name:
+                    if points != 0 and player_name:
                         if player_name not in player_stats:
                             player_stats[player_name] = {'points': 0, 'team': team}
                         
