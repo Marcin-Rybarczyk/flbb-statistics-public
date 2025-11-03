@@ -15,7 +15,7 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
                    get_fixtures_matrix_data, get_data_source_info, get_season_info, 
                    get_website_config, list_available_archives, import_season_archive,
                    get_all_players_list, get_player_detail_stats, get_game_details, get_referee_detail_stats,
-                   get_team_detail_stats)
+                   get_team_detail_stats, get_all_referees_list)
 from src.version import get_version_info
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
@@ -281,22 +281,24 @@ def referee_stats():
                          divisions=divisions,
                          data_source_info=data_source_info)
 
-@app.route('/referee-detail/<referee_name>')
-def referee_detail(referee_name):
-    """Individual referee detail page with comprehensive statistics"""
-    # URL decode the referee name to handle special characters
-    referee_name = unquote(referee_name)
-    
+@app.route('/referee-detail')
+def referee_detail():
+    """Individual referee detail page with search and comprehensive statistics"""
     if data.empty:
         return render_template('referee_detail.html', error="No data available", data_source_info=data_source_info)
     
-    # Get referee details
-    referee_stats_detail = get_referee_detail_stats(data, referee_name)
+    # Get all referees for autocomplete
+    all_referees = get_all_referees_list(data)
     
-    if not referee_stats_detail:
-        return render_template('referee_detail.html', error=f"Referee '{referee_name}' not found", data_source_info=data_source_info)
+    # Get selected referee from query parameter
+    referee_name = request.args.get('referee')
+    referee_stats_detail = None
+    
+    if referee_name:
+        referee_stats_detail = get_referee_detail_stats(data, referee_name)
     
     return render_template('referee_detail.html',
+                         all_referees=all_referees,
                          referee_name=referee_name,
                          referee_stats=referee_stats_detail,
                          divisions=divisions,

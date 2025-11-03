@@ -6,6 +6,73 @@
 {% block page_description %}Comprehensive referee performance and game history{% endblock %}
 
 {% block extra_styles %}
+    .search-container {
+        text-align: center;
+        margin: 30px 0;
+    }
+    
+    .search-box {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+        max-width: 600px;
+    }
+    
+    #refereeSearch {
+        width: 100%;
+        padding: 15px 20px;
+        font-size: 1.1em;
+        border: 2px solid #ddd;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+    
+    #refereeSearch:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .autocomplete-suggestions {
+        position: absolute;
+        width: 100%;
+        max-height: 300px;
+        overflow-y: auto;
+        background: white;
+        border: 2px solid #667eea;
+        border-top: none;
+        border-radius: 0 0 10px 10px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        display: none;
+    }
+    
+    .autocomplete-suggestion {
+        padding: 12px 20px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+        transition: all 0.2s ease;
+    }
+    
+    .autocomplete-suggestion:hover {
+        background: rgba(102, 126, 234, 0.1);
+    }
+    
+    .autocomplete-suggestion strong {
+        color: #667eea;
+    }
+    
+    .no-referee-selected {
+        text-align: center;
+        padding: 60px 20px;
+        color: #7f8c8d;
+    }
+    
+    .no-referee-selected h3 {
+        font-size: 1.5em;
+        margin-bottom: 15px;
+    }
+
     .referee-header {
         background: linear-gradient(135deg, #667eea, #764ba2);
         color: white;
@@ -183,11 +250,18 @@
 {% endblock %}
 
 {% block content %}
-    <a href="/referee-stats" class="back-button">← Back to Referee Statistics</a>
+    <div class="search-container">
+        <div class="search-box">
+            <input type="text" 
+                   id="refereeSearch" 
+                   placeholder="🔍 Search for a referee..." 
+                   autocomplete="off"
+                   value="{{ referee_name if referee_name else '' }}">
+            <div id="autocompleteSuggestions" class="autocomplete-suggestions"></div>
+        </div>
+    </div>
 
-    {% if error %}
-        <div class="error-message">{{ error }}</div>
-    {% elif referee_stats %}
+    {% if referee_stats %}
         <!-- Referee Header -->
         <div class="referee-header">
             <h2>{{ referee_stats.referee_name }}</h2>
@@ -331,5 +405,78 @@
                 </ul>
             </div>
         </div>
+    {% elif referee_name %}
+    <div class="no-referee-selected">
+        <h3>Referee Not Found</h3>
+        <p>No statistics found for "{{ referee_name }}". Please try another search.</p>
+    </div>
+    {% else %}
+    <div class="no-referee-selected">
+        <h3>Search for a Referee</h3>
+        <p>Use the search box above to find and view detailed statistics for any referee in the league.</p>
+    </div>
     {% endif %}
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        // Referee data for autocomplete
+        const allReferees = {{ all_referees|tojson }};
+        
+        const searchInput = document.getElementById('refereeSearch');
+        const suggestionsDiv = document.getElementById('autocompleteSuggestions');
+        
+        // Show suggestions on input
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            
+            if (searchTerm.length < 2) {
+                suggestionsDiv.style.display = 'none';
+                return;
+            }
+            
+            // Filter referees
+            const matches = allReferees.filter(referee => 
+                referee.toLowerCase().includes(searchTerm)
+            );
+            
+            if (matches.length === 0) {
+                suggestionsDiv.style.display = 'none';
+                return;
+            }
+            
+            // Display suggestions
+            suggestionsDiv.innerHTML = matches.slice(0, 10).map(referee => `
+                <div class="autocomplete-suggestion" onclick="selectReferee('${referee.replace(/'/g, "\\'")}')">
+                    <strong>${referee}</strong>
+                </div>
+            `).join('');
+            
+            suggestionsDiv.style.display = 'block';
+        });
+        
+        // Select referee
+        function selectReferee(refereeName) {
+            searchInput.value = refereeName;
+            suggestionsDiv.style.display = 'none';
+            window.location.href = `/referee-detail?referee=${encodeURIComponent(refereeName)}`;
+        }
+        
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+                suggestionsDiv.style.display = 'none';
+            }
+        });
+        
+        // Handle Enter key
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const firstSuggestion = suggestionsDiv.querySelector('.autocomplete-suggestion');
+                if (firstSuggestion) {
+                    firstSuggestion.click();
+                }
+            }
+        });
+    </script>
 {% endblock %}
