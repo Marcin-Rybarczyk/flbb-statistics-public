@@ -1,5 +1,6 @@
 import os
 import re
+from urllib.parse import unquote
 from flask import Flask, render_template, request
 import pandas as pd
 from src.utils import (calculate_standings_by_division, get_highest_scoring_games, 
@@ -13,7 +14,7 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
                    get_best_player_combinations, get_referee_game_impact_analysis, get_all_fixtures_data,
                    get_fixtures_matrix_data, get_data_source_info, get_season_info, 
                    get_website_config, list_available_archives, import_season_archive,
-                   get_all_players_list, get_player_detail_stats, get_game_details)
+                   get_all_players_list, get_player_detail_stats, get_game_details, get_referee_detail_stats)
 from src.version import get_version_info
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
@@ -283,6 +284,27 @@ def referee_stats():
                          referee_fouls=referee_fouls,
                          referee_least_fouls=referee_least_fouls,
                          referee_impact=referee_impact,
+                         divisions=divisions,
+                         data_source_info=data_source_info)
+
+@app.route('/referee-detail/<referee_name>')
+def referee_detail(referee_name):
+    """Individual referee detail page with comprehensive statistics"""
+    # URL decode the referee name to handle special characters
+    referee_name = unquote(referee_name)
+    
+    if data.empty:
+        return render_template('referee_detail.html', error="No data available", data_source_info=data_source_info)
+    
+    # Get referee details
+    referee_stats_detail = get_referee_detail_stats(data, referee_name)
+    
+    if not referee_stats_detail:
+        return render_template('referee_detail.html', error=f"Referee '{referee_name}' not found", data_source_info=data_source_info)
+    
+    return render_template('referee_detail.html',
+                         referee_name=referee_name,
+                         referee_stats=referee_stats_detail,
                          divisions=divisions,
                          data_source_info=data_source_info)
 

@@ -1119,6 +1119,129 @@ def get_referees_least_fouls_per_game(data):
     
     return qualified_refs.sort_values('AvgFoulsPerGame', ascending=True)
 
+def get_referee_detail_stats(data, referee_name):
+    """
+    Get detailed statistics for a specific referee including:
+    - List of games arbitrated
+    - Foul type breakdown
+    - Game-by-game statistics
+    
+    Parameters:
+    data (DataFrame): The game data
+    referee_name (str): The referee name to get details for
+    
+    Returns:
+    dict: Dictionary containing referee statistics and game list
+    """
+    import ast
+    
+    if data.empty:
+        return None
+    
+    referee_games = []
+    foul_types = defaultdict(int)
+    total_fouls = 0
+    
+    # Iterate through all games to find games this referee officiated
+    for _, game in data.iterrows():
+        try:
+            # Parse referee data
+            if isinstance(game['Referres'], str):
+                refs_data = ast.literal_eval(game['Referres'])
+            else:
+                refs_data = game['Referres']
+        except:
+            continue
+        
+        if not isinstance(refs_data, list):
+            continue
+        
+        # Check if this referee was in this game
+        referee_in_game = False
+        for ref in refs_data:
+            if isinstance(ref, dict) and ref.get('Referee Name') == referee_name:
+                referee_in_game = True
+                break
+        
+        if not referee_in_game:
+            continue
+        
+        # This referee was in this game, extract details
+        game_fouls = 0
+        game_foul_types = defaultdict(int)
+        
+        # Parse game events to count fouls and foul types
+        try:
+            if isinstance(game['GameEvents'], str):
+                events_data = ast.literal_eval(game['GameEvents'])
+            else:
+                events_data = game['GameEvents']
+            
+            # Count foul events by type
+            for event in events_data:
+                if isinstance(event, dict) and 'EventAction' in event:
+                    action = event['EventAction']
+                    
+                    # Check for foul added events (not deleted)
+                    if 'Foul Added' in action:
+                        game_fouls += 1
+                        total_fouls += 1
+                        
+                        # Extract foul type - check more specific patterns first
+                        # This ensures 'P2 Foul Added' and 'P1 Foul Added' are matched
+                        # before the more general 'P Foul Added'
+                        if 'P2 Foul Added' in action:
+                            game_foul_types['P2'] += 1
+                            foul_types['P2'] += 1
+                        elif 'P1 Foul Added' in action:
+                            game_foul_types['P1'] += 1
+                            foul_types['P1'] += 1
+                        elif 'P Foul Added' in action:
+                            game_foul_types['P'] += 1
+                            foul_types['P'] += 1
+                        else:
+                            # Other foul types (technical, unsportsmanlike, etc.)
+                            game_foul_types['Other'] += 1
+                            foul_types['Other'] += 1
+        except:
+            pass
+        
+        # Add game to referee's game list
+        game_info = {
+            'game_id': game['GameId'],
+            'date_time': game['DateTime'],
+            'division': game['GameDivisionDisplay'],
+            'home_team': game['HomeTeamName'],
+            'away_team': game['AwayTeamName'],
+            'final_score': game['GameFinalScore'],
+            'home_score': game['FinalHomeScore'],
+            'away_score': game['FinalAwayScore'],
+            'winner': game['GameWinner'],
+            'location': game['GameLocation'],
+            'fouls_called': game_fouls,
+            'foul_types': dict(game_foul_types)
+        }
+        referee_games.append(game_info)
+    
+    if not referee_games:
+        return None
+    
+    # Sort games by date (most recent first)
+    referee_games.sort(key=lambda x: x['date_time'], reverse=True)
+    
+    # Calculate summary statistics
+    total_games = len(referee_games)
+    avg_fouls_per_game = total_fouls / total_games if total_games > 0 else 0
+    
+    return {
+        'referee_name': referee_name,
+        'total_games': total_games,
+        'total_fouls': total_fouls,
+        'avg_fouls_per_game': round(avg_fouls_per_game, 1),
+        'foul_types': dict(foul_types),
+        'games': referee_games
+    }
+
 def analyze_game_events(data):
     """
     Analyze game events to extract tie scores, lead changes, biggest leads, etc.
