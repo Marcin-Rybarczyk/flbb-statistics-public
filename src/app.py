@@ -16,7 +16,8 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
                    get_website_config, list_available_archives, import_season_archive,
                    get_all_players_list, get_player_detail_stats, get_game_details, get_referee_detail_stats,
                    get_team_detail_stats, get_all_referees_list, get_all_games_list,
-                   get_player_hover_stats, get_team_hover_stats, get_referee_hover_stats, get_game_hover_stats)
+                   get_player_hover_stats, get_team_hover_stats, get_referee_hover_stats, get_game_hover_stats,
+                   calculate_referee_performance_index)
 from src.version import get_version_info
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
@@ -286,6 +287,47 @@ def referee_detail():
                          all_referees=all_referees,
                          referee_name=referee_name,
                          referee_stats=referee_stats_detail,
+                         divisions=divisions,
+                         data_source_info=data_source_info)
+
+@app.route('/referee-performance-index')
+def referee_performance_index():
+    """Referee Performance Index (RPI) page with comprehensive rankings"""
+    if data.empty:
+        return render_template('referee_performance_index.html', error="No data available", data_source_info=data_source_info)
+    
+    # Calculate Referee Performance Index
+    rpi_data = calculate_referee_performance_index(data)
+    
+    # Prepare data for visualizations
+    scatter_data = []
+    radar_data = []
+    
+    if not rpi_data.empty:
+        # Scatter plot data: Fairness vs Consistency
+        for _, ref in rpi_data.iterrows():
+            scatter_data.append({
+                'name': ref['RefereeName'],
+                'fairness': ref['FairnessScore'],
+                'consistency': ref['ConsistencyScore'],
+                'rpi': ref['RPI'],
+                'games': ref['GamesRefereed']
+            })
+        
+        # Radar data for top 10 referees
+        for _, ref in rpi_data.head(10).iterrows():
+            radar_data.append({
+                'name': ref['RefereeName'],
+                'fairness': ref['FairnessScore'],
+                'consistency': ref['ConsistencyScore'],
+                'control': ref['GameControlScore'],
+                'experience': ref['ExperienceScore']
+            })
+    
+    return render_template('referee_performance_index.html',
+                         rpi_data=rpi_data,
+                         scatter_data=scatter_data,
+                         radar_data=radar_data,
                          divisions=divisions,
                          data_source_info=data_source_info)
 

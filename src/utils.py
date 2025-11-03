@@ -2271,7 +2271,7 @@ def calculate_referee_performance_index(data):
     }).round(2)
     
     # Flatten column names
-    ref_summary.columns = ['_'.join(str(col)).strip() for col in ref_summary.columns]
+    ref_summary.columns = ['_'.join(map(str, col)).strip() if isinstance(col, tuple) else str(col) for col in ref_summary.columns]
     ref_summary = ref_summary.reset_index()
     
     # Rename and calculate derived metrics
