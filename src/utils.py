@@ -1300,6 +1300,9 @@ def analyze_game_events(data):
         if not isinstance(events_data, list):
             events_data = []
         
+        # Sort events chronologically for accurate analysis
+        sorted_events = sorted(events_data, key=lambda x: x.get('EventDateTime', '') if isinstance(x, dict) else '')
+        
         # Analyze score progression
         tie_count = 0
         lead_changes = 0
@@ -1308,7 +1311,7 @@ def analyze_game_events(data):
         current_advantage = 0
         previous_leader = None
         
-        for event in events_data:
+        for event in sorted_events:
             if not isinstance(event, dict):
                 continue
                 
@@ -3036,7 +3039,7 @@ def _calculate_game_statistics(score_evolution):
     lead_changes = 0
     home_highest_lead = 0
     away_highest_lead = 0
-    previous_leader = None  # 'home', 'away', or 'tied'
+    previous_leader = None  # 'home' or 'away' (ties are skipped)
     
     for point in score_evolution:
         home_score = point['home_score']
@@ -3058,10 +3061,11 @@ def _calculate_game_statistics(score_evolution):
                 away_highest_lead = max(away_highest_lead, lead)
             
             # Count lead changes (only when lead switches between teams, not including ties)
-            if previous_leader and previous_leader != 'tied' and current_leader != 'tied' and previous_leader != current_leader:
+            if previous_leader is not None and current_leader != previous_leader:
                 lead_changes += 1
-        
-        previous_leader = current_leader
+            
+            # Update previous_leader only for non-tied states
+            previous_leader = current_leader
     
     # Return None for highest lead if team never led
     return {
