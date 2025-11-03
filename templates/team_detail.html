@@ -351,6 +351,20 @@
         // Performance Evolution Chart
         const performanceData = {{ team_stats['performance_evolution']|tojson }};
         
+        // Color constants for wins and losses
+        const WIN_COLOR = 'rgba(46, 204, 113, 1)';
+        const LOSS_COLOR = 'rgba(231, 76, 60, 1)';
+        const WIN_BG_COLOR = 'rgba(46, 204, 113, 0.1)';
+        const LOSS_BG_COLOR = 'rgba(231, 76, 60, 0.1)';
+        
+        // Helper function to determine color based on value
+        const getColor = (value, isBackground = false) => {
+            if (isBackground) {
+                return value >= 0 ? WIN_BG_COLOR : LOSS_BG_COLOR;
+            }
+            return value >= 0 ? WIN_COLOR : LOSS_COLOR;
+        };
+        
         const ctx = document.getElementById('performanceChart').getContext('2d');
         const performanceChart = new Chart(ctx, {
             type: 'line',
@@ -360,25 +374,23 @@
                     label: 'Point Difference',
                     data: performanceData.map(game => game.margin),
                     borderColor: function(context) {
-                        const value = context.raw;
-                        return value >= 0 ? 'rgba(46, 204, 113, 1)' : 'rgba(231, 76, 60, 1)';
+                        return getColor(context.raw);
                     },
                     backgroundColor: function(context) {
-                        const value = context.raw;
-                        return value >= 0 ? 'rgba(46, 204, 113, 0.1)' : 'rgba(231, 76, 60, 0.1)';
+                        return getColor(context.raw, true);
                     },
                     segment: {
                         borderColor: function(context) {
-                            const value = context.p1.parsed.y;
-                            return value >= 0 ? 'rgba(46, 204, 113, 1)' : 'rgba(231, 76, 60, 1)';
+                            // Safely access the y value with null check
+                            const value = context.p1?.parsed?.y ?? 0;
+                            return getColor(value);
                         }
                     },
                     borderWidth: 3,
                     pointRadius: 5,
                     pointHoverRadius: 7,
                     pointBackgroundColor: function(context) {
-                        const value = context.raw;
-                        return value >= 0 ? 'rgba(46, 204, 113, 1)' : 'rgba(231, 76, 60, 1)';
+                        return getColor(context.raw);
                     },
                     pointBorderColor: '#fff',
                     pointBorderWidth: 2,
