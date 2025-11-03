@@ -1217,6 +1217,9 @@ def get_referee_detail_stats(data, referee_name):
                         elif 'B1 Foul Added' in action:
                             game_foul_types['B1'] += 1
                             foul_types['B1'] += 1
+                        elif 'D2 Foul Added' in action:
+                            game_foul_types['D2'] += 1
+                            foul_types['D2'] += 1
                         else:
                             # Catch any unexpected foul types
                             game_foul_types['Other'] += 1
