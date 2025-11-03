@@ -12,6 +12,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import pandas as pd
 from src.utils import get_game_details
 
+# Constants
+MAX_TIMEOUT_DISPLAY = 3  # Maximum number of timeout markers to display in test output
+
 
 def test_game_details():
     """Test game details functionality"""
@@ -97,7 +100,7 @@ def test_game_details():
         print(f"   - Timeout markers: {len(timeout_markers)}")
         if timeout_markers:
             print("     ✓ Timeout markers are included")
-            for tm in timeout_markers[:3]:  # Show first 3
+            for tm in timeout_markers[:MAX_TIMEOUT_DISPLAY]:  # Show first few
                 mins = int(tm.get('elapsed_seconds', 0) // 60)
                 secs = int(tm.get('elapsed_seconds', 0) % 60)
                 print(f"       - Q{tm.get('quarter', '?')} at {mins}:{secs:02d} ({tm.get('timeout_team', 'Unknown')})")

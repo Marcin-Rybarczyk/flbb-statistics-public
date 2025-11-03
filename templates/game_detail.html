@@ -501,10 +501,11 @@
         // Add timeout annotations
         timeoutData.forEach((timeout, index) => {
             const timeoutTime = timeout.elapsed_seconds / 60;
+            const yPosition = Math.max(timeout.home_score, timeout.away_score);
             annotations[`timeout${index}`] = {
                 type: 'point',
                 xValue: timeoutTime,
-                yValue: timeout.home_score > timeout.away_score ? timeout.home_score : timeout.away_score,
+                yValue: yPosition,
                 backgroundColor: 'rgba(255, 193, 7, 0.8)',
                 borderColor: 'rgba(255, 152, 0, 1)',
                 borderWidth: 2,

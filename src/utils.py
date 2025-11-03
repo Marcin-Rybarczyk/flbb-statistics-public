@@ -3042,20 +3042,24 @@ def _calculate_score_evolution(events, home_team, away_team, teams=None):
         event_action = event.get('EventAction', '').lower()
         event_team = event.get('EventTeam', '')
         
+        # Helper function to check if event belongs to a team
+        def is_team_event(team_full, team_short):
+            return event_team == team_full or event_team == team_short
+        
         # Check if this is a foul event (but not a foul deletion)
         is_foul_added = any(keyword in event_action for keyword in ['foul added', 'faute'])
         is_foul_deleted = 'foul deleted' in event_action
         
         if is_foul_added and not is_foul_deleted:
-            if event_team == home_team_short or event_team == home_team:
+            if is_team_event(home_team, home_team_short):
                 home_fouls += 1
-            elif event_team == away_team_short or event_team == away_team:
+            elif is_team_event(away_team, away_team_short):
                 away_fouls += 1
         elif is_foul_deleted:
             # Handle foul deletions by decrementing
-            if (event_team == home_team_short or event_team == home_team) and home_fouls > 0:
+            if is_team_event(home_team, home_team_short) and home_fouls > 0:
                 home_fouls -= 1
-            elif (event_team == away_team_short or event_team == away_team) and away_fouls > 0:
+            elif is_team_event(away_team, away_team_short) and away_fouls > 0:
                 away_fouls -= 1
         
         # Calculate elapsed time in seconds from first event
@@ -3064,7 +3068,7 @@ def _calculate_score_evolution(events, home_team, away_team, teams=None):
             try:
                 event_time = datetime.fromisoformat(event.get('EventDateTime', '').replace('Z', '+00:00'))
                 elapsed_seconds = (event_time - first_event_time).total_seconds()
-            except:
+            except (ValueError, TypeError, AttributeError):
                 pass
         
         # Check for timeout event
