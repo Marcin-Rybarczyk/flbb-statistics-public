@@ -349,8 +349,8 @@
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.2s ease, visibility 0.2s ease;
-            max-width: 350px;
-            min-width: 250px;
+            max-width: 400px;
+            min-width: 280px;
             backdrop-filter: blur(10px);
         }
 
@@ -814,8 +814,26 @@
                     let content = '';
                     
                     if (type === 'player') {
+                        // Format last three scores
+                        let lastThreeHtml = '';
+                        if (data.last_three_scores && data.last_three_scores.length > 0) {
+                            lastThreeHtml = data.last_three_scores.map(score => 
+                                `<span style="display: inline-block; padding: 2px 6px; margin: 0 2px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 4px; font-weight: 600;">${score}</span>`
+                            ).join('');
+                        } else {
+                            lastThreeHtml = 'N/A';
+                        }
+                        
                         content = `
                             <h4>🏀 ${id}</h4>
+                            <div class="stat-row">
+                                <span class="stat-label">Team:</span>
+                                <span class="stat-value">${data.team || 'N/A'}</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Number:</span>
+                                <span class="stat-value">#${data.player_number || 'N/A'}</span>
+                            </div>
                             <div class="stat-row">
                                 <span class="stat-label">Games Played:</span>
                                 <span class="stat-value">${data.games_played}</span>
@@ -825,12 +843,16 @@
                                 <span class="stat-value">${data.avg_score} pts</span>
                             </div>
                             <div class="stat-row">
+                                <span class="stat-label">Best Score:</span>
+                                <span class="stat-value">${data.best_score} pts</span>
+                            </div>
+                            <div class="stat-row">
                                 <span class="stat-label">Fouls/Game:</span>
                                 <span class="stat-value">${data.fouls_per_game}</span>
                             </div>
                             <div class="stat-row">
-                                <span class="stat-label">Best Score:</span>
-                                <span class="stat-value">${data.best_score} pts</span>
+                                <span class="stat-label">Last 3 Games:</span>
+                                <span class="stat-value">${lastThreeHtml}</span>
                             </div>
                         `;
                     } else if (type === 'team') {
@@ -838,8 +860,36 @@
                             `<span class="streak ${result === 'W' ? 'win' : 'loss'}">${result}</span>`
                         ).join('');
                         
+                        // Format top scorers
+                        let topScorersHtml = '';
+                        if (data.top_scorers && data.top_scorers.length > 0) {
+                            topScorersHtml = '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1);">';
+                            topScorersHtml += '<div style="font-weight: 600; color: #667eea; margin-bottom: 6px;">Top 5 Scorers:</div>';
+                            data.top_scorers.forEach((scorer, idx) => {
+                                topScorersHtml += `<div style="display: flex; justify-content: space-between; padding: 2px 0; font-size: 0.85em;">
+                                    <span>${idx + 1}. ${scorer.name}</span>
+                                    <span style="font-weight: 600; color: #667eea;">${scorer.avg_points} pts</span>
+                                </div>`;
+                            });
+                            topScorersHtml += '</div>';
+                        }
+                        
+                        // Format position
+                        let positionText = 'N/A';
+                        if (data.position && data.total_teams) {
+                            positionText = `${data.position} / ${data.total_teams}`;
+                        }
+                        
                         content = `
                             <h4>🏆 ${id}</h4>
+                            <div class="stat-row">
+                                <span class="stat-label">Division:</span>
+                                <span class="stat-value" style="font-size: 0.85em;">${data.division || 'N/A'}</span>
+                            </div>
+                            <div class="stat-row">
+                                <span class="stat-label">Position:</span>
+                                <span class="stat-value">${positionText}</span>
+                            </div>
                             <div class="stat-row">
                                 <span class="stat-label">Record:</span>
                                 <span class="stat-value">${data.wins}W - ${data.losses}L</span>
@@ -848,6 +898,7 @@
                                 <span class="stat-label">Last 5 Games:</span>
                                 <span class="stat-value">${streakHtml}</span>
                             </div>
+                            ${topScorersHtml}
                         `;
                     } else if (type === 'referee') {
                         content = `
