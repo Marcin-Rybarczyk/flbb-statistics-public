@@ -308,6 +308,10 @@
                     <div class="stat-value">{{ game.game_stats.tied_scores }}</div>
                 </div>
                 <div class="stat-item">
+                    <div class="stat-label">Game Hotness</div>
+                    <div class="stat-value" style="font-size: 2em;" title="Hotness Score: {{ game.game_stats.hotness_score }}/100">{{ game.game_stats.hotness_icon }}</div>
+                </div>
+                <div class="stat-item">
                     <div class="stat-label">{{ game.basic_info.home_team }} Lead</div>
                     <div class="stat-value home-team">
                         {% if game.game_stats.home_highest_lead %}

@@ -333,7 +333,7 @@
                             <td>{{ row.get('GameDate', 'N/A') }}</td>
                             <td>
                                 {% if row.get('GameId') %}
-                                <a href="/game-detail/{{ row['GameId'] }}" class="game-link">{{ row['GameId'] }}</a>
+                                <a href="/game-detail/{{ row['GameId'] }}" class="game-link hoverable-item" data-type="game" data-id="{{ row['GameId'] }}">{{ row['GameId'] }}</a>
                                 {% else %}
                                 N/A
                                 {% endif %}
