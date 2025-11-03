@@ -932,6 +932,10 @@ def get_top_foulers(data, top_n=10, division=None):
         - U3, U2, U1 (Unsportsmanlike): #DC143C, #FF6347, #FF8C69 (red shades)
         - T1 (Technical): #FF8C00 (dark orange)
         - P3, P2, P1, P (Personal): #FFD700, #FFA500, #FFB84D, #FFE4B5 (gold/orange shades)
+        
+        Display format:
+        - For counts >= 10: Use bigger blocks (◼) for every 10 fouls and small blocks (■) for remainder
+        - For counts < 10: Use small blocks (■) only
         """
         # Define fouls in order of severity (most severe first)
         foul_types = [
@@ -950,10 +954,27 @@ def get_top_foulers(data, top_n=10, division=None):
         for foul_code, count, color, title in foul_types:
             if count > 0:
                 count = int(count)
-                # Create visual blocks (■) limited to reasonable display
-                blocks = '■' * min(count, MAX_FOUL_BLOCKS_DISPLAY)
-                if count > MAX_FOUL_BLOCKS_DISPLAY:
-                    blocks += f'...+{count - MAX_FOUL_BLOCKS_DISPLAY}'
+                
+                # When count >= 10, combine every 10 fouls into one bigger block
+                if count >= 10:
+                    big_blocks = count // 10  # Number of big blocks (each represents 10 fouls)
+                    small_blocks = count % 10  # Remaining fouls as small blocks
+                    
+                    # Limit display to reasonable amount
+                    # Note: The actual total count is always shown in the (count) text, so users
+                    # can see the full number even when the visual display is truncated
+                    if big_blocks > MAX_FOUL_BLOCKS_DISPLAY:
+                        # When truncating, calculate total remaining fouls (not displayed visually)
+                        # Example: 215 fouls = 21 big blocks + 5 small blocks
+                        #   Display: 20 big blocks + "...+15" + "(215)"
+                        #   The "...+15" represents 1 truncated big block (10 fouls) + 5 small blocks
+                        remaining_fouls = (big_blocks - MAX_FOUL_BLOCKS_DISPLAY) * 10 + small_blocks
+                        blocks = '◼' * MAX_FOUL_BLOCKS_DISPLAY + f'...+{remaining_fouls}'
+                    else:
+                        blocks = '◼' * big_blocks + '■' * small_blocks
+                else:
+                    # For counts < 10, just use small blocks
+                    blocks = '■' * count
                 
                 # Escape HTML to prevent XSS (color is a hardcoded constant, no need to escape)
                 escaped_title = html.escape(title)
@@ -3374,13 +3395,13 @@ def get_player_hover_stats(data, player_name):
     last_three_scores = player_games.tail(3)['TotalPoints'].tolist()
     
     return {
-        'games_played': len(player_games),
-        'avg_score': round(player_games['TotalPoints'].mean(), 1),
-        'fouls_per_game': round(player_games['TotalFouls'].mean(), 1),
+        'games_played': int(len(player_games)),
+        'avg_score': float(round(player_games['TotalPoints'].mean(), 1)),
+        'fouls_per_game': float(round(player_games['TotalFouls'].mean(), 1)),
         'best_score': int(player_games['TotalPoints'].max()),
-        'team': team,
+        'team': str(team),
         'player_number': int(player_number) if pd.notna(player_number) else None,
-        'last_three_scores': last_three_scores
+        'last_three_scores': [int(score) for score in last_three_scores]
     }
 
 
@@ -3476,12 +3497,12 @@ def get_team_hover_stats(data, team_name):
                 })
     
     return {
-        'wins': wins,
-        'losses': losses,
+        'wins': int(wins) if wins is not None else 0,
+        'losses': int(losses) if losses is not None else 0,
         'last_five': last_five,
-        'position': position,
-        'total_teams': total_teams,
-        'division': division,
+        'position': int(position) if position is not None else None,
+        'total_teams': int(total_teams) if total_teams is not None else None,
+        'division': str(division) if division is not None else None,
         'top_scorers': top_scorers
     }
 
@@ -3546,8 +3567,8 @@ def get_referee_hover_stats(data, referee_name):
     avg_fouls = round(sum(total_fouls) / len(total_fouls), 1) if total_fouls else 0
     
     return {
-        'games': len(referee_games),
-        'fouls_per_game': avg_fouls
+        'games': int(len(referee_games)),
+        'fouls_per_game': float(avg_fouls)
     }
 
 
@@ -3608,7 +3629,7 @@ def get_game_hover_stats(data, game_id):
         hotness_icon = "❄️❄️"
     
     return {
-        'result': f"{game['HomeTeamName']} {game['FinalHomeScore']} - {game['FinalAwayScore']} {game['AwayTeamName']}",
+        'result': f"{game['HomeTeamName']} {int(game['FinalHomeScore'])} - {int(game['FinalAwayScore'])} {game['AwayTeamName']}",
         'referees': referee_names,
         'date_time': game.get('DateTime', 'N/A'),
         'lead_changes': lead_changes,
