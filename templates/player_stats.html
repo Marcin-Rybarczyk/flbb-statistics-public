@@ -170,7 +170,7 @@
                             <td>
                                 <form method="post" action="/team-stats" style="display: inline;">
                                     <input type="hidden" name="team" value="{{ row['Team'] }}">
-                                    <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team'] }}</button>
+                                    <button type="submit" class="team-link">{{ row['Team'] }}</button>
                                 </form>
                             </td>
                             <td>{{ row['GamesPlayed'] }}</td>
@@ -206,7 +206,7 @@
                             <td>
                                 <form method="post" action="/team-stats" style="display: inline;">
                                     <input type="hidden" name="team" value="{{ row['Team'] }}">
-                                    <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team'] }}</button>
+                                    <button type="submit" class="team-link">{{ row['Team'] }}</button>
                                 </form>
                             </td>
                             <td><strong>{{ row['3PMadeShots'] }}</strong></td>
@@ -244,7 +244,7 @@
                             <td>
                                 <form method="post" action="/team-stats" style="display: inline;">
                                     <input type="hidden" name="team" value="{{ row['Team'] }}">
-                                    <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team'] }}</button>
+                                    <button type="submit" class="team-link">{{ row['Team'] }}</button>
                                 </form>
                             </td>
                             <td><strong>{{ row['TotalFouls'] }}</strong></td>
@@ -283,14 +283,14 @@
                             <td>
                                 <form method="post" action="/team-stats" style="display: inline;">
                                     <input type="hidden" name="team" value="{{ row['Team'] }}">
-                                    <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team'] }}</button>
+                                    <button type="submit" class="team-link">{{ row['Team'] }}</button>
                                 </form>
                             </td>
                             <td><strong>{{ row['TotalPoints'] }}</strong></td>
                             <td>{{ row.get('GameDate', 'N/A') }}</td>
                             <td>
                                 {% if row.get('GameId') %}
-                                <a href="/game-detail/{{ row['GameId'] }}" style="color: #667eea; text-decoration: underline;">{{ row['GameId'] }}</a>
+                                <a href="/game-detail/{{ row['GameId'] }}" class="game-link">{{ row['GameId'] }}</a>
                                 {% else %}
                                 N/A
                                 {% endif %}
@@ -328,7 +328,7 @@
                             <td>
                                 <form method="post" action="/team-stats" style="display: inline;">
                                     <input type="hidden" name="team" value="{{ row['Team'] }}">
-                                    <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team'] }}</button>
+                                    <button type="submit" class="team-link">{{ row['Team'] }}</button>
                                 </form>
                             </td>
                             <td><strong>{{ row['TotalFreeThrowsMade'] }}</strong></td>
@@ -368,7 +368,7 @@
                             <td>
                                 <form method="post" action="/team-stats" style="display: inline;">
                                     <input type="hidden" name="team" value="{{ row['Team'] }}">
-                                    <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team'] }}</button>
+                                    <button type="submit" class="team-link">{{ row['Team'] }}</button>
                                 </form>
                             </td>
                             <td><strong>{{ row['DoubleDigitGames'] }}</strong></td>
@@ -411,7 +411,7 @@
                             <td>
                                 <form method="post" action="/team-stats" style="display: inline;">
                                     <input type="hidden" name="team" value="{{ row['Team'] }}">
-                                    <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team'] }}</button>
+                                    <button type="submit" class="team-link">{{ row['Team'] }}</button>
                                 </form>
                             </td>
                             <td>{{ "%.1f"|format(row['AvgPoints']) }}</td>
@@ -466,7 +466,7 @@
                             <td>
                                 <form method="post" action="/team-stats" style="display: inline;">
                                     <input type="hidden" name="team" value="{{ row['Team'] }}">
-                                    <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team'] }}</button>
+                                    <button type="submit" class="team-link">{{ row['Team'] }}</button>
                                 </form>
                             </td>
                             <td><strong>{{ row['TotalPoints'] }}</strong></td>
@@ -499,7 +499,7 @@
                             <td>
                                 <form method="post" action="/team-stats" style="display: inline;">
                                     <input type="hidden" name="team" value="{{ row['Team'] }}">
-                                    <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team'] }}</button>
+                                    <button type="submit" class="team-link">{{ row['Team'] }}</button>
                                 </form>
                             </td>
                             <td><strong>{{ row['TotalPoints'] }}</strong></td>
