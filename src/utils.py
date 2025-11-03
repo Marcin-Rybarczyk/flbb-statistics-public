@@ -2160,6 +2160,38 @@ def get_referee_game_impact_analysis(data):
         'most_competitive_refs': qualified_refs.nlargest(10, 'CloseGameRate')[['RefereeName', 'GamesRefereed', 'CloseGameRate']]
     }
 
+def _parse_points_from_action(action):
+    """
+    Parse points value from a GameEvents action string.
+    
+    Handles both point additions and deletions, returning positive values for 
+    additions and negative values for deletions.
+    
+    Parameters:
+    action (str): The EventAction string (e.g., '2P Points Added', '3P Points Deleted')
+    
+    Returns:
+    int: Points value (positive for additions, negative for deletions, 0 if not a point event)
+    
+    Examples:
+    - '2P Points Added' -> 2
+    - '3P Points Deleted' -> -3
+    - 'Timeout' -> 0
+    """
+    if '1P Points Added' in action:
+        return 1
+    elif '2P Points Added' in action:
+        return 2
+    elif '3P Points Added' in action:
+        return 3
+    elif '1P Points Deleted' in action:
+        return -1
+    elif '2P Points Deleted' in action:
+        return -2
+    elif '3P Points Deleted' in action:
+        return -3
+    return 0
+
 def calculate_referee_performance_index(data):
     """
     Calculate a comprehensive Referee Performance Index (RPI) based on multiple metrics:
@@ -2384,16 +2416,10 @@ def get_top_scorer_by_game(data):
                         player_name = event['EventActor']
                         team = event.get('EventTeam', '')
                         
-                        # Check for scoring actions
-                        points = 0
-                        if '1P Points Added' in action:
-                            points = 1
-                        elif '2P Points Added' in action:
-                            points = 2
-                        elif '3P Points Added' in action:
-                            points = 3
+                        # Parse points from action (handles both additions and deletions)
+                        points = _parse_points_from_action(action)
                         
-                        if points > 0 and player_name:
+                        if points != 0 and player_name:
                             if player_name not in player_stats:
                                 player_stats[player_name] = {'points': 0, 'team': team}
                             
@@ -2643,16 +2669,10 @@ def get_game_top_scorer(game):
                     player_name = event['EventActor']
                     team = event.get('EventTeam', '')
                     
-                    # Check for scoring actions
-                    points = 0
-                    if '1P Points Added' in action:
-                        points = 1
-                    elif '2P Points Added' in action:
-                        points = 2
-                    elif '3P Points Added' in action:
-                        points = 3
+                    # Parse points from action (handles both additions and deletions)
+                    points = _parse_points_from_action(action)
                     
-                    if points > 0 and player_name:
+                    if points != 0 and player_name:
                         if player_name not in player_stats:
                             player_stats[player_name] = {'points': 0, 'team': team}
                         
