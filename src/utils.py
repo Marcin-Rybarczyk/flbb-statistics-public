@@ -5,6 +5,7 @@ from collections import defaultdict
 import zipfile
 import tempfile
 from datetime import datetime
+import html
 
 
 FULL_GAME_STATS_OUTPUT_DIR = "full-game-stats-output"
@@ -14,6 +15,9 @@ FORCE_TO_CREATE_CSV = True
 # Flag to control automatic player database CSV generation during data load
 # Set to False to disable automatic generation (can still be called manually)
 AUTO_CREATE_PLAYER_DATABASE = False
+
+# Foul visualization settings
+MAX_FOUL_BLOCKS_DISPLAY = 20  # Maximum number of visual blocks (■) to display for a single foul type
 
 # Configuration file paths
 CONFIG_FILEPATH = "data/config.json"
@@ -912,26 +916,61 @@ def get_top_foulers(data, top_n=10, division=None):
     
     # Create foul details string
     def create_foul_details(row):
+        """
+        Create visual foul details with colored blocks sorted by severity.
+        
+        Args:
+            row (pandas.Series): A row from the foul statistics DataFrame containing
+                                foul counts for each type (PFouls, P1Fouls, etc.)
+        
+        Returns:
+            str: HTML string representing foul details with colored visual blocks
+                 sorted by severity (most severe first)
+        
+        Foul severity order (most severe first):
+        - GD (Game Disqualification): #8B0000 (dark red)
+        - U3, U2, U1 (Unsportsmanlike): #DC143C, #FF6347, #FF8C69 (red shades)
+        - T1 (Technical): #FF8C00 (dark orange)
+        - P3, P2, P1, P (Personal): #FFD700, #FFA500, #FFB84D, #FFE4B5 (gold/orange shades)
+        """
+        # Define fouls in order of severity (most severe first)
+        foul_types = [
+            ('GD', row['GDFouls'], '#8B0000', 'Game Disqualification'),
+            ('U3', row['U3Fouls'], '#DC143C', 'Unsportsmanlike 3'),
+            ('U2', row['U2Fouls'], '#FF6347', 'Unsportsmanlike 2'),
+            ('U1', row['U1Fouls'], '#FF8C69', 'Unsportsmanlike 1'),
+            ('T1', row['T1Fouls'], '#FF8C00', 'Technical'),
+            ('P3', row['P3Fouls'], '#FFD700', 'Personal 3'),
+            ('P2', row['P2Fouls'], '#FFA500', 'Personal 2'),
+            ('P1', row['P1Fouls'], '#FFB84D', 'Personal 1'),
+            ('P', row['PFouls'], '#FFE4B5', 'Personal'),
+        ]
+        
         details = []
-        if row['PFouls'] > 0:
-            details.append(f"P: {int(row['PFouls'])}")
-        if row['P1Fouls'] > 0:
-            details.append(f"P1: {int(row['P1Fouls'])}")
-        if row['P2Fouls'] > 0:
-            details.append(f"P2: {int(row['P2Fouls'])}")
-        if row['P3Fouls'] > 0:
-            details.append(f"P3: {int(row['P3Fouls'])}")
-        if row['T1Fouls'] > 0:
-            details.append(f"T1: {int(row['T1Fouls'])}")
-        if row['U1Fouls'] > 0:
-            details.append(f"U1: {int(row['U1Fouls'])}")
-        if row['U2Fouls'] > 0:
-            details.append(f"U2: {int(row['U2Fouls'])}")
-        if row['U3Fouls'] > 0:
-            details.append(f"U3: {int(row['U3Fouls'])}")
-        if row['GDFouls'] > 0:
-            details.append(f"GD: {int(row['GDFouls'])}")
-        return ', '.join(details) if details else ''
+        for foul_code, count, color, title in foul_types:
+            if count > 0:
+                count = int(count)
+                # Create visual blocks (■) limited to reasonable display
+                blocks = '■' * min(count, MAX_FOUL_BLOCKS_DISPLAY)
+                if count > MAX_FOUL_BLOCKS_DISPLAY:
+                    blocks += f'...+{count - MAX_FOUL_BLOCKS_DISPLAY}'
+                
+                # Escape HTML to prevent XSS (color is a hardcoded constant, no need to escape)
+                escaped_title = html.escape(title)
+                escaped_foul_code = html.escape(foul_code)
+                escaped_blocks = html.escape(blocks)
+                
+                # Create HTML for this foul type
+                foul_html = (
+                    f'<div class="foul-card" title="{escaped_title}">'
+                    f'<span class="foul-label">{escaped_foul_code}:</span>'
+                    f'<span class="foul-blocks" style="color: {color};">{escaped_blocks}</span> '
+                    f'<span class="foul-count">({count})</span>'
+                    f'</div>'
+                )
+                details.append(foul_html)
+        
+        return ''.join(details) if details else '<span class="no-fouls">No fouls</span>'
     
     foul_stats['FoulDetails'] = foul_stats.apply(create_foul_details, axis=1)
     

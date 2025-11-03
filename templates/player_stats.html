@@ -76,6 +76,7 @@
         .player-link:hover {
             color: #764ba2;
             text-decoration: underline;
+        }
         
         .info-tooltip {
             cursor: help;
@@ -87,6 +88,48 @@
         
         .info-tooltip:hover {
             color: #4a5fc1;
+        }
+        
+        /* Foul Details Visualization Styles */
+        .foul-details-cell {
+            padding: 8px;
+            min-width: 250px;
+        }
+        
+        .foul-card {
+            display: flex;
+            align-items: center;
+            margin: 3px 0;
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 4px;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        
+        .foul-label {
+            font-weight: bold;
+            color: #333;
+            min-width: 30px;
+            margin-right: 5px;
+        }
+        
+        .foul-blocks {
+            font-weight: bold;
+            letter-spacing: 1px;
+            flex-grow: 1;
+            font-size: 1.1em;
+        }
+        
+        .foul-count {
+            color: #666;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+        
+        .no-fouls {
+            color: #999;
+            font-style: italic;
         }
 {% endblock %}
 
@@ -248,7 +291,7 @@
                                 </form>
                             </td>
                             <td><strong>{{ row['TotalFouls'] }}</strong></td>
-                            <td style="font-size: 0.9em; color: #666;">({{ row['FoulDetails'] }})</td>
+                            <td class="foul-details-cell">{{ row['FoulDetails']|safe }}</td>
                             <td><strong>{{ row['WeightedTotalFouls']|int }}</strong></td>
                             <td>{{ row['GamesPlayed'] }}</td>
                             <td>{{ "%.1f"|format(row['AvgFoulsPerGame']) }}</td>
