@@ -438,8 +438,10 @@
                 }
             });
             
-            // Reorder the rows in the table
-            rows.forEach(row => tbody.appendChild(row));
+            // Reorder the rows in the table using DocumentFragment for better performance
+            const fragment = document.createDocumentFragment();
+            rows.forEach(row => fragment.appendChild(row));
+            tbody.appendChild(fragment);
         }
         
         function getCellValue(cell) {
