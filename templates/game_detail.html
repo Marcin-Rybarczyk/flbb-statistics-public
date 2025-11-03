@@ -643,7 +643,7 @@
                             afterBody: function(context) {
                                 const index = context[0].dataIndex;
                                 const point = scoreOnlyData[index];
-                                const diff = point.home_score - point.away_score;
+                                const diff = pointsDifference[index];
                                 const diffText = diff > 0 ? `{{ game.basic_info.home_team }} +${diff}` : 
                                                diff < 0 ? `{{ game.basic_info.away_team }} +${Math.abs(diff)}` : 
                                                'Tied';
