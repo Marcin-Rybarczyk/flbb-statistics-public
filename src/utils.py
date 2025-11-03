@@ -3290,7 +3290,7 @@ def get_player_hover_stats(data, player_name):
         'fouls_per_game': round(player_games['TotalFouls'].mean(), 1),
         'best_score': int(player_games['TotalPoints'].max()),
         'team': team,
-        'player_number': int(player_number),
+        'player_number': int(player_number) if pd.notna(player_number) else None,
         'last_three_scores': last_three_scores
     }
 
