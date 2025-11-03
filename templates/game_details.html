@@ -507,7 +507,7 @@
             
             // Filter games
             const matches = allGames.filter(game => 
-                game.GameId.toLowerCase().includes(searchTerm) ||
+                String(game.GameId).toLowerCase().includes(searchTerm) ||
                 game.HomeTeam.toLowerCase().includes(searchTerm) ||
                 game.AwayTeam.toLowerCase().includes(searchTerm) ||
                 game.Division.toLowerCase().includes(searchTerm) ||
@@ -521,7 +521,7 @@
             
             // Display suggestions
             suggestionsDiv.innerHTML = matches.slice(0, 15).map(game => `
-                <div class="autocomplete-suggestion" onclick="selectGame('${game.GameId.replace(/'/g, "\\'")}')">
+                <div class="autocomplete-suggestion" onclick="selectGame('${String(game.GameId).replace(/'/g, "\\'")}')">
                     <strong>${game.HomeTeam} vs ${game.AwayTeam}</strong>
                     <span style="color: #2c3e50; margin-left: 10px;">(${game.FinalScore})</span>
                     <small>📅 ${game.Date || 'Date N/A'} | 🏆 ${game.Division} | ID: ${game.GameId}</small>
