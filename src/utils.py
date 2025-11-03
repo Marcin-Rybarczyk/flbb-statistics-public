@@ -932,6 +932,10 @@ def get_top_foulers(data, top_n=10, division=None):
         - U3, U2, U1 (Unsportsmanlike): #DC143C, #FF6347, #FF8C69 (red shades)
         - T1 (Technical): #FF8C00 (dark orange)
         - P3, P2, P1, P (Personal): #FFD700, #FFA500, #FFB84D, #FFE4B5 (gold/orange shades)
+        
+        Display format:
+        - For counts >= 10: Use bigger blocks (◼) for every 10 fouls and small blocks (■) for remainder
+        - For counts < 10: Use small blocks (■) only
         """
         # Define fouls in order of severity (most severe first)
         foul_types = [
@@ -950,10 +954,22 @@ def get_top_foulers(data, top_n=10, division=None):
         for foul_code, count, color, title in foul_types:
             if count > 0:
                 count = int(count)
-                # Create visual blocks (■) limited to reasonable display
-                blocks = '■' * min(count, MAX_FOUL_BLOCKS_DISPLAY)
-                if count > MAX_FOUL_BLOCKS_DISPLAY:
-                    blocks += f'...+{count - MAX_FOUL_BLOCKS_DISPLAY}'
+                
+                # When count >= 10, combine every 10 fouls into one bigger block
+                if count >= 10:
+                    big_blocks = count // 10  # Number of big blocks (each represents 10 fouls)
+                    small_blocks = count % 10  # Remaining fouls as small blocks
+                    
+                    # Limit display to reasonable amount
+                    if big_blocks > MAX_FOUL_BLOCKS_DISPLAY:
+                        blocks = '◼' * MAX_FOUL_BLOCKS_DISPLAY + f'...+{big_blocks - MAX_FOUL_BLOCKS_DISPLAY}'
+                        if small_blocks > 0:
+                            blocks += '■' * small_blocks
+                    else:
+                        blocks = '◼' * big_blocks + '■' * small_blocks
+                else:
+                    # For counts < 10, just use small blocks
+                    blocks = '■' * count
                 
                 # Escape HTML to prevent XSS (color is a hardcoded constant, no need to escape)
                 escaped_title = html.escape(title)
