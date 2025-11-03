@@ -191,31 +191,31 @@
         {% if team_stats %}
         <!-- Team Information Header -->
         <div class="team-info-header">
-            {% set team_logo_url = get_team_logo_url(team_stats.basic_stats.team_name) %}
+            {% set team_logo_url = get_team_logo_url(team_stats['basic_stats']['team_name']) %}
             {% if team_logo_url %}
-                <img src="{{ team_logo_url }}" alt="{{ team_stats.basic_stats.team_name }} logo" style="width: 80px; height: 80px; object-fit: contain; margin-bottom: 15px;">
+                <img src="{{ team_logo_url }}" alt="{{ team_stats['basic_stats']['team_name'] }} logo" style="width: 80px; height: 80px; object-fit: contain; margin-bottom: 15px;">
             {% endif %}
-            <h2>{{ team_stats.basic_stats.team_name }}</h2>
+            <h2>{{ team_stats['basic_stats']['team_name'] }}</h2>
         </div>
         
         <!-- Basic Statistics Summary -->
         <div class="stat-summary">
             <div class="stat-card">
                 <h3>Games Played</h3>
-                <p>{{ team_stats.basic_stats.total_games }}</p>
+                <p>{{ team_stats['basic_stats']['total_games'] }}</p>
             </div>
             <div class="stat-card">
                 <h3>Win Percentage</h3>
-                <p>{{ team_stats.basic_stats.win_percentage }}%</p>
-                <small>{{ team_stats.basic_stats.wins }}W - {{ team_stats.basic_stats.losses }}L</small>
+                <p>{{ team_stats['basic_stats']['win_percentage'] }}%</p>
+                <small>{{ team_stats['basic_stats']['wins'] }}W - {{ team_stats['basic_stats']['losses'] }}L</small>
             </div>
             <div class="stat-card">
                 <h3>Avg Points Scored</h3>
-                <p>{{ team_stats.basic_stats.avg_points_scored }}</p>
+                <p>{{ team_stats['basic_stats']['avg_points_scored'] }}</p>
             </div>
             <div class="stat-card">
                 <h3>Avg Points Allowed</h3>
-                <p>{{ team_stats.basic_stats.avg_points_allowed }}</p>
+                <p>{{ team_stats['basic_stats']['avg_points_allowed'] }}</p>
             </div>
         </div>
         
@@ -234,16 +234,18 @@
                     </div>
                 </div>
                 <div class="chart-container">
-                    {% set max_score = [team_stats.performance_evolution|map(attribute='scored')|max, team_stats.performance_evolution|map(attribute='allowed')|max]|max %}
+                    {% set scored_values = team_stats['performance_evolution']|map(attribute='scored')|list %}
+                    {% set allowed_values = team_stats['performance_evolution']|map(attribute='allowed')|list %}
+                    {% set max_score = [scored_values|max, allowed_values|max]|max %}
                     <div class="chart-line">
-                        {% for game in team_stats.performance_evolution %}
-                        <div class="chart-bar-group" title="Game {{ game.game_number }}: {{ game.scored }}-{{ game.allowed }}">
+                        {% for game in team_stats['performance_evolution'] %}
+                        <div class="chart-bar-group" title="Game {{ game['game_number'] }}: {{ game['scored'] }}-{{ game['allowed'] }}">
                             <div class="chart-bar chart-bar-scored" 
-                                 style="height: {{ (game.scored / max_score * 100) }}%;"></div>
+                                 style="height: {{ (game['scored'] / max_score * 100) }}%;"></div>
                             <div class="chart-bar chart-bar-allowed" 
-                                 style="height: {{ (game.allowed / max_score * 100) }}%;"></div>
+                                 style="height: {{ (game['allowed'] / max_score * 100) }}%;"></div>
                             {% if loop.index0 % 3 == 0 %}
-                            <div class="chart-label">G{{ game.game_number }}</div>
+                            <div class="chart-label">G{{ game['game_number'] }}</div>
                             {% endif %}
                         </div>
                         {% endfor %}
@@ -261,21 +263,21 @@
             <div class="stat-summary">
                 <div class="stat-card">
                     <h3>Home Games</h3>
-                    <p>{{ team_stats.basic_stats.home_games }}</p>
-                    <small>{{ team_stats.basic_stats.home_win_percentage }}% win rate</small>
+                    <p>{{ team_stats['basic_stats']['home_games'] }}</p>
+                    <small>{{ team_stats['basic_stats']['home_win_percentage'] }}% win rate</small>
                 </div>
                 <div class="stat-card">
                     <h3>Away Games</h3>
-                    <p>{{ team_stats.basic_stats.away_games }}</p>
-                    <small>{{ team_stats.basic_stats.away_win_percentage }}% win rate</small>
+                    <p>{{ team_stats['basic_stats']['away_games'] }}</p>
+                    <small>{{ team_stats['basic_stats']['away_win_percentage'] }}% win rate</small>
                 </div>
                 <div class="stat-card">
                     <h3>Avg Home Score</h3>
-                    <p>{{ team_stats.basic_stats.avg_home_scored }}</p>
+                    <p>{{ team_stats['basic_stats']['avg_home_scored'] }}</p>
                 </div>
                 <div class="stat-card">
                     <h3>Avg Away Score</h3>
-                    <p>{{ team_stats.basic_stats.avg_away_scored }}</p>
+                    <p>{{ team_stats['basic_stats']['avg_away_scored'] }}</p>
                 </div>
             </div>
         </div>
@@ -286,19 +288,19 @@
             <div class="stat-summary">
                 <div class="stat-card">
                     <h3>Highest Score</h3>
-                    <p>{{ team_stats.basic_stats.highest_score }}</p>
+                    <p>{{ team_stats['basic_stats']['highest_score'] }}</p>
                 </div>
                 <div class="stat-card">
                     <h3>Lowest Score</h3>
-                    <p>{{ team_stats.basic_stats.lowest_score }}</p>
+                    <p>{{ team_stats['basic_stats']['lowest_score'] }}</p>
                 </div>
                 <div class="stat-card">
                     <h3>Biggest Win</h3>
-                    <p>+{{ team_stats.basic_stats.biggest_win }}</p>
+                    <p>+{{ team_stats['basic_stats']['biggest_win'] }}</p>
                 </div>
                 <div class="stat-card">
                     <h3>Worst Loss</h3>
-                    <p>{{ team_stats.basic_stats.worst_loss }}</p>
+                    <p>{{ team_stats['basic_stats']['worst_loss'] }}</p>
                 </div>
             </div>
         </div>
@@ -314,28 +316,28 @@
                         <th>Venue</th>
                         <th>Opponent</th>
                         <th>Score</th>
-                        <th>Result</th>
+                        <th>Result</h3>
                         <th>Margin</th>
                         <th>Division</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for game in team_stats.game_by_game|reverse %}
-                    <tr class="{% if game.Result == 'W' %}game-row-win{% else %}game-row-loss{% endif %}">
-                        <td><a href="/game-detail/{{ game.GameId }}" style="color: #667eea; text-decoration: underline;">{{ game.GameId }}</a></td>
-                        <td>{{ game.DateTime[:10] if game.DateTime else 'N/A' }}</td>
-                        <td>{{ 'Home' if game.IsHome else 'Away' }}</td>
+                    {% for game in team_stats['game_by_game']|reverse %}
+                    <tr class="{% if game['Result'] == 'W' %}game-row-win{% else %}game-row-loss{% endif %}">
+                        <td><a href="/game-detail/{{ game['GameId'] }}" style="color: #667eea; text-decoration: underline;">{{ game['GameId'] }}</a></td>
+                        <td>{{ game['DateTime'][:10] if game['DateTime'] else 'N/A' }}</td>
+                        <td>{{ 'Home' if game['IsHome'] else 'Away' }}</td>
                         <td>
-                            {% set opponent_logo_url = get_team_logo_url(game.Opponent) %}
+                            {% set opponent_logo_url = get_team_logo_url(game['Opponent']) %}
                             {% if opponent_logo_url %}
-                                <img src="{{ opponent_logo_url }}" alt="{{ game.Opponent }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                                <img src="{{ opponent_logo_url }}" alt="{{ game['Opponent'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
                             {% endif %}
-                            <a href="/team-detail?team={{ game.Opponent }}" style="color: #667eea; text-decoration: underline;">{{ game.Opponent }}</a>
+                            <a href="/team-detail?team={{ game['Opponent'] }}" style="color: #667eea; text-decoration: underline;">{{ game['Opponent'] }}</a>
                         </td>
-                        <td><strong>{{ game.TeamScore }} - {{ game.OpponentScore }}</strong></td>
-                        <td><strong>{{ game.Result }}</strong></td>
-                        <td>{{ '+' if game.Margin > 0 else '' }}{{ game.Margin }}</td>
-                        <td>{{ game.GameDivisionDisplay }}</td>
+                        <td><strong>{{ game['TeamScore'] }} - {{ game['OpponentScore'] }}</strong></td>
+                        <td><strong>{{ game['Result'] }}</strong></td>
+                        <td>{{ '+' if game['Margin'] > 0 else '' }}{{ game['Margin'] }}</td>
+                        <td>{{ game['GameDivisionDisplay'] }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>

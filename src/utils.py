@@ -2723,14 +2723,19 @@ def get_team_detail_stats(data, team_name):
     
     # Performance evolution data (for charts)
     performance_evolution = []
-    for idx, row in team_games.iterrows():
+    cumulative_scored = 0
+    cumulative_allowed = 0
+    
+    for idx, (_, row) in enumerate(team_games.iterrows(), 1):
+        cumulative_scored += int(row['TeamScore'])
+        cumulative_allowed += int(row['OpponentScore'])
         performance_evolution.append({
-            'game_number': len(performance_evolution) + 1,
+            'game_number': idx,
             'date': row['DateTime'][:10] if row['DateTime'] else 'N/A',
             'scored': int(row['TeamScore']),
             'allowed': int(row['OpponentScore']),
-            'cumulative_scored': int(team_games.iloc[:len(performance_evolution) + 1]['TeamScore'].sum()),
-            'cumulative_allowed': int(team_games.iloc[:len(performance_evolution) + 1]['OpponentScore'].sum()),
+            'cumulative_scored': cumulative_scored,
+            'cumulative_allowed': cumulative_allowed,
         })
     
     # Game by game data
