@@ -450,6 +450,7 @@
         const elapsedMinutes = scoreOnlyData.map(point => point.elapsed_seconds / 60);
         const homeScores = scoreOnlyData.map(point => point.home_score);
         const awayScores = scoreOnlyData.map(point => point.away_score);
+        const pointsDifference = scoreOnlyData.map(point => point.home_score - point.away_score);
         const homeFouls = scoreOnlyData.map(point => point.home_fouls || 0);
         const awayFouls = scoreOnlyData.map(point => point.away_fouls || 0);
         const quarters = scoreOnlyData.map(point => point.quarter);
@@ -562,7 +563,7 @@
                         borderDash: [5, 5],
                         pointRadius: 3,
                         borderWidth: 2,
-                        yAxisID: 'y1',
+                        yAxisID: 'y',
                         pointHoverRadius: 5
                     },
                     {
@@ -575,8 +576,21 @@
                         borderDash: [5, 5],
                         pointRadius: 3,
                         borderWidth: 2,
-                        yAxisID: 'y1',
+                        yAxisID: 'y',
                         pointHoverRadius: 5
+                    },
+                    {
+                        label: 'Points Difference',
+                        data: pointsDifference,
+                        borderColor: '#9b59b6',
+                        backgroundColor: 'rgba(155, 89, 182, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        yAxisID: 'y1',
+                        pointRadius: 4,
+                        borderWidth: 3,
+                        pointHoverRadius: 6,
+                        order: 0
                     }
                 ]
             },
@@ -629,7 +643,13 @@
                             afterBody: function(context) {
                                 const index = context[0].dataIndex;
                                 const point = scoreOnlyData[index];
+                                const diff = point.home_score - point.away_score;
+                                const diffText = diff > 0 ? `{{ game.basic_info.home_team }} +${diff}` : 
+                                               diff < 0 ? `{{ game.basic_info.away_team }} +${Math.abs(diff)}` : 
+                                               'Tied';
                                 return [
+                                    '',
+                                    `Points Difference: ${diffText}`,
                                     '',
                                     `{{ game.basic_info.home_team }} Fouls: ${point.home_fouls || 0}`,
                                     `{{ game.basic_info.away_team }} Fouls: ${point.away_fouls || 0}`
@@ -658,10 +678,9 @@
                     y1: {
                         type: 'linear',
                         position: 'right',
-                        beginAtZero: true,
                         title: {
                             display: true,
-                            text: 'Fouls',
+                            text: 'Points Difference',
                             font: {
                                 weight: 'bold',
                                 size: 12
@@ -669,9 +688,6 @@
                         },
                         grid: {
                             drawOnChartArea: false
-                        },
-                        ticks: {
-                            stepSize: 1
                         }
                     },
                     x: {
