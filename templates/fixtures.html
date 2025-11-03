@@ -345,7 +345,18 @@
                                 <td class="{% if home_team == away_team %}empty-cell{% endif %}">
                                     {% if home_team != away_team and games %}
                                         {% for game in games %}
-                                        <div class="game-info {% if game.is_finished and game.home_score > game.away_score %}home-win{% elif game.is_finished and game.away_score > game.home_score %}away-win{% endif %}" onclick="window.location.href='/game-detail/{{ game.game_id }}'" onkeydown="if(event.key==='Enter'||event.key===' '){window.location.href='/game-detail/{{ game.game_id }}';event.preventDefault();}" tabindex="0" role="button" aria-label="View details for {{ home_team }} vs {{ away_team }} on {{ game.date[:10] if game.date != 'TBD' else 'TBD' }}">
+                                        {% set outcome_class = '' %}
+                                        {% if game.is_finished and game.home_score > game.away_score %}
+                                            {% set outcome_class = 'home-win' %}
+                                        {% elif game.is_finished and game.away_score > game.home_score %}
+                                            {% set outcome_class = 'away-win' %}
+                                        {% endif %}
+                                        <div class="game-info {{ outcome_class }}" 
+                                             onclick="window.location.href='/game-detail/{{ game.game_id }}'" 
+                                             onkeydown="if(event.key==='Enter'||event.key===' '){window.location.href='/game-detail/{{ game.game_id }}';event.preventDefault();}" 
+                                             tabindex="0" 
+                                             role="button" 
+                                             aria-label="View details for {{ home_team }} vs {{ away_team }} on {{ game.date[:10] if game.date != 'TBD' else 'TBD' }}">
                                             {% if game.is_finished %}
                                                 <div class="game-score">{{ game.home_score }} - {{ game.away_score }}</div>
                                             {% else %}
