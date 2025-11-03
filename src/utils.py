@@ -3448,8 +3448,8 @@ def get_referee_hover_stats(data, referee_name):
                                     # Try both key formats
                                     fouls = player.get('Total Fouls', player.get('TotalFouls', 0))
                                     game_fouls += fouls
-            if game_fouls > 0:  # Only count games where we found fouls
-                total_fouls.append(game_fouls)
+            # Append fouls count including zero (legitimate no fouls game)
+            total_fouls.append(game_fouls)
         except Exception as e:
             # Continue to next game if there's an error
             continue
