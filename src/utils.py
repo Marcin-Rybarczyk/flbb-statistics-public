@@ -2575,7 +2575,7 @@ def get_game_details(data, game_id):
     }
     
     # Calculate score evolution from events
-    score_evolution = _calculate_score_evolution(events, game['HomeTeamName'], game['AwayTeamName'])
+    score_evolution = _calculate_score_evolution(events, game['HomeTeamName'], game['AwayTeamName'], teams)
     
     # Process teams and players
     teams_data = []
@@ -2604,7 +2604,7 @@ def get_game_details(data, game_id):
     }
 
 
-def _calculate_score_evolution(events, home_team, away_team):
+def _calculate_score_evolution(events, home_team, away_team, teams=None):
     """
     Calculate score evolution throughout the game from events.
     
@@ -2612,19 +2612,40 @@ def _calculate_score_evolution(events, home_team, away_team):
     events (list): List of game events
     home_team (str): Home team name
     away_team (str): Away team name
+    teams (list): List of team objects with Team Name and Team Name Short
     
     Returns:
-    list: List of score points with quarters, scores, and foul counts
+    list: List of score points with quarters, scores, foul counts, and elapsed time
     """
+    from datetime import datetime
+    
     score_points = []
     home_fouls = 0
     away_fouls = 0
     
+    # Extract team short names for matching event teams
+    home_team_short = home_team
+    away_team_short = away_team
+    
+    if teams:
+        for team in teams:
+            if team.get('Team Name') == home_team:
+                home_team_short = team.get('Team Name Short', home_team)
+            elif team.get('Team Name') == away_team:
+                away_team_short = team.get('Team Name Short', away_team)
+    
     # Sort events chronologically
     sorted_events = sorted(events, key=lambda x: x.get('EventDateTime', ''))
     
-    # Foul-related action keywords (case-insensitive)
-    foul_keywords = ['foul added', 'faute', 'foul deleted']
+    # Find the first event time to calculate elapsed time
+    first_event_time = None
+    for event in sorted_events:
+        if event.get('EventDateTime'):
+            try:
+                first_event_time = datetime.fromisoformat(event.get('EventDateTime', '').replace('Z', '+00:00'))
+                break
+            except:
+                pass
     
     for event in sorted_events:
         # Track fouls
@@ -2636,15 +2657,15 @@ def _calculate_score_evolution(events, home_team, away_team):
         is_foul_deleted = 'foul deleted' in event_action
         
         if is_foul_added and not is_foul_deleted:
-            if event_team == home_team:
+            if event_team == home_team_short:
                 home_fouls += 1
-            elif event_team == away_team:
+            elif event_team == away_team_short:
                 away_fouls += 1
         elif is_foul_deleted:
             # Handle foul deletions by decrementing
-            if event_team == home_team and home_fouls > 0:
+            if event_team == home_team_short and home_fouls > 0:
                 home_fouls -= 1
-            elif event_team == away_team and away_fouls > 0:
+            elif event_team == away_team_short and away_fouls > 0:
                 away_fouls -= 1
         
         # Track score changes
@@ -2659,6 +2680,15 @@ def _calculate_score_evolution(events, home_team, away_team):
                     home_score = int(parts[0].strip())
                     away_score = int(parts[1].strip())
                     
+                    # Calculate elapsed time in seconds from first event
+                    elapsed_seconds = 0
+                    if first_event_time and event.get('EventDateTime'):
+                        try:
+                            event_time = datetime.fromisoformat(event.get('EventDateTime', '').replace('Z', '+00:00'))
+                            elapsed_seconds = (event_time - first_event_time).total_seconds()
+                        except:
+                            pass
+                    
                     score_points.append({
                         'quarter': quarter,
                         'home_score': home_score,
@@ -2666,6 +2696,7 @@ def _calculate_score_evolution(events, home_team, away_team):
                         'home_fouls': home_fouls,
                         'away_fouls': away_fouls,
                         'time': event.get('EventDateTime', ''),
+                        'elapsed_seconds': elapsed_seconds,
                         'event': event.get('EventAction', '')
                     })
                 except:

@@ -344,29 +344,20 @@
         // Prepare data for score evolution chart
         const scoreData = {{ game.score_evolution | tojson }};
         
-        // Extract data for chart
-        const labels = scoreData.map((point, index) => index + 1);
+        // Extract elapsed time in minutes for x-axis
+        const elapsedMinutes = scoreData.map(point => point.elapsed_seconds / 60);
         const homeScores = scoreData.map(point => point.home_score);
         const awayScores = scoreData.map(point => point.away_score);
         const homeFouls = scoreData.map(point => point.home_fouls || 0);
         const awayFouls = scoreData.map(point => point.away_fouls || 0);
         const quarters = scoreData.map(point => point.quarter);
         
-        // Create quarter labels for x-axis
-        const xLabels = scoreData.map((point, index) => {
-            // Check if this is the start of a new quarter
-            if (index === 0 || (index > 0 && point.quarter !== scoreData[index - 1].quarter)) {
-                return `Q${point.quarter}`;
-            }
-            return '';
-        });
-        
         // Create the chart
         const ctx = document.getElementById('scoreChart').getContext('2d');
         new Chart(ctx, {
             type: 'line',
             data: {
-                labels: xLabels,
+                labels: elapsedMinutes,
                 datasets: [
                     {
                         label: '{{ game.basic_info.home_team }} Score',
@@ -440,7 +431,9 @@
                             title: function(context) {
                                 const index = context[0].dataIndex;
                                 const point = scoreData[index];
-                                return `Quarter ${point.quarter} - Event ${index + 1}`;
+                                const mins = Math.floor(point.elapsed_seconds / 60);
+                                const secs = Math.floor(point.elapsed_seconds % 60);
+                                return `Quarter ${point.quarter} - ${mins}:${secs.toString().padStart(2, '0')}`;
                             },
                             afterBody: function(context) {
                                 const index = context[0].dataIndex;
@@ -491,40 +484,32 @@
                         }
                     },
                     x: {
+                        type: 'linear',
                         title: {
                             display: true,
-                            text: 'Game Progress (Quarter Markers)',
+                            text: 'Game Time (minutes)',
                             font: {
                                 weight: 'bold',
                                 size: 12
                             }
                         },
                         ticks: {
-                            maxRotation: 0,
-                            autoSkip: false,
-                            font: {
-                                size: 11,
-                                weight: 'bold'
-                            },
-                            callback: function(value, index) {
-                                // Only show non-empty labels (quarter markers)
-                                return xLabels[index] || '';
+                            callback: function(value) {
+                                // Format as MM:SS
+                                const mins = Math.floor(value);
+                                const secs = Math.floor((value - mins) * 60);
+                                return `${mins}:${secs.toString().padStart(2, '0')}`;
                             }
                         },
                         grid: {
                             color: function(context) {
                                 // Highlight quarter boundaries with darker grid lines
-                                if (xLabels[context.index]) {
+                                const minute = context.tick.value;
+                                // Approximate quarter boundaries (every 10 minutes)
+                                if (minute % 10 === 0 || Math.abs(minute - 10) < 0.5 || Math.abs(minute - 20) < 0.5 || Math.abs(minute - 30) < 0.5) {
                                     return 'rgba(102, 126, 234, 0.3)';
                                 }
                                 return 'rgba(0, 0, 0, 0.05)';
-                            },
-                            lineWidth: function(context) {
-                                // Make quarter boundary lines thicker
-                                if (xLabels[context.index]) {
-                                    return 2;
-                                }
-                                return 1;
                             }
                         }
                     }
