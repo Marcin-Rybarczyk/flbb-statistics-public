@@ -962,9 +962,9 @@ def get_top_foulers(data, top_n=10, division=None):
                     
                     # Limit display to reasonable amount
                     if big_blocks > MAX_FOUL_BLOCKS_DISPLAY:
-                        blocks = '◼' * MAX_FOUL_BLOCKS_DISPLAY + f'...+{big_blocks - MAX_FOUL_BLOCKS_DISPLAY}'
-                        if small_blocks > 0:
-                            blocks += '■' * small_blocks
+                        # When truncating, show only big blocks and include total in the overflow count
+                        remaining_fouls = (big_blocks - MAX_FOUL_BLOCKS_DISPLAY) * 10 + small_blocks
+                        blocks = '◼' * MAX_FOUL_BLOCKS_DISPLAY + f'...+{remaining_fouls}'
                     else:
                         blocks = '◼' * big_blocks + '■' * small_blocks
                 else:
