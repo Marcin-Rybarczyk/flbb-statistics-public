@@ -163,12 +163,20 @@
                         <td>
                             <form method="post" action="/team-stats" style="display: inline;">
                                 <input type="hidden" name="team" value="{{ row['HomeTeamName'] }}">
+                                {% set home_logo_url = get_team_logo_url(row['HomeTeamName']) %}
+                                {% if home_logo_url %}
+                                    <img src="{{ home_logo_url }}" alt="{{ row['HomeTeamName'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                                {% endif %}
                                 <button type="submit" class="team-link">{{ row['HomeTeamName'] }}</button>
                             </form>
                         </td>
                         <td>
                             <form method="post" action="/team-stats" style="display: inline;">
                                 <input type="hidden" name="team" value="{{ row['AwayTeamName'] }}">
+                                {% set away_logo_url = get_team_logo_url(row['AwayTeamName']) %}
+                                {% if away_logo_url %}
+                                    <img src="{{ away_logo_url }}" alt="{{ row['AwayTeamName'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                                {% endif %}
                                 <button type="submit" class="team-link">{{ row['AwayTeamName'] }}</button>
                             </form>
                         </td>
@@ -209,12 +217,20 @@
                         <td>
                             <form method="post" action="/team-stats" style="display: inline;">
                                 <input type="hidden" name="team" value="{{ row['HomeTeam'] }}">
+                                {% set home_logo_url = get_team_logo_url(row['HomeTeam']) %}
+                                {% if home_logo_url %}
+                                    <img src="{{ home_logo_url }}" alt="{{ row['HomeTeam'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                                {% endif %}
                                 <button type="submit" class="team-link">{{ row['HomeTeam'] }}</button>
                             </form>
                         </td>
                         <td>
                             <form method="post" action="/team-stats" style="display: inline;">
                                 <input type="hidden" name="team" value="{{ row['AwayTeam'] }}">
+                                {% set away_logo_url = get_team_logo_url(row['AwayTeam']) %}
+                                {% if away_logo_url %}
+                                    <img src="{{ away_logo_url }}" alt="{{ row['AwayTeam'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                                {% endif %}
                                 <button type="submit" class="team-link">{{ row['AwayTeam'] }}</button>
                             </form>
                         </td>
@@ -254,12 +270,20 @@
                         <td>
                             <form method="post" action="/team-stats" style="display: inline;">
                                 <input type="hidden" name="team" value="{{ row['HomeTeam'] }}">
+                                {% set home_logo_url = get_team_logo_url(row['HomeTeam']) %}
+                                {% if home_logo_url %}
+                                    <img src="{{ home_logo_url }}" alt="{{ row['HomeTeam'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                                {% endif %}
                                 <button type="submit" class="team-link">{{ row['HomeTeam'] }}</button>
                             </form>
                         </td>
                         <td>
                             <form method="post" action="/team-stats" style="display: inline;">
                                 <input type="hidden" name="team" value="{{ row['AwayTeam'] }}">
+                                {% set away_logo_url = get_team_logo_url(row['AwayTeam']) %}
+                                {% if away_logo_url %}
+                                    <img src="{{ away_logo_url }}" alt="{{ row['AwayTeam'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                                {% endif %}
                                 <button type="submit" class="team-link">{{ row['AwayTeam'] }}</button>
                             </form>
                         </td>
@@ -299,12 +323,20 @@
                         <td>
                             <form method="post" action="/team-stats" style="display: inline;">
                                 <input type="hidden" name="team" value="{{ row['HomeTeam'] }}">
+                                {% set home_logo_url = get_team_logo_url(row['HomeTeam']) %}
+                                {% if home_logo_url %}
+                                    <img src="{{ home_logo_url }}" alt="{{ row['HomeTeam'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                                {% endif %}
                                 <button type="submit" class="team-link">{{ row['HomeTeam'] }}</button>
                             </form>
                         </td>
                         <td>
                             <form method="post" action="/team-stats" style="display: inline;">
                                 <input type="hidden" name="team" value="{{ row['AwayTeam'] }}">
+                                {% set away_logo_url = get_team_logo_url(row['AwayTeam']) %}
+                                {% if away_logo_url %}
+                                    <img src="{{ away_logo_url }}" alt="{{ row['AwayTeam'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                                {% endif %}
                                 <button type="submit" class="team-link">{{ row['AwayTeam'] }}</button>
                             </form>
                         </td>
@@ -345,12 +377,20 @@
                         <td>
                             <form method="post" action="/team-stats" style="display: inline;">
                                 <input type="hidden" name="team" value="{{ row['HomeTeam'] }}">
+                                {% set home_logo_url = get_team_logo_url(row['HomeTeam']) %}
+                                {% if home_logo_url %}
+                                    <img src="{{ home_logo_url }}" alt="{{ row['HomeTeam'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                                {% endif %}
                                 <button type="submit" class="team-link">{{ row['HomeTeam'] }}</button>
                             </form>
                         </td>
                         <td>
                             <form method="post" action="/team-stats" style="display: inline;">
                                 <input type="hidden" name="team" value="{{ row['AwayTeam'] }}">
+                                {% set away_logo_url = get_team_logo_url(row['AwayTeam']) %}
+                                {% if away_logo_url %}
+                                    <img src="{{ away_logo_url }}" alt="{{ row['AwayTeam'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                                {% endif %}
                                 <button type="submit" class="team-link">{{ row['AwayTeam'] }}</button>
                             </form>
                         </td>
@@ -359,6 +399,10 @@
                         <td>
                             <form method="post" action="/team-stats" style="display: inline;">
                                 <input type="hidden" name="team" value="{{ row['Winner'] }}">
+                                {% set winner_logo_url = get_team_logo_url(row['Winner']) %}
+                                {% if winner_logo_url %}
+                                    <img src="{{ winner_logo_url }}" alt="{{ row['Winner'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                                {% endif %}
                                 <button type="submit" class="team-link">{{ row['Winner'] }}</button>
                             </form>
                         </td>
