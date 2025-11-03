@@ -43,10 +43,7 @@
                             {% if team_logo_url %}
                                 <img src="{{ team_logo_url }}" alt="{{ row['Team Name'] }} logo" class="team-logo" style="width: 24px; height: 24px; object-fit: contain; vertical-align: middle; margin-right: 8px;">
                             {% endif %}
-                            <form method="post" action="/team-stats" style="display: inline;">
-                                <input type="hidden" name="team" value="{{ row['Team Name'] }}">
-                                <button type="submit" class="team-link">{{ row['Team Name'] }}</button>
-                            </form>
+                            <a href="/team-detail?team={{ row['Team Name']|urlencode }}" class="team-link">{{ row['Team Name'] }}</a>
                         </td>
                         <td>{{ row['Games'] }}</td>
                         <td>{{ row['W'] }}</td>
