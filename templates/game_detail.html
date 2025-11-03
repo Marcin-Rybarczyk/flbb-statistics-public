@@ -321,6 +321,16 @@
                     <p style="text-align: center; color: #666; margin-bottom: 10px;">
                         {{ team.result }} - {{ team.total_won_points }} points
                     </p>
+                    {% if team.coach or team.timeouts_used %}
+                    <p style="text-align: center; color: #555; margin-bottom: 10px; font-size: 0.95em;">
+                        {% if team.coach and team.coach != 'N/A' %}
+                        <strong>👔 Coach:</strong> {{ team.coach }}
+                        {% endif %}
+                        {% if team.timeouts_used > 0 %}
+                        <span style="margin-left: 15px;"><strong>⏱️ Timeouts:</strong> {{ team.timeouts_used }}</span>
+                        {% endif %}
+                    </p>
+                    {% endif %}
                     <table class="player-table">
                         <thead>
                             <tr>
@@ -345,6 +355,16 @@
                                 <td>{{ player['Total Fouls'] }}</td>
                             </tr>
                             {% endfor %}
+                            <!-- Total Row -->
+                            <tr style="background: #f0f0f0; font-weight: bold; border-top: 2px solid #667eea;">
+                                <td></td>
+                                <td>TOTAL</td>
+                                <td><strong>{{ team.totals.points }}</strong></td>
+                                <td>{{ team.totals['1p'] }}</td>
+                                <td>{{ team.totals['2p'] }}</td>
+                                <td>{{ team.totals['3p'] }}</td>
+                                <td>{{ team.totals.fouls }}</td>
+                            </tr>
                         </tbody>
                     </table>
                     <p style="margin-top: 10px; font-size: 0.9em; color: #666;">

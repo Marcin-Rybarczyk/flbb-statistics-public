@@ -2703,18 +2703,55 @@ def get_game_details(data, game_id):
     # Calculate advanced game statistics
     game_stats = _calculate_game_statistics(score_evolution)
     
+    # Calculate timeout and coach information from events
+    team_timeouts = {}
+    team_coaches = {}
+    for event in events:
+        if event.get('EventAction', '').lower() == 'timeout':
+            team_name = event.get('EventTeam', '')
+            if team_name:
+                team_timeouts[team_name] = team_timeouts.get(team_name, 0) + 1
+                # Try to get coach name from the event actor
+                actor = event.get('EventActor', '')
+                if actor and actor != '* Coach *' and team_name not in team_coaches:
+                    team_coaches[team_name] = actor
+    
     # Process teams and players
     teams_data = []
     for team in teams:
+        team_name = team.get('Team Name', '')
+        team_name_short = team.get('Team Name Short', '')
+        
+        # Calculate totals for player statistics
+        players = team.get('Players', [])
+        total_points = sum(int(p.get('Total Points', 0)) for p in players)
+        total_1p = sum(int(p.get('1P Made Shots', 0)) for p in players)
+        total_2p = sum(int(p.get('2P Made Shots', 0)) for p in players)
+        total_3p = sum(int(p.get('3P Made Shots', 0)) for p in players)
+        total_fouls = sum(int(p.get('Total Fouls', 0)) for p in players)
+        
+        # Match timeouts and coach by either full name or short name
+        timeouts = team_timeouts.get(team_name, 0) or team_timeouts.get(team_name_short, 0)
+        coach = team_coaches.get(team_name, team_coaches.get(team_name_short, 'N/A'))
+        
         team_info = {
-            'name': team.get('Team Name', ''),
-            'name_short': team.get('Team Name Short', ''),
+            'name': team_name,
+            'name_short': team_name_short,
             'role': team.get('Team Role', ''),
             'result': team.get('Result Outcome', ''),
             'league_points': team.get('League Points', 0),
             'total_won_points': team.get('Total Won Points', 0),
             'total_lost_points': team.get('Total Lost Points', 0),
-            'players': team.get('Players', [])
+            'players': players,
+            'coach': coach,
+            'timeouts_used': timeouts,
+            'totals': {
+                'points': total_points,
+                '1p': total_1p,
+                '2p': total_2p,
+                '3p': total_3p,
+                'fouls': total_fouls
+            }
         }
         teams_data.append(team_info)
     
