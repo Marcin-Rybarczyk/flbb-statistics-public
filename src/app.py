@@ -15,7 +15,7 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
                    get_fixtures_matrix_data, get_data_source_info, get_season_info, 
                    get_website_config, list_available_archives, import_season_archive,
                    get_all_players_list, get_player_detail_stats, get_game_details, get_referee_detail_stats,
-                   get_team_detail_stats, get_all_referees_list)
+                   get_team_detail_stats, get_all_referees_list, get_all_games_list)
 from src.version import get_version_info
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
@@ -107,52 +107,33 @@ def index():
                          selected_division=selected_division,
                          data_source_info=data_source_info)
 
-@app.route('/statistics')
+@app.route('/statistics', methods=['GET', 'POST'])
 def statistics():
-    """Statistics page with comprehensive data analysis"""
+    """Game Statistics page with division filtering"""
     if data.empty:
         return render_template('statistics.html', 
                              error="No data available",
                              divisions=divisions,
                              data_source_info=data_source_info)
     
-    # Get overall statistics
-    highest_games = get_highest_scoring_games(data, 10)
+    # Get selected division from form or query parameter
+    selected_division = request.form.get('division') or request.args.get('division')
     
-    # Player Statistics
-    top_scorers = get_top_scorers(data, 20)
-    highest_single_score = get_highest_single_game_score(data)
-    top_three_pointers = get_top_three_pointers(data, 10)
-    top_foulers = get_top_foulers(data, 10)
-    
-    # Referee Statistics
-    referee_stats = get_referee_statistics(data)
-    referee_fouls = get_referee_fouls_per_game(data)
-    referee_least_fouls = get_referees_least_fouls_per_game(data)
-    
-    # Game Statistics  
-    biggest_wins = get_biggest_wins(data, 10)
-    biggest_leads = get_biggest_leads(data, 10)
-    most_ties = get_most_tie_scores(data, 10)
-    most_lead_changes = get_most_lead_changes(data, 10)
-    
-    team_stats = get_team_performance_stats(data)
+    # Get game statistics with optional division filter
+    highest_games = get_highest_scoring_games(data, 10, division=selected_division)
+    biggest_wins = get_biggest_wins(data, 10, division=selected_division)
+    biggest_leads = get_biggest_leads(data, 10, division=selected_division)
+    most_ties = get_most_tie_scores(data, 10, division=selected_division)
+    most_lead_changes = get_most_lead_changes(data, 10, division=selected_division)
     
     return render_template('statistics.html', 
                          highest_games=highest_games,
-                         top_scorers=top_scorers,
-                         highest_single_score=highest_single_score,
-                         top_three_pointers=top_three_pointers,
-                         top_foulers=top_foulers,
-                         referee_stats=referee_stats,
-                         referee_fouls=referee_fouls,
-                         referee_least_fouls=referee_least_fouls,
                          biggest_wins=biggest_wins,
                          biggest_leads=biggest_leads,
                          most_ties=most_ties,
                          most_lead_changes=most_lead_changes,
-                         team_stats=team_stats,
                          divisions=divisions,
+                         selected_division=selected_division,
                          data_source_info=data_source_info)
 
 @app.route('/team-stats', methods=['GET', 'POST'])
@@ -388,6 +369,29 @@ def game_detail(game_id):
     
     return render_template('game_detail.html',
                          game=game_details,
+                         data_source_info=data_source_info)
+
+@app.route('/game-details')
+def game_details_search():
+    """Game details search page with searchable functionality similar to player detail"""
+    if data.empty:
+        return render_template('game_details.html', error="No data available", data_source_info=data_source_info)
+    
+    # Get all games for autocomplete
+    all_games = get_all_games_list(data)
+    
+    # Get selected game from query parameter
+    game_id = request.args.get('game')
+    game_details_data = None
+    
+    if game_id:
+        game_details_data = get_game_details(data, game_id)
+    
+    return render_template('game_details.html',
+                         all_games=all_games,
+                         game_id=game_id,
+                         game=game_details_data,
+                         divisions=divisions,
                          data_source_info=data_source_info)
 
 @app.route('/admin')

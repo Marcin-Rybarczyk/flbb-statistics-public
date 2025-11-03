@@ -354,11 +354,12 @@
         <div class="navigation">
             <a href="/" {% if request and request.endpoint == 'index' %}class="active"{% endif %}>🏠 Home</a>
             <a href="/fixtures" {% if request and request.endpoint == 'fixtures' %}class="active"{% endif %}>📅 Fixtures</a>
-            <a href="/statistics" {% if request and request.endpoint == 'statistics' %}class="active"{% endif %}>📊 Statistics</a>
+            <a href="/statistics" {% if request and request.endpoint == 'statistics' %}class="active"{% endif %}>🎮 Game Stats</a>
             <a href="/player-stats" {% if request and request.endpoint == 'player_stats' %}class="active"{% endif %}>👤 Player Stats</a>
             <a href="/player-detail" {% if request and request.endpoint == 'player_detail' %}class="active"{% endif %}>🔍 Player Detail</a>
             <a href="/team-stats" {% if request and request.endpoint == 'team_stats' %}class="active"{% endif %}>🏆 Team Stats</a>
             <a href="/team-detail" {% if request and request.endpoint == 'team_detail' %}class="active"{% endif %}>🔍 Team Detail</a>
+            <a href="/game-details" {% if request and request.endpoint == 'game_details_search' %}class="active"{% endif %}>🏀 Game Details</a>
             <a href="/referee-stats" {% if request and request.endpoint == 'referee_stats' %}class="active"{% endif %}>👨‍⚖️ Referee Stats</a>
             <a href="/referee-detail" {% if request and request.endpoint == 'referee_detail' %}class="active"{% endif %}>🔍 Referee Detail</a>
             <a href="/deeper-analysis" {% if request and request.endpoint == 'deeper_analysis' %}class="active"{% endif %}>🔍 Deep Analysis</a>

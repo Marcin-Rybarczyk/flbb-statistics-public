@@ -1030,19 +1030,25 @@ def get_team_performance_stats(data):
     
     return team_df.sort_values('WinPercentage', ascending=False)
 
-def get_highest_scoring_games(data, top_n=10):
+def get_highest_scoring_games(data, top_n=10, division=None):
     """
     Get games with highest total scores.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of games to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Games with highest scores
     """
     # Create a copy to avoid modifying the original data
     data_copy = data.copy()
+    
+    # Filter by division if specified
+    if division:
+        data_copy = data_copy[data_copy['GameDivisionDisplay'] == division]
+    
     data_copy['TotalScore'] = data_copy['FinalHomeScore'] + data_copy['FinalAwayScore']
     highest_games = data_copy.nlargest(top_n, 'TotalScore')
     return highest_games[['GameId', 'HomeTeamName', 'AwayTeamName', 'FinalHomeScore', 'FinalAwayScore', 'TotalScore', 'GameDivisionDisplay']]
@@ -1416,17 +1422,22 @@ def analyze_game_events(data):
     
     return pd.DataFrame(game_analyses)
 
-def get_most_tie_scores(data, top_n=10):
+def get_most_tie_scores(data, top_n=10, division=None):
     """
     Get games with the most tie scores.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of games to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Games with most tie scores
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     game_analysis = analyze_game_events(data)
     
     if game_analysis.empty:
@@ -1434,17 +1445,22 @@ def get_most_tie_scores(data, top_n=10):
     
     return game_analysis.nlargest(top_n, 'TieScores')
 
-def get_most_lead_changes(data, top_n=10):
+def get_most_lead_changes(data, top_n=10, division=None):
     """
     Get games with the most lead changes.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of games to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Games with most lead changes
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     game_analysis = analyze_game_events(data)
     
     if game_analysis.empty:
@@ -1452,17 +1468,22 @@ def get_most_lead_changes(data, top_n=10):
     
     return game_analysis.nlargest(top_n, 'LeadChanges')
 
-def get_biggest_leads(data, top_n=10):
+def get_biggest_leads(data, top_n=10, division=None):
     """
     Get games with the biggest leads.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of games to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Games with biggest leads
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     game_analysis = analyze_game_events(data)
     
     if game_analysis.empty:
@@ -1470,17 +1491,22 @@ def get_biggest_leads(data, top_n=10):
     
     return game_analysis.nlargest(top_n, 'BiggestLead')
 
-def get_biggest_wins(data, top_n=10):
+def get_biggest_wins(data, top_n=10, division=None):
     """
     Get games with the biggest win margins.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of games to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Games with biggest win margins
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     game_analysis = analyze_game_events(data)
     
     if game_analysis.empty:
@@ -2582,6 +2608,40 @@ def get_all_referees_list(data):
     
     return unique_referees
 
+def get_all_games_list(data):
+    """
+    Get a list of all games with key information for autocomplete/search.
+    
+    Parameters:
+    data (DataFrame): The game data
+    
+    Returns:
+    list: List of dictionaries with game details for search
+    """
+    if data.empty:
+        return []
+    
+    # Select relevant columns and create game list
+    games_list = []
+    
+    for idx, row in data.iterrows():
+        game_info = {
+            'GameId': row.get('GameId', ''),
+            'HomeTeam': row.get('HomeTeamName', ''),
+            'AwayTeam': row.get('AwayTeamName', ''),
+            'FinalScore': f"{row.get('FinalHomeScore', 0)}-{row.get('FinalAwayScore', 0)}",
+            'Division': row.get('GameDivisionDisplay', ''),
+            'Date': row.get('DateTime', ''),
+            'Location': row.get('GameLocation', '')
+        }
+        games_list.append(game_info)
+    
+    # Sort by date (most recent first) if date is available
+    if games_list and 'Date' in games_list[0] and games_list[0]['Date']:
+        games_list = sorted(games_list, key=lambda x: x.get('Date', ''), reverse=True)
+    
+    return games_list
+
 def get_player_detail_stats(data, player_name):
     """
     Get comprehensive statistics for a specific player.
@@ -3002,13 +3062,16 @@ def _calculate_score_evolution(events, home_team, away_team, teams=None):
     teams (list): List of team objects with Team Name and Team Name Short
     
     Returns:
-    list: List of score points with quarters, scores, foul counts, and elapsed time
+    list: List of score points with quarters, scores, foul counts, timeouts, and elapsed time
     """
     from datetime import datetime
     
     score_points = []
     home_fouls = 0
     away_fouls = 0
+    last_home_score = 0
+    last_away_score = 0
+    last_quarter = 1
     
     # Extract team short names for matching event teams
     home_team_short = home_team
@@ -3039,21 +3102,37 @@ def _calculate_score_evolution(events, home_team, away_team, teams=None):
         event_action = event.get('EventAction', '').lower()
         event_team = event.get('EventTeam', '')
         
+        # Helper function to check if event belongs to a team
+        def is_team_event(team_full, team_short):
+            return event_team == team_full or event_team == team_short
+        
         # Check if this is a foul event (but not a foul deletion)
         is_foul_added = any(keyword in event_action for keyword in ['foul added', 'faute'])
         is_foul_deleted = 'foul deleted' in event_action
         
         if is_foul_added and not is_foul_deleted:
-            if event_team == home_team_short:
+            if is_team_event(home_team, home_team_short):
                 home_fouls += 1
-            elif event_team == away_team_short:
+            elif is_team_event(away_team, away_team_short):
                 away_fouls += 1
         elif is_foul_deleted:
             # Handle foul deletions by decrementing
-            if event_team == home_team_short and home_fouls > 0:
+            if is_team_event(home_team, home_team_short) and home_fouls > 0:
                 home_fouls -= 1
-            elif event_team == away_team_short and away_fouls > 0:
+            elif is_team_event(away_team, away_team_short) and away_fouls > 0:
                 away_fouls -= 1
+        
+        # Calculate elapsed time in seconds from first event
+        elapsed_seconds = 0
+        if first_event_time and event.get('EventDateTime'):
+            try:
+                event_time = datetime.fromisoformat(event.get('EventDateTime', '').replace('Z', '+00:00'))
+                elapsed_seconds = (event_time - first_event_time).total_seconds()
+            except (ValueError, TypeError, AttributeError):
+                pass
+        
+        # Check for timeout event
+        is_timeout = 'timeout' in event_action
         
         # Track score changes
         if event.get('EventScore'):
@@ -3066,15 +3145,9 @@ def _calculate_score_evolution(events, home_team, away_team, teams=None):
                     parts = score_str.split(':')
                     home_score = int(parts[0].strip())
                     away_score = int(parts[1].strip())
-                    
-                    # Calculate elapsed time in seconds from first event
-                    elapsed_seconds = 0
-                    if first_event_time and event.get('EventDateTime'):
-                        try:
-                            event_time = datetime.fromisoformat(event.get('EventDateTime', '').replace('Z', '+00:00'))
-                            elapsed_seconds = (event_time - first_event_time).total_seconds()
-                        except:
-                            pass
+                    last_home_score = home_score
+                    last_away_score = away_score
+                    last_quarter = quarter
                     
                     score_points.append({
                         'quarter': quarter,
@@ -3084,10 +3157,25 @@ def _calculate_score_evolution(events, home_team, away_team, teams=None):
                         'away_fouls': away_fouls,
                         'time': event.get('EventDateTime', ''),
                         'elapsed_seconds': elapsed_seconds,
-                        'event': event.get('EventAction', '')
+                        'event': event.get('EventAction', ''),
+                        'is_timeout': False
                     })
                 except:
                     pass
+        elif is_timeout:
+            # Add timeout marker with last known score
+            score_points.append({
+                'quarter': event.get('EventQuarter', last_quarter),
+                'home_score': last_home_score,
+                'away_score': last_away_score,
+                'home_fouls': home_fouls,
+                'away_fouls': away_fouls,
+                'time': event.get('EventDateTime', ''),
+                'elapsed_seconds': elapsed_seconds,
+                'event': event.get('EventAction', ''),
+                'is_timeout': True,
+                'timeout_team': event_team
+            })
     
     return score_points
 
