@@ -644,9 +644,11 @@
                                 const index = context[0].dataIndex;
                                 const point = scoreOnlyData[index];
                                 const diff = pointsDifference[index];
-                                const diffText = diff > 0 ? `{{ game.basic_info.home_team }} +${diff}` : 
-                                               diff < 0 ? `{{ game.basic_info.away_team }} +${Math.abs(diff)}` : 
-                                               'Tied';
+                                const diffText = diff > 0 
+                                    ? `{{ game.basic_info.home_team }} +${diff}` 
+                                    : diff < 0 
+                                        ? `{{ game.basic_info.away_team }} +${Math.abs(diff)}` 
+                                        : 'Tied';
                                 return [
                                     '',
                                     `Points Difference: ${diffText}`,
@@ -678,6 +680,7 @@
                     y1: {
                         type: 'linear',
                         position: 'right',
+                        // No beginAtZero constraint - allows negative values for point differences
                         title: {
                             display: true,
                             text: 'Points Difference',
