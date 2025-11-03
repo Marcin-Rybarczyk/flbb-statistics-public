@@ -20,6 +20,12 @@
         margin-bottom: 10px;
     }
 
+    .game-header a:hover {
+        background: rgba(255, 255, 255, 0.35) !important;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
     .final-score {
         font-size: 3em;
         font-weight: bold;
@@ -270,6 +276,20 @@
             <p style="margin-top: 15px; font-size: 1.1em;">
                 📅 {{ game.basic_info.date_time }} | 📍 {{ game.basic_info.location.Name if game.basic_info.location else 'N/A' }}
             </p>
+            {% if game.referees and game.referees|length > 0 %}
+            <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.3);">
+                <p style="font-size: 0.95em; margin-bottom: 8px;">🧑‍⚖️ Referees:</p>
+                <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 10px;">
+                    {% for referee in game.referees %}
+                    <a href="/referee-detail?referee={{ referee['Referee Name']|urlencode }}" 
+                       style="background: rgba(255, 255, 255, 0.2); color: white; padding: 8px 16px; border-radius: 15px; 
+                              text-decoration: none; font-weight: 500; transition: all 0.3s ease; display: inline-block;">
+                        {{ referee['Referee Name'] }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div>
 
 
@@ -318,19 +338,6 @@
                 {% for team in game.teams %}
                 <div class="team-section">
                     <h3>{{ team.name }}</h3>
-                    <p style="text-align: center; color: #666; margin-bottom: 10px;">
-                        {{ team.result }} - {{ team.total_won_points }} points
-                    </p>
-                    {% if team.coach or team.timeouts_used %}
-                    <p style="text-align: center; color: #555; margin-bottom: 10px; font-size: 0.95em;">
-                        {% if team.coach and team.coach != 'N/A' %}
-                        <strong>👔 Coach:</strong> {{ team.coach }}
-                        {% endif %}
-                        {% if team.timeouts_used > 0 %}
-                        <span style="margin-left: 15px;"><strong>⏱️ Timeouts:</strong> {{ team.timeouts_used }}</span>
-                        {% endif %}
-                    </p>
-                    {% endif %}
                     <table class="player-table">
                         <thead>
                             <tr>
@@ -372,6 +379,16 @@
                             ■ Starting Five
                         </span>
                     </p>
+                    {% if team.coach or team.timeouts_used %}
+                    <p style="margin-top: 12px; text-align: center; color: #555; font-size: 0.95em; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                        {% if team.coach and team.coach != 'N/A' %}
+                        <strong>👔 Coach:</strong> {{ team.coach }}
+                        {% endif %}
+                        {% if team.timeouts_used > 0 %}
+                        <span style="{% if team.coach and team.coach != 'N/A' %}margin-left: 15px;{% endif %}"><strong>⏱️ Timeouts:</strong> {{ team.timeouts_used }}</span>
+                        {% endif %}
+                    </p>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
@@ -420,17 +437,89 @@
 {% block scripts %}
     {% if game and game.score_evolution %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
     <script>
         // Prepare data for score evolution chart
         const scoreData = {{ game.score_evolution | tojson }};
         
+        // Filter out timeout-only events for score lines, but keep them for annotations
+        const scoreOnlyData = scoreData.filter(point => !point.is_timeout);
+        const timeoutData = scoreData.filter(point => point.is_timeout);
+        
         // Extract elapsed time in minutes for x-axis
-        const elapsedMinutes = scoreData.map(point => point.elapsed_seconds / 60);
-        const homeScores = scoreData.map(point => point.home_score);
-        const awayScores = scoreData.map(point => point.away_score);
-        const homeFouls = scoreData.map(point => point.home_fouls || 0);
-        const awayFouls = scoreData.map(point => point.away_fouls || 0);
-        const quarters = scoreData.map(point => point.quarter);
+        const elapsedMinutes = scoreOnlyData.map(point => point.elapsed_seconds / 60);
+        const homeScores = scoreOnlyData.map(point => point.home_score);
+        const awayScores = scoreOnlyData.map(point => point.away_score);
+        const homeFouls = scoreOnlyData.map(point => point.home_fouls || 0);
+        const awayFouls = scoreOnlyData.map(point => point.away_fouls || 0);
+        const quarters = scoreOnlyData.map(point => point.quarter);
+        
+        // Find quarter boundaries based on actual data
+        const quarterBoundaries = [];
+        let lastQuarter = 0;
+        scoreOnlyData.forEach((point, index) => {
+            if (point.quarter !== lastQuarter && lastQuarter !== 0) {
+                quarterBoundaries.push({
+                    quarter: point.quarter,
+                    time: point.elapsed_seconds / 60
+                });
+            }
+            lastQuarter = point.quarter;
+        });
+        
+        // Calculate game start and end times
+        const gameStart = scoreOnlyData.length > 0 ? scoreOnlyData[0].elapsed_seconds / 60 : 0;
+        const gameEnd = scoreOnlyData.length > 0 ? scoreOnlyData[scoreOnlyData.length - 1].elapsed_seconds / 60 : 40;
+        
+        // Prepare annotations for quarter boundaries and timeouts
+        const annotations = {};
+        
+        // Add quarter boundary annotations
+        quarterBoundaries.forEach((boundary, index) => {
+            annotations[`quarter${index}`] = {
+                type: 'line',
+                xMin: boundary.time,
+                xMax: boundary.time,
+                borderColor: 'rgba(102, 126, 234, 0.5)',
+                borderWidth: 2,
+                borderDash: [10, 5],
+                label: {
+                    display: true,
+                    content: `Q${boundary.quarter}`,
+                    position: 'start',
+                    backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                    color: 'white',
+                    font: {
+                        size: 10,
+                        weight: 'bold'
+                    },
+                    padding: 4
+                }
+            };
+        });
+        
+        // Add timeout annotations
+        timeoutData.forEach((timeout, index) => {
+            const timeoutTime = timeout.elapsed_seconds / 60;
+            const yPosition = Math.max(timeout.home_score, timeout.away_score);
+            annotations[`timeout${index}`] = {
+                type: 'point',
+                xValue: timeoutTime,
+                yValue: yPosition,
+                backgroundColor: 'rgba(255, 193, 7, 0.8)',
+                borderColor: 'rgba(255, 152, 0, 1)',
+                borderWidth: 2,
+                radius: 6,
+                label: {
+                    display: true,
+                    content: '⏱️',
+                    position: 'top',
+                    font: {
+                        size: 12
+                    }
+                }
+            };
+        });
         
         // Create the chart
         const ctx = document.getElementById('scoreChart').getContext('2d');
@@ -447,8 +536,9 @@
                         tension: 0.4,
                         fill: true,
                         yAxisID: 'y',
-                        pointRadius: 2,
-                        borderWidth: 2
+                        pointRadius: 3,
+                        borderWidth: 2,
+                        pointHoverRadius: 5
                     },
                     {
                         label: '{{ game.basic_info.away_team }} Score',
@@ -458,8 +548,9 @@
                         tension: 0.4,
                         fill: true,
                         yAxisID: 'y',
-                        pointRadius: 2,
-                        borderWidth: 2
+                        pointRadius: 3,
+                        borderWidth: 2,
+                        pointHoverRadius: 5
                     },
                     {
                         label: '{{ game.basic_info.home_team }} Fouls',
@@ -471,7 +562,8 @@
                         borderDash: [5, 5],
                         pointRadius: 3,
                         borderWidth: 2,
-                        yAxisID: 'y1'
+                        yAxisID: 'y1',
+                        pointHoverRadius: 5
                     },
                     {
                         label: '{{ game.basic_info.away_team }} Fouls',
@@ -483,7 +575,8 @@
                         borderDash: [5, 5],
                         pointRadius: 3,
                         borderWidth: 2,
-                        yAxisID: 'y1'
+                        yAxisID: 'y1',
+                        pointHoverRadius: 5
                     }
                 ]
             },
@@ -495,6 +588,9 @@
                     mode: 'index'
                 },
                 plugins: {
+                    annotation: {
+                        annotations: annotations
+                    },
                     legend: {
                         display: true,
                         position: 'top',
@@ -503,6 +599,21 @@
                             padding: 15,
                             font: {
                                 size: 11
+                            },
+                            generateLabels: function(chart) {
+                                const original = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+                                // Add timeout legend
+                                if (timeoutData.length > 0) {
+                                    original.push({
+                                        text: '⏱️ Timeout',
+                                        fillStyle: 'rgba(255, 193, 7, 0.8)',
+                                        strokeStyle: 'rgba(255, 152, 0, 1)',
+                                        lineWidth: 2,
+                                        hidden: false,
+                                        pointStyle: 'circle'
+                                    });
+                                }
+                                return original;
                             }
                         }
                     },
@@ -510,14 +621,14 @@
                         callbacks: {
                             title: function(context) {
                                 const index = context[0].dataIndex;
-                                const point = scoreData[index];
+                                const point = scoreOnlyData[index];
                                 const mins = Math.floor(point.elapsed_seconds / 60);
                                 const secs = Math.floor(point.elapsed_seconds % 60);
                                 return `Quarter ${point.quarter} - ${mins}:${secs.toString().padStart(2, '0')}`;
                             },
                             afterBody: function(context) {
                                 const index = context[0].dataIndex;
-                                const point = scoreData[index];
+                                const point = scoreOnlyData[index];
                                 return [
                                     '',
                                     `{{ game.basic_info.home_team }} Fouls: ${point.home_fouls || 0}`,
@@ -565,6 +676,8 @@
                     },
                     x: {
                         type: 'linear',
+                        min: gameStart,
+                        max: gameEnd,
                         title: {
                             display: true,
                             text: 'Game Time (minutes)',
@@ -582,15 +695,7 @@
                             }
                         },
                         grid: {
-                            color: function(context) {
-                                // Highlight quarter boundaries with darker grid lines
-                                const minute = context.tick.value;
-                                // Approximate quarter boundaries (every 10 minutes)
-                                if (minute % 10 === 0 || Math.abs(minute - 10) < 0.5 || Math.abs(minute - 20) < 0.5 || Math.abs(minute - 30) < 0.5) {
-                                    return 'rgba(102, 126, 234, 0.3)';
-                                }
-                                return 'rgba(0, 0, 0, 0.05)';
-                            }
+                            color: 'rgba(0, 0, 0, 0.05)'
                         }
                     }
                 }
