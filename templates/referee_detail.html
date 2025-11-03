@@ -227,7 +227,18 @@
                         {{ "%.1f"|format((count / referee_stats.total_fouls * 100) if referee_stats.total_fouls > 0 else 0) }}%
                     </div>
                     <div class="foul-type-desc">
-                        {% if foul_type == 'P' %}Personal Foul{% elif foul_type == 'P1' %}1 Free Throw{% elif foul_type == 'P2' %}2 Free Throws{% else %}Other Fouls{% endif %}
+                        {% if foul_type == 'P' %}Personal Foul
+                        {% elif foul_type == 'P1' %}1 Free Throw
+                        {% elif foul_type == 'P2' %}2 Free Throws
+                        {% elif foul_type == 'P3' %}3 Free Throws
+                        {% elif foul_type == 'U1' %}Unsportsmanlike (1 FT)
+                        {% elif foul_type == 'U2' %}Unsportsmanlike (2 FT)
+                        {% elif foul_type == 'T1' %}Technical Foul
+                        {% elif foul_type == 'C1' %}Coach Foul
+                        {% elif foul_type == 'B1' %}Bench Foul
+                        {% elif foul_type == 'D2' %}Disqualifying (2 FT)
+                        {% else %}Other Fouls
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
@@ -307,7 +318,14 @@
                             <li><strong>P:</strong> Personal foul</li>
                             <li><strong>P1:</strong> Personal foul with 1 free throw</li>
                             <li><strong>P2:</strong> Personal foul with 2 free throws</li>
-                            <li><strong>Other:</strong> Technical fouls, unsportsmanlike fouls, etc.</li>
+                            <li><strong>P3:</strong> Personal foul with 3 free throws</li>
+                            <li><strong>U1:</strong> Unsportsmanlike foul with 1 free throw</li>
+                            <li><strong>U2:</strong> Unsportsmanlike foul with 2 free throws</li>
+                            <li><strong>T1:</strong> Technical foul</li>
+                            <li><strong>C1:</strong> Coach technical foul</li>
+                            <li><strong>B1:</strong> Bench technical foul</li>
+                            <li><strong>D2:</strong> Disqualifying foul with 2 free throws</li>
+                            <li><strong>Other:</strong> Any other foul types not categorized above</li>
                         </ul>
                     </li>
                 </ul>

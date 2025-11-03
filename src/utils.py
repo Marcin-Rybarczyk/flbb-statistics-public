@@ -1190,7 +1190,10 @@ def get_referee_detail_stats(data, referee_name):
                         # Extract foul type - check more specific patterns first
                         # This ensures 'P2 Foul Added' and 'P1 Foul Added' are matched
                         # before the more general 'P Foul Added'
-                        if 'P2 Foul Added' in action:
+                        if 'P3 Foul Added' in action:
+                            game_foul_types['P3'] += 1
+                            foul_types['P3'] += 1
+                        elif 'P2 Foul Added' in action:
                             game_foul_types['P2'] += 1
                             foul_types['P2'] += 1
                         elif 'P1 Foul Added' in action:
@@ -1199,8 +1202,28 @@ def get_referee_detail_stats(data, referee_name):
                         elif 'P Foul Added' in action:
                             game_foul_types['P'] += 1
                             foul_types['P'] += 1
+                        elif 'U2 Foul Added' in action:
+                            game_foul_types['U2'] += 1
+                            foul_types['U2'] += 1
+                        elif 'U1 Foul Added' in action:
+                            game_foul_types['U1'] += 1
+                            foul_types['U1'] += 1
+                        elif 'T1 Foul Added' in action:
+                            game_foul_types['T1'] += 1
+                            foul_types['T1'] += 1
+                        elif 'C1 Foul Added' in action:
+                            game_foul_types['C1'] += 1
+                            foul_types['C1'] += 1
+                        elif 'B1 Foul Added' in action:
+                            game_foul_types['B1'] += 1
+                            foul_types['B1'] += 1
+                        elif 'D2 Foul Added' in action:
+                            game_foul_types['D2'] += 1
+                            foul_types['D2'] += 1
                         else:
-                            # Other foul types (technical, unsportsmanlike, etc.)
+                            # Catch any unexpected foul types not yet categorized
+                            # If this happens, the foul type should be investigated and potentially
+                            # added as a new category above
                             game_foul_types['Other'] += 1
                             foul_types['Other'] += 1
         except:
