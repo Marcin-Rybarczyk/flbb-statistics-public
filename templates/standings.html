@@ -37,7 +37,7 @@
                 <tbody>
                     {% for index, row in standings.iterrows() %}
                     <tr>
-                        <td>{{ index }}</td>
+                        <td>{{ loop.index }}</td>
                         <td>
                             {% set team_logo_url = get_team_logo_url(row['Team Name']) %}
                             {% if team_logo_url %}
