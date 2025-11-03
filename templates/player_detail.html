@@ -197,6 +197,23 @@
             font-size: 1.5em;
             margin-bottom: 15px;
         }
+        
+        .table-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin: 20px 0;
+        }
+        
+        .table-grid .stats-section {
+            margin-bottom: 0;
+        }
+        
+        @media (max-width: 768px) {
+            .table-grid {
+                grid-template-columns: 1fr;
+            }
+        }
 {% endblock %}
 
 {% block content %}
@@ -236,108 +253,134 @@
                 <h3>Best Game</h3>
                 <p>{{ player_stats.basic_stats.max_points_game }}</p>
             </div>
-        </div>
-        
-        <!-- Scoring Breakdown -->
-        <div class="stats-section">
-            <h2>Scoring Breakdown</h2>
-            <div class="stat-summary">
-                <div class="stat-card">
-                    <h3>1-Point Shots</h3>
-                    <p>{{ player_stats.basic_stats.total_1p_made }}</p>
-                    <small>{{ "%.1f"|format(player_stats.basic_stats.total_1p_made / player_stats.basic_stats.games_played) if player_stats.basic_stats.games_played > 0 else "0.0" }} per game</small>
-                </div>
-                <div class="stat-card">
-                    <h3>2-Point Shots</h3>
-                    <p>{{ player_stats.basic_stats.total_2p_made }}</p>
-                    <small>{{ "%.1f"|format(player_stats.basic_stats.total_2p_made / player_stats.basic_stats.games_played) if player_stats.basic_stats.games_played > 0 else "0.0" }} per game</small>
-                </div>
-                <div class="stat-card">
-                    <h3>3-Point Shots</h3>
-                    <p>{{ player_stats.basic_stats.total_3p_made }}</p>
-                    <small>{{ "%.1f"|format(player_stats.basic_stats.total_3p_made / player_stats.basic_stats.games_played) if player_stats.basic_stats.games_played > 0 else "0.0" }} per game</small>
-                </div>
-                <div class="stat-card">
-                    <h3>Total Field Goals</h3>
-                    <p>{{ player_stats.basic_stats.total_field_goals }}</p>
-                    <small>{{ "%.1f"|format(player_stats.basic_stats.total_field_goals / player_stats.basic_stats.games_played) if player_stats.basic_stats.games_played > 0 else "0.0" }} per game</small>
-                </div>
+            <div class="stat-card">
+                <h3>Total Fouls</h3>
+                <p>{{ player_stats.basic_stats.total_fouls }}</p>
             </div>
         </div>
         
-        <!-- Foul Statistics -->
-        <div class="stats-section">
-            <h2>Foul Breakdown</h2>
-            <div class="foul-breakdown">
-                <div class="foul-card">
-                    <h4>Total Fouls</h4>
-                    <div class="number">{{ player_stats.basic_stats.total_fouls }}</div>
-                    <small>{{ player_stats.basic_stats.avg_fouls_per_game }} per game</small>
-                </div>
-                <div class="foul-card">
-                    <h4>Personal Fouls (P)</h4>
-                    <div class="number">{{ player_stats.basic_stats.p_fouls }}</div>
-                </div>
-                <div class="foul-card">
-                    <h4>P1 Fouls</h4>
-                    <div class="number">{{ player_stats.basic_stats.p1_fouls }}</div>
-                </div>
-                <div class="foul-card">
-                    <h4>P2 Fouls</h4>
-                    <div class="number">{{ player_stats.basic_stats.p2_fouls }}</div>
-                </div>
-                <div class="foul-card">
-                    <h4>P3 Fouls</h4>
-                    <div class="number">{{ player_stats.basic_stats.p3_fouls }}</div>
-                </div>
-                <div class="foul-card">
-                    <h4>Technical Fouls (T1)</h4>
-                    <div class="number">{{ player_stats.basic_stats.t1_fouls }}</div>
-                </div>
-                <div class="foul-card">
-                    <h4>U1 Fouls</h4>
-                    <div class="number">{{ player_stats.basic_stats.u1_fouls }}</div>
-                </div>
-                <div class="foul-card">
-                    <h4>U2 Fouls</h4>
-                    <div class="number">{{ player_stats.basic_stats.u2_fouls }}</div>
-                </div>
-                <div class="foul-card">
-                    <h4>U3 Fouls</h4>
-                    <div class="number">{{ player_stats.basic_stats.u3_fouls }}</div>
-                </div>
-                <div class="foul-card">
-                    <h4>GD Fouls</h4>
-                    <div class="number">{{ player_stats.basic_stats.gd_fouls }}</div>
-                </div>
+        
+        <!-- Scoring and Foul Statistics Side by Side -->
+        <div class="table-grid">
+            <!-- Scoring Breakdown -->
+            <div class="stats-section">
+                <h2>Scoring Breakdown</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Shot Type</th>
+                            <th>Total Made</th>
+                            <th>Per Game</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1-Point Shots</td>
+                            <td><strong>{{ player_stats.basic_stats.total_1p_made }}</strong></td>
+                            <td>{{ "%.1f"|format(player_stats.basic_stats.total_1p_made / player_stats.basic_stats.games_played) if player_stats.basic_stats.games_played > 0 else "0.0" }}</td>
+                        </tr>
+                        <tr>
+                            <td>2-Point Shots</td>
+                            <td><strong>{{ player_stats.basic_stats.total_2p_made }}</strong></td>
+                            <td>{{ "%.1f"|format(player_stats.basic_stats.total_2p_made / player_stats.basic_stats.games_played) if player_stats.basic_stats.games_played > 0 else "0.0" }}</td>
+                        </tr>
+                        <tr>
+                            <td>3-Point Shots</td>
+                            <td><strong>{{ player_stats.basic_stats.total_3p_made }}</strong></td>
+                            <td>{{ "%.1f"|format(player_stats.basic_stats.total_3p_made / player_stats.basic_stats.games_played) if player_stats.basic_stats.games_played > 0 else "0.0" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total Field Goals</strong></td>
+                            <td><strong>{{ player_stats.basic_stats.total_field_goals }}</strong></td>
+                            <td><strong>{{ "%.1f"|format(player_stats.basic_stats.total_field_goals / player_stats.basic_stats.games_played) if player_stats.basic_stats.games_played > 0 else "0.0" }}</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        
+            <!-- Foul Statistics -->
+            <div class="stats-section">
+                <h2>Foul Breakdown</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Foul Type</th>
+                            <th>Total Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Total Fouls</strong></td>
+                            <td><strong>{{ player_stats.basic_stats.total_fouls }}</strong> <small>({{ player_stats.basic_stats.avg_fouls_per_game }} per game)</small></td>
+                        </tr>
+                        <tr>
+                            <td>Personal Fouls (P)</td>
+                            <td>{{ player_stats.basic_stats.p_fouls }}</td>
+                        </tr>
+                        <tr>
+                            <td>P1 Fouls</td>
+                            <td>{{ player_stats.basic_stats.p1_fouls }}</td>
+                        </tr>
+                        <tr>
+                            <td>P2 Fouls</td>
+                            <td>{{ player_stats.basic_stats.p2_fouls }}</td>
+                        </tr>
+                        <tr>
+                            <td>P3 Fouls</td>
+                            <td>{{ player_stats.basic_stats.p3_fouls }}</td>
+                        </tr>
+                        <tr>
+                            <td>Technical Fouls (T1)</td>
+                            <td>{{ player_stats.basic_stats.t1_fouls }}</td>
+                        </tr>
+                        <tr>
+                            <td>U1 Fouls</td>
+                            <td>{{ player_stats.basic_stats.u1_fouls }}</td>
+                        </tr>
+                        <tr>
+                            <td>U2 Fouls</td>
+                            <td>{{ player_stats.basic_stats.u2_fouls }}</td>
+                        </tr>
+                        <tr>
+                            <td>U3 Fouls</td>
+                            <td>{{ player_stats.basic_stats.u3_fouls }}</td>
+                        </tr>
+                        <tr>
+                            <td>GD Fouls</td>
+                            <td>{{ player_stats.basic_stats.gd_fouls }}</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
         
         <!-- Starting Five vs Bench -->
         <div class="stats-section">
             <h2>Starting Five Analysis</h2>
-            <div class="stat-summary">
-                <div class="stat-card">
-                    <h3>Started</h3>
-                    <p>{{ player_stats.basic_stats.starting_five_games }}</p>
-                    <small>{{ "%.1f"|format(player_stats.basic_stats.starting_five_games / player_stats.basic_stats.games_played * 100) if player_stats.basic_stats.games_played > 0 else "0.0" }}% of games</small>
-                </div>
-                <div class="stat-card">
-                    <h3>From Bench</h3>
-                    <p>{{ player_stats.basic_stats.bench_games }}</p>
-                    <small>{{ "%.1f"|format(player_stats.basic_stats.bench_games / player_stats.basic_stats.games_played * 100) if player_stats.basic_stats.games_played > 0 else "0.0" }}% of games</small>
-                </div>
-                <div class="stat-card">
-                    <h3>Avg as Starter</h3>
-                    <p>{{ player_stats.basic_stats.avg_points_as_starter }}</p>
-                    <small>points per game</small>
-                </div>
-                <div class="stat-card">
-                    <h3>Avg from Bench</h3>
-                    <p>{{ player_stats.basic_stats.avg_points_from_bench }}</p>
-                    <small>points per game</small>
-                </div>
-            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Games</th>
+                        <th>Percentage</th>
+                        <th>Avg Points/Game</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Started</strong></td>
+                        <td>{{ player_stats.basic_stats.starting_five_games }}</td>
+                        <td>{{ "%.1f"|format(player_stats.basic_stats.starting_five_games / player_stats.basic_stats.games_played * 100) if player_stats.basic_stats.games_played > 0 else "0.0" }}%</td>
+                        <td>{{ player_stats.basic_stats.avg_points_as_starter }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>From Bench</strong></td>
+                        <td>{{ player_stats.basic_stats.bench_games }}</td>
+                        <td>{{ "%.1f"|format(player_stats.basic_stats.bench_games / player_stats.basic_stats.games_played * 100) if player_stats.basic_stats.games_played > 0 else "0.0" }}%</td>
+                        <td>{{ player_stats.basic_stats.avg_points_from_bench }}</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
         
         <!-- Quarter by Quarter Analysis -->
