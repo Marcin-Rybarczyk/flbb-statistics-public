@@ -2461,7 +2461,7 @@ def get_top_scorer_by_game(data):
                     teams_data = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
                     score_evolution = _calculate_score_evolution(events_data, home_team, away_team, teams_data)
                     game_stats = _calculate_game_statistics(score_evolution)
-                    hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'])
+                    hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'], game_stats.get('close_game_ratio'))
                     hotness_icon = get_hotness_icon(hotness_score)
             except:
                 pass
@@ -2558,7 +2558,7 @@ def get_fixtures_matrix_data(data, division_filter=None):
                     teams = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
                     score_evolution = _calculate_score_evolution(events, game['HomeTeamName'], game['AwayTeamName'], teams)
                     game_stats = _calculate_game_statistics(score_evolution)
-                    hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'])
+                    hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'], game_stats.get('close_game_ratio'))
                     hotness_icon = get_hotness_icon(hotness_score)
                 except:
                     pass
@@ -3212,7 +3212,7 @@ def get_team_detail_stats(data, team_name):
                 teams = ast.literal_eval(row['Teams']) if isinstance(row['Teams'], str) else row['Teams']
                 score_evolution = _calculate_score_evolution(events, row['HomeTeamName'], row['AwayTeamName'], teams)
                 game_stats = _calculate_game_statistics(score_evolution)
-                hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'])
+                hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'], game_stats.get('close_game_ratio'))
                 hotness_icon = get_hotness_icon(hotness_score)
             except:
                 pass
@@ -3302,7 +3302,7 @@ def get_game_details(data, game_id):
     game_stats = _calculate_game_statistics(score_evolution)
     
     # Calculate hotness score
-    hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'])
+    hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'], game_stats.get('close_game_ratio'))
     hotness_icon = get_hotness_icon(hotness_score)
     game_stats['hotness_score'] = hotness_score
     game_stats['hotness_icon'] = hotness_icon
@@ -3514,13 +3514,17 @@ def _calculate_game_statistics(score_evolution):
         - lead_changes: Number of times the lead changed
         - home_highest_lead: Highest lead for home team (or None if never led)
         - away_highest_lead: Highest lead for away team (or None if never led)
+        - close_game_ratio: Ratio of game time where score difference <= 5 points
+        - total_game_time: Total game duration in seconds
     """
     if not score_evolution:
         return {
             'tied_scores': 0,
             'lead_changes': 0,
             'home_highest_lead': None,
-            'away_highest_lead': None
+            'away_highest_lead': None,
+            'close_game_ratio': 0.0,
+            'total_game_time': 0
         }
     
     tied_scores = 0
@@ -3529,9 +3533,26 @@ def _calculate_game_statistics(score_evolution):
     away_highest_lead = 0
     previous_leader = None  # 'home' or 'away' (ties are skipped)
     
-    for point in score_evolution:
+    # For close game ratio calculation
+    close_game_time = 0.0
+    previous_elapsed_seconds = 0
+    previous_margin = None
+    
+    for i, point in enumerate(score_evolution):
         home_score = point['home_score']
         away_score = point['away_score']
+        margin = abs(home_score - away_score)
+        elapsed_seconds = point.get('elapsed_seconds', 0)
+        
+        # Calculate time-weighted closeness (score difference <= 5 points)
+        # We use previous_margin because between events, the score was at the previous state
+        if i > 0 and previous_margin is not None:
+            time_delta = elapsed_seconds - previous_elapsed_seconds
+            if time_delta > 0 and previous_margin <= 5:
+                close_game_time += time_delta
+        
+        previous_elapsed_seconds = elapsed_seconds
+        previous_margin = margin
         
         # Count tied scores
         if home_score == away_score:
@@ -3555,28 +3576,64 @@ def _calculate_game_statistics(score_evolution):
             # Update previous_leader only for non-tied states
             previous_leader = current_leader
     
+    # Calculate close game ratio
+    total_game_time = previous_elapsed_seconds if previous_elapsed_seconds > 0 else 0
+    close_game_ratio = close_game_time / total_game_time if total_game_time > 0 else 0.0
+    
     # Return None for highest lead if team never led
     return {
         'tied_scores': tied_scores,
         'lead_changes': lead_changes,
         'home_highest_lead': home_highest_lead if home_highest_lead > 0 else None,
-        'away_highest_lead': away_highest_lead if away_highest_lead > 0 else None
+        'away_highest_lead': away_highest_lead if away_highest_lead > 0 else None,
+        'close_game_ratio': close_game_ratio,
+        'total_game_time': total_game_time
     }
 
 
-def calculate_hotness_score(lead_changes, ties):
+def calculate_hotness_score(lead_changes, ties, close_game_ratio=None):
     """
-    Calculate game hotness score based on lead changes and tied scores.
-    Formula: min(100, (LeadChanges * 3 + Ties * 2))
+    Calculate game hotness score using improved formula that combines game closeness and volatility.
+    
+    New Formula:
+    - Closeness Factor: Percentage of game time where score difference <= 5 points
+    - Volatility Factor: Normalized score from lead changes and ties
+    - Combined: 0.7 * Closeness + 0.3 * Volatility, normalized to 0-100
+    
+    If close_game_ratio is not provided, falls back to old formula for backwards compatibility.
     
     Parameters:
     lead_changes (int): Number of lead changes in the game
     ties (int): Number of times the score was tied
+    close_game_ratio (float, optional): Ratio of game time where score difference <= 5 (0.0 to 1.0)
     
     Returns:
     int: Hotness score between 0 and 100
     """
-    return min(100, (lead_changes * 3 + ties * 2))
+    # Backwards compatibility: if close_game_ratio is not provided, use old formula
+    if close_game_ratio is None:
+        return min(100, (lead_changes * 3 + ties * 2))
+    
+    # New improved formula
+    # Step 1: Closeness factor (already 0-1 ratio)
+    closeness_factor = close_game_ratio
+    
+    # Step 2: Volatility factor - normalize lead changes and ties
+    # Typical competitive games have 5-15 lead changes and 3-10 ties
+    # We'll normalize using reasonable upper bounds: 20 lead changes, 15 ties
+    volatility_raw = (lead_changes * 3 + ties * 2)
+    volatility_factor = min(1.0, volatility_raw / 75.0)  # 75 = (20*3 + 15*2) for normalization
+    
+    # Step 3: Combine with weights (70% closeness, 30% volatility)
+    closeness_weight = 0.7
+    volatility_weight = 0.3
+    
+    combined_score = (closeness_weight * closeness_factor + volatility_weight * volatility_factor)
+    
+    # Step 4: Scale to 0-100
+    hotness_score = int(combined_score * 100)
+    
+    return min(100, max(0, hotness_score))
 
 
 def get_hotness_icon(hotness_score):
@@ -3872,7 +3929,8 @@ def get_game_hover_stats(data, game_id):
         game_stats = _calculate_game_statistics(score_evolution)
         lead_changes = game_stats.get('lead_changes', 0)
         ties = game_stats.get('tied_scores', 0)
-        hotness_score = calculate_hotness_score(lead_changes, ties)
+        close_game_ratio = game_stats.get('close_game_ratio')
+        hotness_score = calculate_hotness_score(lead_changes, ties, close_game_ratio)
         hotness_icon = get_hotness_icon(hotness_score)
     except:
         lead_changes = 0
