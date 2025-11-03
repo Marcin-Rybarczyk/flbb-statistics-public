@@ -315,7 +315,7 @@
                         <th>Division</th>
                         <th>Matchup</th>
                         <th>Score</th>
-                        <th>Result</h3>
+                        <th>Result</th>
                         <th>Margin</th>
                     </tr>
                 </thead>
@@ -329,9 +329,7 @@
                                 <a href="/game-detail/{{ game['GameId'] }}" style="color: #667eea; text-decoration: underline; font-size: 0.85em;">Game {{ game['GameId'] }}</a>
                             </div>
                             <div>
-                                <strong style="color: #2c3e50;">
-                                    <a href="/team-detail?team={{ team_stats['basic_stats']['team_name'] }}" style="color: #2c3e50; text-decoration: none;">{{ team_stats['basic_stats']['team_name'] }}</a>
-                                </strong>
+                                <strong style="color: #2c3e50;">{{ team_stats['basic_stats']['team_name'] }}</strong>
                                 <span style="color: #7f8c8d; font-size: 0.9em;">({{ 'Home' if game['IsHome'] else 'Away' }})</span>
                                 vs
                                 {% set opponent_logo_url = get_team_logo_url(game['Opponent']) %}
