@@ -315,6 +315,7 @@
                         <th>Division</th>
                         <th>Matchup</th>
                         <th>Score</th>
+                        <th>Hotness</th>
                         <th>Result</th>
                         <th>Margin</th>
                     </tr>
@@ -326,7 +327,7 @@
                         <td>{{ game['GameDivisionDisplay'] }}</td>
                         <td>
                             <div style="margin-bottom: 4px;">
-                                <a href="/game-detail/{{ game['GameId'] }}" class="game-link" style="font-size: 0.85em;">Game {{ game['GameId'] }}</a>
+                                <a href="/game-detail/{{ game['GameId'] }}" class="game-link hoverable-item" data-type="game" data-id="{{ game['GameId'] }}" style="font-size: 0.85em;">Game {{ game['GameId'] }}</a>
                             </div>
                             <div>
                                 <strong style="color: #2c3e50;">{{ team_stats['basic_stats']['team_name'] }}</strong>
@@ -340,6 +341,13 @@
                             </div>
                         </td>
                         <td><strong>{{ game['TeamScore'] }} - {{ game['OpponentScore'] }}</strong></td>
+                        <td style="text-align: center;">
+                            {% if game['HotnessIcon'] %}
+                                <span style="font-size: 1.5em;" title="Hotness Score: {{ game['HotnessScore'] }}/100">{{ game['HotnessIcon'] }}</span>
+                            {% else %}
+                                <span>-</span>
+                            {% endif %}
+                        </td>
                         <td><strong>{{ game['Result'] }}</strong></td>
                         <td>{{ '+' if game['Margin'] > 0 else '' }}{{ game['Margin'] }}</td>
                     </tr>

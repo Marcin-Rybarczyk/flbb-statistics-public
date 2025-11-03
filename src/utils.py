@@ -2192,6 +2192,185 @@ def _parse_points_from_action(action):
         return -3
     return 0
 
+def calculate_referee_performance_index(data):
+    """
+    Calculate a comprehensive Referee Performance Index (RPI) based on multiple metrics:
+    - Fairness: balance in fouls called for home vs away teams
+    - Consistency: variance in fouls called per game
+    - Game Control: ratio of technical/unsportsmanlike fouls
+    - Experience: number of games officiated
+    
+    Parameters:
+    data (DataFrame): The game data
+    
+    Returns:
+    DataFrame: Referee performance rankings with detailed metrics
+    """
+    import ast
+    import numpy as np
+    
+    if data.empty:
+        return pd.DataFrame()
+    
+    referee_data = []
+    
+    # Process each game to collect referee-specific metrics
+    for _, game in data.iterrows():
+        try:
+            # Parse referee data
+            if isinstance(game['Referres'], str):
+                refs_data = ast.literal_eval(game['Referres'])
+            else:
+                refs_data = game['Referres']
+        except:
+            continue
+            
+        if not isinstance(refs_data, list):
+            continue
+        
+        # Parse game events
+        home_fouls = 0
+        away_fouls = 0
+        technical_fouls = 0  # T1, U1, U2, C1, B1, D2
+        total_fouls = 0
+        
+        try:
+            if isinstance(game['GameEvents'], str):
+                events_data = ast.literal_eval(game['GameEvents'])
+            else:
+                events_data = game['GameEvents']
+            
+            home_team = game['HomeTeamName']
+            away_team = game['AwayTeamName']
+            
+            for event in events_data:
+                if isinstance(event, dict) and 'EventAction' in event:
+                    action = event['EventAction']
+                    
+                    if 'Foul Added' in action:
+                        total_fouls += 1
+                        
+                        # Determine if it's a technical/unsportsmanlike foul
+                        if any(foul_type in action for foul_type in ['T1', 'U1', 'U2', 'C1', 'B1', 'D2']):
+                            technical_fouls += 1
+                        
+                        # Determine which team committed the foul
+                        event_team = event.get('EventTeam', '')
+                        if event_team == home_team:
+                            home_fouls += 1
+                        elif event_team == away_team:
+                            away_fouls += 1
+        except:
+            pass
+        
+        # Calculate game metrics
+        total_score = game['FinalHomeScore'] + game['FinalAwayScore']
+        score_difference = abs(game['FinalHomeScore'] - game['FinalAwayScore'])
+        foul_differential = abs(home_fouls - away_fouls)
+        technical_foul_rate = (technical_fouls / total_fouls * 100) if total_fouls > 0 else 0
+        
+        # Record metrics for each referee in this game
+        for ref in refs_data:
+            if isinstance(ref, dict) and 'Referee Name' in ref:
+                referee_data.append({
+                    'RefereeName': ref['Referee Name'],
+                    'GameId': game['GameId'],
+                    'TotalFouls': total_fouls,
+                    'HomeFouls': home_fouls,
+                    'AwayFouls': away_fouls,
+                    'FoulDifferential': foul_differential,
+                    'TechnicalFouls': technical_fouls,
+                    'TechnicalFoulRate': technical_foul_rate,
+                    'TotalScore': total_score,
+                    'ScoreDifference': score_difference,
+                    'CloseGame': score_difference <= 10
+                })
+    
+    if not referee_data:
+        return pd.DataFrame()
+    
+    ref_df = pd.DataFrame(referee_data)
+    
+    # Aggregate referee statistics
+    ref_summary = ref_df.groupby('RefereeName').agg({
+        'GameId': 'count',
+        'TotalFouls': ['mean', 'std'],
+        'FoulDifferential': ['mean', 'std'],
+        'TechnicalFoulRate': 'mean',
+        'TotalScore': 'mean',
+        'ScoreDifference': 'mean',
+        'CloseGame': 'sum'
+    }).round(2)
+    
+    # Flatten column names
+    ref_summary.columns = ['_'.join(map(str, col)).strip() if isinstance(col, tuple) else str(col) for col in ref_summary.columns]
+    ref_summary = ref_summary.reset_index()
+    
+    # Rename and calculate derived metrics
+    ref_summary['GamesRefereed'] = ref_summary['GameId_count']
+    ref_summary['AvgFoulsPerGame'] = ref_summary['TotalFouls_mean']
+    ref_summary['FoulVariance'] = ref_summary['TotalFouls_std'].fillna(0)
+    ref_summary['AvgFoulDifferential'] = ref_summary['FoulDifferential_mean']
+    ref_summary['FoulDifferentialVariance'] = ref_summary['FoulDifferential_std'].fillna(0)
+    ref_summary['AvgTechnicalFoulRate'] = ref_summary['TechnicalFoulRate_mean']
+    ref_summary['AvgTotalScore'] = ref_summary['TotalScore_mean']
+    ref_summary['AvgScoreDifference'] = ref_summary['ScoreDifference_mean']
+    ref_summary['CloseGamesCount'] = ref_summary['CloseGame_sum']
+    
+    # Filter referees with at least 3 games for meaningful statistics
+    qualified_refs = ref_summary[ref_summary['GamesRefereed'] >= 3].copy()
+    
+    if qualified_refs.empty:
+        return pd.DataFrame()
+    
+    # Calculate normalized scores (0-100 scale, higher is better)
+    
+    # 1. Fairness Score (lower foul differential is better)
+    max_diff = qualified_refs['AvgFoulDifferential'].max()
+    if max_diff > 0:
+        qualified_refs['FairnessScore'] = ((max_diff - qualified_refs['AvgFoulDifferential']) / max_diff * 100).round(1)
+    else:
+        qualified_refs['FairnessScore'] = 100.0
+    
+    # 2. Consistency Score (lower variance is better)
+    max_variance = qualified_refs['FoulVariance'].max()
+    if max_variance > 0:
+        qualified_refs['ConsistencyScore'] = ((max_variance - qualified_refs['FoulVariance']) / max_variance * 100).round(1)
+    else:
+        qualified_refs['ConsistencyScore'] = 100.0
+    
+    # 3. Game Control Score (lower technical foul rate is better, but not zero)
+    # Normalize technical foul rate - ideal is around 5-10%
+    qualified_refs['GameControlScore'] = qualified_refs['AvgTechnicalFoulRate'].apply(
+        lambda x: max(0, 100 - abs(x - 7.5) * 5)  # Penalty increases as we deviate from 7.5%
+    ).round(1)
+    
+    # 4. Experience Score (more games is better, with diminishing returns)
+    max_games = qualified_refs['GamesRefereed'].max()
+    qualified_refs['ExperienceScore'] = (np.log1p(qualified_refs['GamesRefereed']) / np.log1p(max_games) * 100).round(1)
+    
+    # Calculate Composite RPI (weighted average)
+    # Weights: Fairness 30%, Consistency 30%, Game Control 25%, Experience 15%
+    qualified_refs['RPI'] = (
+        qualified_refs['FairnessScore'] * 0.30 +
+        qualified_refs['ConsistencyScore'] * 0.30 +
+        qualified_refs['GameControlScore'] * 0.25 +
+        qualified_refs['ExperienceScore'] * 0.15
+    ).round(1)
+    
+    # Add ranking
+    qualified_refs = qualified_refs.sort_values('RPI', ascending=False)
+    qualified_refs['Rank'] = range(1, len(qualified_refs) + 1)
+    
+    # Select and order columns for output
+    output_columns = [
+        'Rank', 'RefereeName', 'GamesRefereed', 'RPI',
+        'FairnessScore', 'ConsistencyScore', 'GameControlScore', 'ExperienceScore',
+        'AvgFoulsPerGame', 'FoulVariance', 'AvgFoulDifferential', 'FoulDifferentialVariance',
+        'AvgTechnicalFoulRate', 'AvgTotalScore', 'AvgScoreDifference', 'CloseGamesCount'
+    ]
+    
+    return qualified_refs[output_columns].reset_index(drop=True)
 
 def get_top_scorer_by_game(data):
     """
@@ -2272,6 +2451,21 @@ def get_top_scorer_by_game(data):
         except:
             referee_names = []
         
+        # Calculate hotness for finished games
+        hotness_score = 0
+        hotness_icon = "❄️"
+        if pd.notna(home_score) and pd.notna(away_score):
+            try:
+                if isinstance(game['GameEvents'], str):
+                    events_data = ast.literal_eval(game['GameEvents'])
+                    teams_data = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
+                    score_evolution = _calculate_score_evolution(events_data, home_team, away_team, teams_data)
+                    game_stats = _calculate_game_statistics(score_evolution)
+                    hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'])
+                    hotness_icon = get_hotness_icon(hotness_score)
+            except:
+                pass
+        
         fixtures.append({
             'GameId': game_id,
             'HomeTeam': home_team,
@@ -2285,7 +2479,9 @@ def get_top_scorer_by_game(data):
             'TopScorerPoints': top_scorer_points,
             'TopScorerTeam': top_scorer_team if top_scorer_team else 'N/A',
             'Referees': referee_names,
-            'IsFinished': pd.notna(home_score) and pd.notna(away_score)
+            'IsFinished': pd.notna(home_score) and pd.notna(away_score),
+            'HotnessScore': hotness_score,
+            'HotnessIcon': hotness_icon
         })
     
     return pd.DataFrame(fixtures)
@@ -2352,6 +2548,21 @@ def get_fixtures_matrix_data(data, division_filter=None):
             # Parse location to get just the name
             location_name = parse_location_name(game['GameLocation'])
             
+            # Calculate hotness for finished games
+            hotness_score = 0
+            hotness_icon = "❄️"
+            if pd.notna(game['FinalHomeScore']) and pd.notna(game['FinalAwayScore']):
+                try:
+                    import ast
+                    events = ast.literal_eval(game['GameEvents']) if isinstance(game['GameEvents'], str) else game['GameEvents']
+                    teams = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
+                    score_evolution = _calculate_score_evolution(events, game['HomeTeamName'], game['AwayTeamName'], teams)
+                    game_stats = _calculate_game_statistics(score_evolution)
+                    hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'])
+                    hotness_icon = get_hotness_icon(hotness_score)
+                except:
+                    pass
+            
             # Get enhanced game info
             game_info = {
                 'game_id': game['GameId'],
@@ -2362,7 +2573,9 @@ def get_fixtures_matrix_data(data, division_filter=None):
                 'division': game['GameDivisionDisplay'],
                 'is_finished': pd.notna(game['FinalHomeScore']) and pd.notna(game['FinalAwayScore']),
                 'referees': parse_referees(game['Referres']),
-                'top_scorer': get_game_top_scorer(game)
+                'top_scorer': get_game_top_scorer(game),
+                'hotness_score': hotness_score,
+                'hotness_icon': hotness_icon
             }
             
             matrix[home_team][away_team].append(game_info)
@@ -2984,8 +3197,29 @@ def get_team_detail_stats(data, team_name):
             'cumulative_allowed': cumulative_allowed,
         })
     
-    # Game by game data
-    game_by_game = team_games.to_dict('records')
+    # Game by game data with hotness calculation
+    game_by_game = []
+    for _, row in team_games.iterrows():
+        game_dict = row.to_dict()
+        
+        # Calculate hotness for finished games
+        hotness_score = 0
+        hotness_icon = "❄️"
+        if pd.notna(row['TeamScore']) and pd.notna(row['OpponentScore']):
+            try:
+                import ast
+                events = ast.literal_eval(row['GameEvents']) if isinstance(row['GameEvents'], str) else row['GameEvents']
+                teams = ast.literal_eval(row['Teams']) if isinstance(row['Teams'], str) else row['Teams']
+                score_evolution = _calculate_score_evolution(events, row['HomeTeamName'], row['AwayTeamName'], teams)
+                game_stats = _calculate_game_statistics(score_evolution)
+                hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'])
+                hotness_icon = get_hotness_icon(hotness_score)
+            except:
+                pass
+        
+        game_dict['HotnessScore'] = hotness_score
+        game_dict['HotnessIcon'] = hotness_icon
+        game_by_game.append(game_dict)
     
     return {
         'basic_stats': basic_stats,
@@ -3066,6 +3300,12 @@ def get_game_details(data, game_id):
     
     # Calculate advanced game statistics
     game_stats = _calculate_game_statistics(score_evolution)
+    
+    # Calculate hotness score
+    hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'])
+    hotness_icon = get_hotness_icon(hotness_score)
+    game_stats['hotness_score'] = hotness_score
+    game_stats['hotness_icon'] = hotness_icon
     
     # Calculate timeout and coach information from events
     team_timeouts = {}
@@ -3322,6 +3562,47 @@ def _calculate_game_statistics(score_evolution):
         'home_highest_lead': home_highest_lead if home_highest_lead > 0 else None,
         'away_highest_lead': away_highest_lead if away_highest_lead > 0 else None
     }
+
+
+def calculate_hotness_score(lead_changes, ties):
+    """
+    Calculate game hotness score based on lead changes and tied scores.
+    Formula: min(100, (LeadChanges * 3 + Ties * 2))
+    
+    Parameters:
+    lead_changes (int): Number of lead changes in the game
+    ties (int): Number of times the score was tied
+    
+    Returns:
+    int: Hotness score between 0 and 100
+    """
+    return min(100, (lead_changes * 3 + ties * 2))
+
+
+def get_hotness_icon(hotness_score):
+    """
+    Get the emoji icon(s) representing the game hotness.
+    
+    Ranges:
+    0-20: ❄️ (Cold - snowflake)
+    21-50: 🌡️ (Warm - thermometer)
+    51-80: 🔥 (Hot - single flame)
+    81-100: 🔥🔥 (Thriller - double flame)
+    
+    Parameters:
+    hotness_score (int): The hotness score (0-100)
+    
+    Returns:
+    str: Emoji icon(s) representing the hotness level
+    """
+    if hotness_score <= 20:
+        return "❄️"
+    elif hotness_score <= 50:
+        return "🌡️"
+    elif hotness_score <= 80:
+        return "🔥"
+    else:
+        return "🔥🔥"
 
 
 def get_player_hover_stats(data, player_name):
@@ -3591,14 +3872,20 @@ def get_game_hover_stats(data, game_id):
         game_stats = _calculate_game_statistics(score_evolution)
         lead_changes = game_stats.get('lead_changes', 0)
         ties = game_stats.get('tied_scores', 0)
+        hotness_score = calculate_hotness_score(lead_changes, ties)
+        hotness_icon = get_hotness_icon(hotness_score)
     except:
         lead_changes = 0
         ties = 0
+        hotness_score = 0
+        hotness_icon = "❄️"
     
     return {
         'result': f"{game['HomeTeamName']} {int(game['FinalHomeScore'])} - {int(game['FinalAwayScore'])} {game['AwayTeamName']}",
         'referees': referee_names,
-        'date_time': str(game.get('DateTime', 'N/A')),
-        'lead_changes': int(lead_changes),
-        'ties': int(ties)
+        'date_time': game.get('DateTime', 'N/A'),
+        'lead_changes': lead_changes,
+        'ties': ties,
+        'hotness_score': hotness_score,
+        'hotness_icon': hotness_icon
     }

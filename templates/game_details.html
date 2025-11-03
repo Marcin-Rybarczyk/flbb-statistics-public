@@ -535,7 +535,7 @@
         function selectGame(gameId) {
             searchInput.value = gameId;
             suggestionsDiv.style.display = 'none';
-            window.location.href = `/game-details?game=${encodeURIComponent(gameId)}`;
+            window.location.href = `/game-detail/${encodeURIComponent(gameId)}`;
         }
         
         // Hide suggestions when clicking outside

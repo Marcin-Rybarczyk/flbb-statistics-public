@@ -359,6 +359,9 @@
                                              aria-label="View details for {{ home_team }} vs {{ away_team }} on {{ game.date[:10] if game.date != 'TBD' else 'TBD' }}">
                                             {% if game.is_finished %}
                                                 <div class="game-score">{{ game.home_score }} - {{ game.away_score }}</div>
+                                                {% if game.hotness_icon %}
+                                                    <div style="font-size: 1.2em;" title="Hotness: {{ game.hotness_score }}/100">{{ game.hotness_icon }}</div>
+                                                {% endif %}
                                             {% else %}
                                                 <div class="game-score">vs</div>
                                             {% endif %}
@@ -393,6 +396,7 @@
                         <th>Date & Time</th>
                         <th>Teams</th>
                         <th>Score</th>
+                        <th>Hotness</th>
                         <th>Top Scorer</th>
                         <th>Division</th>
                         <th>Location</th>
@@ -401,7 +405,7 @@
                 <tbody>
                     {% for index, row in fixtures.iterrows() %}
                     <tr class="fixture-row" onclick="window.location.href='/game-detail/{{ row['GameId'] }}'" style="cursor: pointer;">
-                        <td><a href="/game-detail/{{ row['GameId'] }}" class="game-link">{{ row['GameId'] }}</a></td>
+                        <td><a href="/game-detail/{{ row['GameId'] }}" class="game-link hoverable-item" data-type="game" data-id="{{ row['GameId'] }}">{{ row['GameId'] }}</a></td>
                         <td class="date-time">
                             {% if row['DateTime'] %}
                                 {{ row['DateTime'][:16].replace('T', ' ') if 'T' in (row['DateTime'] or '') else row['DateTime'][:16] }}
@@ -429,6 +433,13 @@
                         <td>
                             {% if row['IsFinished'] and row['HomeScore'] is not none and row['AwayScore'] is not none %}
                                 <span class="score-highlight">{{ row['HomeScore'] }} - {{ row['AwayScore'] }}</span>
+                            {% else %}
+                                <span class="unfinished">-</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">
+                            {% if row['IsFinished'] and row['HotnessIcon'] %}
+                                <span style="font-size: 1.5em;" title="Hotness Score: {{ row['HotnessScore'] }}/100">{{ row['HotnessIcon'] }}</span>
                             {% else %}
                                 <span class="unfinished">-</span>
                             {% endif %}

@@ -439,7 +439,7 @@
                         <td>{{ game.GameDivision }}</td>
                         <td>
                             <div style="margin-bottom: 4px;">
-                                <a href="/game-detail/{{ game.GameId }}" class="game-link" style="font-size: 0.85em;">Game {{ game.GameId }}</a>
+                                <a href="/game-detail/{{ game.GameId }}" class="game-link hoverable-item" data-type="game" data-id="{{ game.GameId }}" style="font-size: 0.85em;">Game {{ game.GameId }}</a>
                             </div>
                             <div>
                                 <a href="/team-detail?team={{ game.Team }}" class="team-link">{{ game.Team }}</a>
