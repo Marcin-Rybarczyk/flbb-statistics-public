@@ -858,7 +858,11 @@ def get_top_foulers(data, top_n=10, division=None):
     division (str): Optional division filter
     
     Returns:
-    DataFrame: Top foulers with their statistics
+    DataFrame: Top foulers with their statistics including:
+        - TotalFouls: Sum of all fouls
+        - WeightedTotalFouls: Weighted sum (P/P1/P2/P3=1, T1/U1/U2/U3=2, GD=5)
+        - FoulDetails: String describing foul type breakdown
+        - Individual foul type columns (PFouls, P1Fouls, etc.)
     """
     # Filter by division if specified
     if division:
@@ -876,12 +880,58 @@ def get_top_foulers(data, top_n=10, division=None):
         'P1Fouls': 'sum',
         'P2Fouls': 'sum',
         'P3Fouls': 'sum',
+        'T1Fouls': 'sum',
+        'U1Fouls': 'sum',
+        'U2Fouls': 'sum',
+        'U3Fouls': 'sum',
+        'GDFouls': 'sum',
         'GameId': 'count',  # Games played
         'TotalPoints': 'sum'
     }).reset_index()
     
     foul_stats.rename(columns={'GameId': 'GamesPlayed'}, inplace=True)
     foul_stats['AvgFoulsPerGame'] = (foul_stats['TotalFouls'] / foul_stats['GamesPlayed']).round(1)
+    
+    # Calculate weighted total fouls
+    # P, P1, P2, P3 = weight 1
+    # T1, U1, U2, U3 = weight 2
+    # GD = weight 5
+    foul_stats['WeightedTotalFouls'] = (
+        foul_stats['PFouls'] * 1 +
+        foul_stats['P1Fouls'] * 1 +
+        foul_stats['P2Fouls'] * 1 +
+        foul_stats['P3Fouls'] * 1 +
+        foul_stats['T1Fouls'] * 2 +
+        foul_stats['U1Fouls'] * 2 +
+        foul_stats['U2Fouls'] * 2 +
+        foul_stats['U3Fouls'] * 2 +
+        foul_stats['GDFouls'] * 5
+    )
+    
+    # Create foul details string
+    def create_foul_details(row):
+        details = []
+        if row['PFouls'] > 0:
+            details.append(f"P: {int(row['PFouls'])}")
+        if row['P1Fouls'] > 0:
+            details.append(f"P1: {int(row['P1Fouls'])}")
+        if row['P2Fouls'] > 0:
+            details.append(f"P2: {int(row['P2Fouls'])}")
+        if row['P3Fouls'] > 0:
+            details.append(f"P3: {int(row['P3Fouls'])}")
+        if row['T1Fouls'] > 0:
+            details.append(f"T1: {int(row['T1Fouls'])}")
+        if row['U1Fouls'] > 0:
+            details.append(f"U1: {int(row['U1Fouls'])}")
+        if row['U2Fouls'] > 0:
+            details.append(f"U2: {int(row['U2Fouls'])}")
+        if row['U3Fouls'] > 0:
+            details.append(f"U3: {int(row['U3Fouls'])}")
+        if row['GDFouls'] > 0:
+            details.append(f"GD: {int(row['GDFouls'])}")
+        return ', '.join(details) if details else ''
+    
+    foul_stats['FoulDetails'] = foul_stats.apply(create_foul_details, axis=1)
     
     # Sort by total fouls and return top N
     return foul_stats.sort_values('TotalFouls', ascending=False).head(top_n).reset_index(drop=True)
