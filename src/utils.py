@@ -1030,19 +1030,25 @@ def get_team_performance_stats(data):
     
     return team_df.sort_values('WinPercentage', ascending=False)
 
-def get_highest_scoring_games(data, top_n=10):
+def get_highest_scoring_games(data, top_n=10, division=None):
     """
     Get games with highest total scores.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of games to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Games with highest scores
     """
     # Create a copy to avoid modifying the original data
     data_copy = data.copy()
+    
+    # Filter by division if specified
+    if division:
+        data_copy = data_copy[data_copy['GameDivisionDisplay'] == division]
+    
     data_copy['TotalScore'] = data_copy['FinalHomeScore'] + data_copy['FinalAwayScore']
     highest_games = data_copy.nlargest(top_n, 'TotalScore')
     return highest_games[['GameId', 'HomeTeamName', 'AwayTeamName', 'FinalHomeScore', 'FinalAwayScore', 'TotalScore', 'GameDivisionDisplay']]
@@ -1416,17 +1422,22 @@ def analyze_game_events(data):
     
     return pd.DataFrame(game_analyses)
 
-def get_most_tie_scores(data, top_n=10):
+def get_most_tie_scores(data, top_n=10, division=None):
     """
     Get games with the most tie scores.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of games to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Games with most tie scores
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     game_analysis = analyze_game_events(data)
     
     if game_analysis.empty:
@@ -1434,17 +1445,22 @@ def get_most_tie_scores(data, top_n=10):
     
     return game_analysis.nlargest(top_n, 'TieScores')
 
-def get_most_lead_changes(data, top_n=10):
+def get_most_lead_changes(data, top_n=10, division=None):
     """
     Get games with the most lead changes.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of games to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Games with most lead changes
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     game_analysis = analyze_game_events(data)
     
     if game_analysis.empty:
@@ -1452,17 +1468,22 @@ def get_most_lead_changes(data, top_n=10):
     
     return game_analysis.nlargest(top_n, 'LeadChanges')
 
-def get_biggest_leads(data, top_n=10):
+def get_biggest_leads(data, top_n=10, division=None):
     """
     Get games with the biggest leads.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of games to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Games with biggest leads
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     game_analysis = analyze_game_events(data)
     
     if game_analysis.empty:
@@ -1470,17 +1491,22 @@ def get_biggest_leads(data, top_n=10):
     
     return game_analysis.nlargest(top_n, 'BiggestLead')
 
-def get_biggest_wins(data, top_n=10):
+def get_biggest_wins(data, top_n=10, division=None):
     """
     Get games with the biggest win margins.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of games to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Games with biggest win margins
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     game_analysis = analyze_game_events(data)
     
     if game_analysis.empty:

@@ -1,11 +1,33 @@
 {% extends "base.html" %}
 
-{% block title %}Comprehensive Statistics - FLBB Statistics{% endblock %}
+{% block title %}Game Statistics - FLBB Statistics{% endblock %}
 
-{% block page_title %}📊 Comprehensive Statistics{% endblock %}
-{% block page_description %}Detailed statistical analysis of games, players, and performance{% endblock %}
+{% block page_title %}🎮 Game Statistics{% endblock %}
+{% block page_description %}Comprehensive game statistics and analysis{% endblock %}
 
 {% block content %}
+
+        <!-- Division Filter -->
+        <div class="stats-section">
+            <h2>Filter by Division</h2>
+            <form method="post" action="/statistics" style="text-align: center; margin: 20px 0;">
+                <select name="division" id="division" style="padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; min-width: 250px;">
+                    <option value="">All Divisions</option>
+                    {% for division in divisions %}
+                    <option value="{{ division }}" {% if selected_division == division %}selected{% endif %}>{{ division }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" style="padding: 10px 20px; font-size: 16px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">Filter</button>
+                {% if selected_division %}
+                <a href="/statistics" style="padding: 10px 20px; font-size: 16px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px; text-decoration: none; display: inline-block;">Clear Filter</a>
+                {% endif %}
+            </form>
+            {% if selected_division %}
+            <p style="text-align: center; color: #667eea; font-size: 18px; margin-top: 10px;">
+                <strong>Showing statistics for: {{ selected_division }}</strong>
+            </p>
+            {% endif %}
+        </div>
 
         <div class="stats-section">
             <h2>Top 10 Highest Scoring Games</h2>
@@ -52,254 +74,7 @@
         </div>
 
         <div class="stats-section">
-            <h2>Available Divisions</h2>
-            <ul>
-                {% for division in divisions %}
-                <li><a href="/?division={{ division }}">{{ division }}</a></li>
-                {% endfor %}
-            </ul>
-        </div>
-
-        {% if team_stats is defined and not team_stats.empty %}
-        <div class="stats-section">
-            <h2>Top 10 Teams by Win Percentage</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Rank</th>
-                        <th>Team</th>
-                        <th>Games</th>
-                        <th>Win %</th>
-                        <th>Avg Points Scored</th>
-                        <th>Avg Points Allowed</th>
-                        <th>Point Diff</th>
-                        <th>Highest Score</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for index, row in team_stats.head(10).iterrows() %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td>
-                            <form method="post" action="/team-stats" style="display: inline;">
-                                <input type="hidden" name="team" value="{{ row['Team'] }}">
-                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team'] }}</button>
-                            </form>
-                        </td>
-                        <td>{{ row['TotalGames'] }}</td>
-                        <td><strong>{{ row['WinPercentage'] }}%</strong></td>
-                        <td>{{ "%.1f"|format(row['AvgPointsScored']) }}</td>
-                        <td>{{ "%.1f"|format(row['AvgPointsAllowed']) }}</td>
-                        <td>{{ "%.1f"|format(row['PointsDifferential']) }}</td>
-                        <td>{{ row['HighestScore'] }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% endif %}
-
-        <div class="stats-section">
-            <h2>Player Statistics</h2>
-            
-            <!-- Top 20 Scorers -->
-            <h3>Top 20 Scorers</h3>
-            {% if top_scorers is defined and not top_scorers.empty %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Rank</th>
-                        <th>Player</th>
-                        <th>Team</th>
-                        <th>Games</th>
-                        <th>Total Points</th>
-                        <th>Avg Points/Game</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for index, row in top_scorers.iterrows() %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" style="color: #667eea; text-decoration: underline;">{{ row['PlayerName'] }}</a></td>
-                        <td>
-                            <form method="post" action="/team-stats" style="display: inline;">
-                                <input type="hidden" name="team" value="{{ row['Team'] }}">
-                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team'] }}</button>
-                            </form>
-                        </td>
-                        <td>{{ row['GamesPlayed'] }}</td>
-                        <td><strong>{{ row['TotalPoints'] }}</strong></td>
-                        <td>{{ "%.1f"|format(row['AvgPointsPerGame']) }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <p><em>No player scoring data available.</em></p>
-            {% endif %}
-
-            <!-- Highest Single Game Score -->
-            <h3>Highest Single Game Score</h3>
-            {% if highest_single_score is defined and not highest_single_score.empty %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Player</th>
-                        <th>Team</th>
-                        <th>Points</th>
-                        <th>Game ID</th>
-                        <th>Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for index, row in highest_single_score.iterrows() %}
-                    <tr>
-                        <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" style="color: #667eea; text-decoration: underline;">{{ row['PlayerName'] }}</a></td>
-                        <td>
-                            <form method="post" action="/team-stats" style="display: inline;">
-                                <input type="hidden" name="team" value="{{ row['Team'] }}">
-                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team'] }}</button>
-                            </form>
-                        </td>
-                        <td><strong>{{ row['TotalPoints'] }}</strong></td>
-                        <td><a href="/game-detail/{{ row['GameId'] }}" style="color: #667eea; text-decoration: underline;">{{ row['GameId'] }}</a></td>
-                        <td>{{ row['GameDate'] }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% endif %}
-
-            <!-- Top 10 Three-Pointers -->
-            <h3>Top 10 Three-Point Shooters</h3>
-            {% if top_three_pointers is defined and not top_three_pointers.empty %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Rank</th>
-                        <th>Player</th>
-                        <th>Team</th>
-                        <th>3-Pointers Made</th>
-                        <th>Games</th>
-                        <th>Avg 3PT/Game</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for index, row in top_three_pointers.iterrows() %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" style="color: #667eea; text-decoration: underline;">{{ row['PlayerName'] }}</a></td>
-                        <td>
-                            <form method="post" action="/team-stats" style="display: inline;">
-                                <input type="hidden" name="team" value="{{ row['Team'] }}">
-                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team'] }}</button>
-                            </form>
-                        </td>
-                        <td><strong>{{ row['3PMadeShots'] }}</strong></td>
-                        <td>{{ row['GamesPlayed'] }}</td>
-                        <td>{{ "%.1f"|format(row['AvgThreePointsPerGame']) }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% endif %}
-
-            <!-- Top Foulers -->
-            <h3>Top 10 Foulers</h3>
-            {% if top_foulers is defined and not top_foulers.empty %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Rank</th>
-                        <th>Player</th>
-                        <th>Team</th>
-                        <th>Total Fouls</th>
-                        <th>Games</th>
-                        <th>Avg Fouls/Game</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for index, row in top_foulers.iterrows() %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" style="color: #667eea; text-decoration: underline;">{{ row['PlayerName'] }}</a></td>
-                        <td>
-                            <form method="post" action="/team-stats" style="display: inline;">
-                                <input type="hidden" name="team" value="{{ row['Team'] }}">
-                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team'] }}</button>
-                            </form>
-                        </td>
-                        <td><strong>{{ row['TotalFouls'] }}</strong></td>
-                        <td>{{ row['GamesPlayed'] }}</td>
-                        <td>{{ "%.1f"|format(row['AvgFoulsPerGame']) }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% endif %}
-        </div>
-
-        <div class="stats-section">
-            <h2>Referee Statistics</h2>
-            
-            <!-- Fouls Called Per Game -->
-            <h3>Referees by Fouls Called Per Game</h3>
-            {% if referee_fouls is defined and not referee_fouls.empty %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Rank</th>
-                        <th>Referee</th>
-                        <th>Games</th>
-                        <th>Avg Fouls/Game</th>
-                        <th>Total Fouls</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for index, row in referee_fouls.iterrows() %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td>{{ row['RefereeName'] }}</td>
-                        <td>{{ row['GamesRefereed'] }}</td>
-                        <td><strong>{{ "%.1f"|format(row['AvgFoulsPerGame']) }}</strong></td>
-                        <td>{{ row['FoulsCalledInGame'] }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% endif %}
-
-            <!-- Least Fouls Per Game -->
-            <h3>Referees with Least Fouls Per Game (Min 2 Games)</h3>
-            {% if referee_least_fouls is defined and not referee_least_fouls.empty %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Rank</th>
-                        <th>Referee</th>
-                        <th>Games</th>
-                        <th>Avg Fouls/Game</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for index, row in referee_least_fouls.iterrows() %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td>{{ row['RefereeName'] }}</td>
-                        <td>{{ row['GamesRefereed'] }}</td>
-                        <td><strong>{{ "%.1f"|format(row['AvgFoulsPerGame']) }}</strong></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% endif %}
-        </div>
-
-        <div class="stats-section">
-            <h2>Game Statistics</h2>
-            
-            <!-- Most Tie Scores -->
-            <h3>Games with Most Tie Scores</h3>
+            <h2>Games with Most Tie Scores</h2>
             {% if most_ties is defined and not most_ties.empty %}
             <table>
                 <thead>
@@ -335,10 +110,13 @@
                     {% endfor %}
                 </tbody>
             </table>
+            {% else %}
+            <p><em>No tie score data available.</em></p>
             {% endif %}
+        </div>
 
-            <!-- Most Lead Changes -->
-            <h3>Games with Most Lead Changes</h3>
+        <div class="stats-section">
+            <h2>Games with Most Lead Changes</h2>
             {% if most_lead_changes is defined and not most_lead_changes.empty %}
             <table>
                 <thead>
@@ -374,10 +152,13 @@
                     {% endfor %}
                 </tbody>
             </table>
+            {% else %}
+            <p><em>No lead change data available.</em></p>
             {% endif %}
+        </div>
 
-            <!-- Biggest Leads -->
-            <h3>Games with Biggest Leads</h3>
+        <div class="stats-section">
+            <h2>Games with Biggest Leads</h2>
             {% if biggest_leads is defined and not biggest_leads.empty %}
             <table>
                 <thead>
@@ -413,10 +194,13 @@
                     {% endfor %}
                 </tbody>
             </table>
+            {% else %}
+            <p><em>No biggest lead data available.</em></p>
             {% endif %}
+        </div>
 
-            <!-- Biggest Wins -->
-            <h3>Biggest Win Margins</h3>
+        <div class="stats-section">
+            <h2>Biggest Win Margins</h2>
             {% if biggest_wins is defined and not biggest_wins.empty %}
             <table>
                 <thead>
@@ -459,6 +243,8 @@
                     {% endfor %}
                 </tbody>
             </table>
+            {% else %}
+            <p><em>No win margin data available.</em></p>
             {% endif %}
         </div>
 {% endblock %}
