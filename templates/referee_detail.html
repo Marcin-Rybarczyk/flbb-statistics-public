@@ -453,11 +453,14 @@
             }
             
             // Display suggestions
-            suggestionsDiv.innerHTML = matches.slice(0, 10).map(referee => `
-                <div class="autocomplete-suggestion" onclick="selectReferee('${referee.replace(/'/g, "\\'")}')">
+            suggestionsDiv.innerHTML = matches.slice(0, 10).map(referee => {
+                const escapedForJs = referee.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\\/g, '\\\\');
+                return `
+                <div class="autocomplete-suggestion" onclick="selectReferee('${escapedForJs}')">
                     <strong>${escapeHtml(referee)}</strong>
                 </div>
-            `).join('');
+                `;
+            }).join('');
             
             suggestionsDiv.style.display = 'block';
         });
