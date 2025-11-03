@@ -311,33 +311,37 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Game ID</th>
                         <th>Date</th>
-                        <th>Venue</th>
-                        <th>Opponent</th>
-                        <th>Score</th>
-                        <th>Result</h3>
-                        <th>Margin</th>
                         <th>Division</th>
+                        <th>Matchup</th>
+                        <th>Score</th>
+                        <th>Result</th>
+                        <th>Margin</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for game in team_stats['game_by_game']|reverse %}
                     <tr class="{% if game['Result'] == 'W' %}game-row-win{% else %}game-row-loss{% endif %}">
-                        <td><a href="/game-detail/{{ game['GameId'] }}" style="color: #667eea; text-decoration: underline;">{{ game['GameId'] }}</a></td>
                         <td>{{ game['DateTime'][:10] if game['DateTime'] else 'N/A' }}</td>
-                        <td>{{ 'Home' if game['IsHome'] else 'Away' }}</td>
+                        <td>{{ game['GameDivisionDisplay'] }}</td>
                         <td>
-                            {% set opponent_logo_url = get_team_logo_url(game['Opponent']) %}
-                            {% if opponent_logo_url %}
-                                <img src="{{ opponent_logo_url }}" alt="{{ game['Opponent'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
-                            {% endif %}
-                            <a href="/team-detail?team={{ game['Opponent'] }}" style="color: #667eea; text-decoration: underline;">{{ game['Opponent'] }}</a>
+                            <div style="margin-bottom: 4px;">
+                                <a href="/game-detail/{{ game['GameId'] }}" style="color: #667eea; text-decoration: underline; font-size: 0.85em;">Game {{ game['GameId'] }}</a>
+                            </div>
+                            <div>
+                                <strong style="color: #2c3e50;">{{ team_stats['basic_stats']['team_name'] }}</strong>
+                                <span style="color: #7f8c8d; font-size: 0.9em;">({{ 'Home' if game['IsHome'] else 'Away' }})</span>
+                                vs
+                                {% set opponent_logo_url = get_team_logo_url(game['Opponent']) %}
+                                {% if opponent_logo_url %}
+                                    <img src="{{ opponent_logo_url }}" alt="{{ game['Opponent'] }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin: 0 4px;">
+                                {% endif %}
+                                <a href="/team-detail?team={{ game['Opponent'] }}" style="color: #667eea; text-decoration: underline;">{{ game['Opponent'] }}</a>
+                            </div>
                         </td>
                         <td><strong>{{ game['TeamScore'] }} - {{ game['OpponentScore'] }}</strong></td>
                         <td><strong>{{ game['Result'] }}</strong></td>
                         <td>{{ '+' if game['Margin'] > 0 else '' }}{{ game['Margin'] }}</td>
-                        <td>{{ game['GameDivisionDisplay'] }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>

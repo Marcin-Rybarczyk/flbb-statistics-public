@@ -413,10 +413,8 @@
                 <thead>
                     <tr>
                         <th>Date</th>
-                        <th>Game ID</th>
-                        <th>Team</th>
                         <th>Division</th>
-                        <th>Opponent</th>
+                        <th>Matchup</th>
                         <th>Status</th>
                         <th>Points</th>
                         <th>1P</th>
@@ -438,10 +436,17 @@
                     {% for game in player_stats.game_by_game %}
                     <tr>
                         <td>{{ game.GameDate }}</td>
-                        <td><a href="/game-detail/{{ game.GameId }}" style="color: #667eea; text-decoration: underline;">{{ game.GameId }}</a></td>
-                        <td>{{ game.Team }}</td>
                         <td>{{ game.GameDivision }}</td>
-                        <td>{{ game.OpponentTeam }}</td>
+                        <td>
+                            <div style="margin-bottom: 4px;">
+                                <a href="/game-detail/{{ game.GameId }}" style="color: #667eea; text-decoration: underline; font-size: 0.85em;">Game {{ game.GameId }}</a>
+                            </div>
+                            <div>
+                                <a href="/team-detail?team={{ game.Team }}" style="color: #667eea; text-decoration: underline;">{{ game.Team }}</a>
+                                vs
+                                <a href="/team-detail?team={{ game.OpponentTeam }}" style="color: #667eea; text-decoration: underline;">{{ game.OpponentTeam }}</a>
+                            </div>
+                        </td>
                         <td>
                             {% if game.StartingFive %}
                             <span class="badge badge-starter">Starter</span>
