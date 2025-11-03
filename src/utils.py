@@ -3296,6 +3296,9 @@ def get_player_hover_stats(data, player_name):
         - avg_score: Average points per game
         - fouls_per_game: Average fouls per game
         - best_score: Highest score in one game
+        - team: Team name
+        - player_number: Player's number
+        - last_three_scores: List of scores from last 3 games
     """
     player_stats = extract_all_player_stats(data)
     
@@ -3308,11 +3311,26 @@ def get_player_hover_stats(data, player_name):
     if player_games.empty:
         return None
     
+    # Sort by game date to get most recent games
+    player_games = player_games.sort_values('GameDate')
+    
+    # Get team name (most recent team if player changed teams)
+    team = player_games.iloc[-1]['Team']
+    
+    # Get player number (most recent number)
+    player_number = player_games.iloc[-1]['PlayerNumber']
+    
+    # Get last 3 game scores
+    last_three_scores = player_games.tail(3)['TotalPoints'].tolist()
+    
     return {
         'games_played': len(player_games),
         'avg_score': round(player_games['TotalPoints'].mean(), 1),
         'fouls_per_game': round(player_games['TotalFouls'].mean(), 1),
-        'best_score': int(player_games['TotalPoints'].max())
+        'best_score': int(player_games['TotalPoints'].max()),
+        'team': team,
+        'player_number': int(player_number) if pd.notna(player_number) else None,
+        'last_three_scores': last_three_scores
     }
 
 
@@ -3329,6 +3347,10 @@ def get_team_hover_stats(data, team_name):
         - wins: Number of wins
         - losses: Number of losses
         - last_five: List of results for last 5 games (W/L)
+        - position: Current position in division standings
+        - total_teams: Total number of teams in division
+        - division: Division name
+        - top_scorers: List of top 5 scorers with their average points
     """
     if data.empty:
         return None
@@ -3341,6 +3363,9 @@ def get_team_hover_stats(data, team_name):
     
     if team_games.empty:
         return None
+    
+    # Get division name from first game
+    division = team_games.iloc[0]['GameDivisionDisplay']
     
     # Sort by date
     team_games = team_games.sort_values('DateTime')
@@ -3367,10 +3392,47 @@ def get_team_hover_stats(data, team_name):
     # Get last 5 games
     last_five = team_games.tail(5)['Result'].tolist()
     
+    # Calculate position in division standings
+    position = None
+    total_teams = None
+    if division:
+        standings = calculate_standings_by_division(data, division)
+        if not standings.empty:
+            total_teams = len(standings)
+            team_row = standings[standings['Team Name'] == team_name]
+            if not team_row.empty:
+                # Get position (index starts at 1 in standings)
+                position = team_row.index[0]
+    
+    # Get top 5 scorers for this team
+    top_scorers = []
+    player_stats = extract_all_player_stats(data)
+    if not player_stats.empty:
+        team_players = player_stats[player_stats['Team'] == team_name].copy()
+        if not team_players.empty:
+            # Group by player name and calculate average points
+            player_avg = team_players.groupby('PlayerName').agg({
+                'TotalPoints': 'mean',
+                'GameId': 'count'
+            }).rename(columns={'TotalPoints': 'AvgPoints', 'GameId': 'GamesPlayed'})
+            
+            # Sort by average points and get top 5
+            player_avg = player_avg.sort_values('AvgPoints', ascending=False).head(5)
+            
+            for player_name, row in player_avg.iterrows():
+                top_scorers.append({
+                    'name': player_name,
+                    'avg_points': round(row['AvgPoints'], 1)
+                })
+    
     return {
         'wins': wins,
         'losses': losses,
-        'last_five': last_five
+        'last_five': last_five,
+        'position': position,
+        'total_teams': total_teams,
+        'division': division,
+        'top_scorers': top_scorers
     }
 
 
@@ -3415,12 +3477,20 @@ def get_referee_hover_stats(data, referee_name):
         try:
             teams = ast.literal_eval(game_row['Teams']) if isinstance(game_row['Teams'], str) else game_row['Teams']
             game_fouls = 0
-            for team in teams:
-                if 'Players' in team:
-                    for player in team['Players']:
-                        game_fouls += player.get('TotalFouls', 0)
+            if isinstance(teams, list):
+                for team in teams:
+                    if isinstance(team, dict) and 'Players' in team:
+                        players = team['Players']
+                        if isinstance(players, list):
+                            for player in players:
+                                if isinstance(player, dict):
+                                    # Try both key formats
+                                    fouls = player.get('Total Fouls', player.get('TotalFouls', 0))
+                                    game_fouls += fouls
+            # Append fouls count including zero (legitimate no fouls game)
             total_fouls.append(game_fouls)
-        except:
+        except Exception as e:
+            # Continue to next game if there's an error
             continue
     
     avg_fouls = round(sum(total_fouls) / len(total_fouls), 1) if total_fouls else 0
