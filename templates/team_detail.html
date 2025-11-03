@@ -90,70 +90,8 @@
         
         .chart-container {
             position: relative;
-            height: 300px;
+            height: 400px;
             margin-top: 20px;
-        }
-        
-        .chart-line {
-            display: flex;
-            align-items: flex-end;
-            height: 100%;
-            gap: 2px;
-        }
-        
-        .chart-bar-group {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2px;
-        }
-        
-        .chart-bar {
-            width: 100%;
-            border-radius: 3px 3px 0 0;
-            transition: all 0.3s ease;
-            position: relative;
-            min-height: 5px;
-        }
-        
-        .chart-bar-scored {
-            background: linear-gradient(135deg, #27ae60, #2ecc71);
-        }
-        
-        .chart-bar-allowed {
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
-        }
-        
-        .chart-bar:hover {
-            opacity: 0.8;
-            transform: scaleY(1.05);
-        }
-        
-        .chart-label {
-            font-size: 0.7em;
-            color: #7f8c8d;
-            margin-top: 5px;
-            text-align: center;
-        }
-        
-        .chart-legend {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-bottom: 20px;
-        }
-        
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .legend-color {
-            width: 30px;
-            height: 15px;
-            border-radius: 3px;
         }
         
         .game-row-win {
@@ -223,36 +161,11 @@
         <div class="stats-section">
             <h2>Performance Evolution</h2>
             <div class="performance-chart">
-                <div class="chart-legend">
-                    <div class="legend-item">
-                        <div class="legend-color chart-bar-scored"></div>
-                        <span>Points Scored</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color chart-bar-allowed"></div>
-                        <span>Points Allowed</span>
-                    </div>
-                </div>
                 <div class="chart-container">
-                    {% set scored_values = team_stats['performance_evolution']|map(attribute='scored')|list %}
-                    {% set allowed_values = team_stats['performance_evolution']|map(attribute='allowed')|list %}
-                    {% set max_score = [scored_values|max, allowed_values|max]|max %}
-                    <div class="chart-line">
-                        {% for game in team_stats['performance_evolution'] %}
-                        <div class="chart-bar-group" title="Game {{ game['game_number'] }}: {{ game['scored'] }}-{{ game['allowed'] }}">
-                            <div class="chart-bar chart-bar-scored" 
-                                 style="height: {{ (game['scored'] / max_score * 100) }}%;"></div>
-                            <div class="chart-bar chart-bar-allowed" 
-                                 style="height: {{ (game['allowed'] / max_score * 100) }}%;"></div>
-                            {% if loop.index0 % 3 == 0 %}
-                            <div class="chart-label">G{{ game['game_number'] }}</div>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-                    </div>
+                    <canvas id="performanceChart"></canvas>
                 </div>
                 <p style="text-align: center; color: #7f8c8d; margin-top: 20px;">
-                    <em>Points scored (green) and allowed (red) across all games</em>
+                    <em>Point difference (positive = win, negative = loss) across all games</em>
                 </p>
             </div>
         </div>
@@ -371,6 +284,9 @@
 {% endblock %}
 
 {% block scripts %}
+    <!-- Chart.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    
     <script>
         // Team data for autocomplete
         const allTeams = {{ all_teams|tojson }};
@@ -430,5 +346,145 @@
                 }
             }
         });
+        
+        {% if team_stats %}
+        // Performance Evolution Chart
+        const performanceData = {{ team_stats['performance_evolution']|tojson }};
+        
+        const ctx = document.getElementById('performanceChart').getContext('2d');
+        const performanceChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: performanceData.map(game => `Game ${game.game_number}`),
+                datasets: [{
+                    label: 'Point Difference',
+                    data: performanceData.map(game => game.margin),
+                    borderColor: function(context) {
+                        const value = context.raw;
+                        return value >= 0 ? 'rgba(46, 204, 113, 1)' : 'rgba(231, 76, 60, 1)';
+                    },
+                    backgroundColor: function(context) {
+                        const value = context.raw;
+                        return value >= 0 ? 'rgba(46, 204, 113, 0.1)' : 'rgba(231, 76, 60, 0.1)';
+                    },
+                    segment: {
+                        borderColor: function(context) {
+                            const value = context.p1.parsed.y;
+                            return value >= 0 ? 'rgba(46, 204, 113, 1)' : 'rgba(231, 76, 60, 1)';
+                        }
+                    },
+                    borderWidth: 3,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: function(context) {
+                        const value = context.raw;
+                        return value >= 0 ? 'rgba(46, 204, 113, 1)' : 'rgba(231, 76, 60, 1)';
+                    },
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            color: '#2c3e50'
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const game = performanceData[context.dataIndex];
+                                const margin = context.parsed.y;
+                                const result = margin > 0 ? 'Win' : (margin < 0 ? 'Loss' : 'Tie');
+                                return [
+                                    `${result} by ${Math.abs(margin)} points`,
+                                    `Score: ${game.scored}-${game.allowed}`,
+                                    `Date: ${game.date}`
+                                ];
+                            }
+                        },
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        padding: 12,
+                        displayColors: false
+                    }
+                },
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Point Difference',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            color: '#2c3e50'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#7f8c8d',
+                            font: {
+                                size: 12
+                            },
+                            callback: function(value) {
+                                return (value > 0 ? '+' : '') + value;
+                            }
+                        },
+                        // Add a zero line
+                        afterDataLimits: function(axis) {
+                            axis.min = Math.min(axis.min, -5);
+                            axis.max = Math.max(axis.max, 5);
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Games',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            color: '#2c3e50'
+                        },
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#7f8c8d',
+                            font: {
+                                size: 11
+                            },
+                            maxRotation: 45,
+                            minRotation: 0
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                }
+            }
+        });
+        {% endif %}
     </script>
 {% endblock %}
