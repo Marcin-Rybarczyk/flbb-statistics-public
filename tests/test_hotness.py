@@ -22,7 +22,7 @@ def test_basic_hotness_calculation():
     lead_changes = 5
     ties = 3
     hotness = calculate_hotness_score(lead_changes, ties)
-    expected = min(100, (5 * 3 + 3 * 2))  # 15 + 6 = 21
+    expected = min(100, (5 * 3 + 3 * 2))  # (5*3 + 3*2) = 21
     
     print(f"Lead Changes: {lead_changes}, Ties: {ties}")
     print(f"Hotness Score: {hotness}")
@@ -113,8 +113,8 @@ def test_game_statistics_calculation():
     print(f"  Away Highest Lead: {stats['away_highest_lead']}")
     
     # Verify expected values
-    expected_ties = 2  # At 0-0, 5-5, and 12-12
-    expected_lead_changes = 4  # Home leads, Away leads, Home leads, Away leads, tie
+    expected_ties = 3  # At 0-0, 5-5, and 12-12
+    expected_lead_changes = 4  # Home leads, Away leads, Home leads, Away leads
     
     print(f"\nExpected:")
     print(f"  Tied Scores: {expected_ties}")

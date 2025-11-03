@@ -3345,6 +3345,7 @@ def _calculate_game_statistics(score_evolution):
         elapsed_seconds = point.get('elapsed_seconds', 0)
         
         # Calculate time-weighted closeness (score difference <= 5 points)
+        # We use previous_margin because between events, the score was at the previous state
         if i > 0 and previous_margin is not None:
             time_delta = elapsed_seconds - previous_elapsed_seconds
             if time_delta > 0 and previous_margin <= 5:
