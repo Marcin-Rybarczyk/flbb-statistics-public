@@ -2555,6 +2555,33 @@ def get_all_players_list(data):
     
     return players_list
 
+def get_all_referees_list(data):
+    """
+    Get a list of all unique referees for autocomplete/search.
+    
+    This function extracts referee names from game data and returns them
+    sorted alphabetically for use in search autocomplete functionality.
+    
+    Parameters:
+    data (DataFrame): The game data containing referee information
+    
+    Returns:
+    list: List of unique referee names sorted alphabetically, or empty list if no data
+    
+    Note:
+    Depends on extract_referee_stats() which parses referee data from the 
+    'Referres' column in the game data DataFrame.
+    """
+    ref_stats = extract_referee_stats(data)
+    
+    if ref_stats.empty:
+        return []
+    
+    # Get unique referee names and sort
+    unique_referees = sorted(ref_stats['RefereeName'].unique())
+    
+    return unique_referees
+
 def get_player_detail_stats(data, player_name):
     """
     Get comprehensive statistics for a specific player.
