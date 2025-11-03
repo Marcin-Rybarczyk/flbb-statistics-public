@@ -1221,7 +1221,9 @@ def get_referee_detail_stats(data, referee_name):
                             game_foul_types['D2'] += 1
                             foul_types['D2'] += 1
                         else:
-                            # Catch any unexpected foul types
+                            # Catch any unexpected foul types not yet categorized
+                            # If this happens, the foul type should be investigated and potentially
+                            # added as a new category above
                             game_foul_types['Other'] += 1
                             foul_types['Other'] += 1
         except:
