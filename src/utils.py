@@ -350,6 +350,7 @@ def extract_all_player_stats(data):
     for _, game in data.iterrows():
         game_id = game['GameId']
         game_date = game['DateTime']
+        game_division = game.get('GameDivisionDisplay', 'Unknown')
         home_team = game.get('HomeTeamName', 'Unknown')
         away_team = game.get('AwayTeamName', 'Unknown')
         
@@ -387,6 +388,7 @@ def extract_all_player_stats(data):
                 player_record = {
                     'GameId': game_id,
                     'GameDate': game_date,
+                    'GameDivision': game_division,
                     'PlayerName': player.get('Player Name', 'Unknown'),
                     'PlayerNumber': player.get('Player Number', 0),
                     'Team': team_name,
