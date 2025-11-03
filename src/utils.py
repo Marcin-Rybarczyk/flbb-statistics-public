@@ -3002,13 +3002,16 @@ def _calculate_score_evolution(events, home_team, away_team, teams=None):
     teams (list): List of team objects with Team Name and Team Name Short
     
     Returns:
-    list: List of score points with quarters, scores, foul counts, and elapsed time
+    list: List of score points with quarters, scores, foul counts, timeouts, and elapsed time
     """
     from datetime import datetime
     
     score_points = []
     home_fouls = 0
     away_fouls = 0
+    last_home_score = 0
+    last_away_score = 0
+    last_quarter = 1
     
     # Extract team short names for matching event teams
     home_team_short = home_team
@@ -3044,16 +3047,28 @@ def _calculate_score_evolution(events, home_team, away_team, teams=None):
         is_foul_deleted = 'foul deleted' in event_action
         
         if is_foul_added and not is_foul_deleted:
-            if event_team == home_team_short:
+            if event_team == home_team_short or event_team == home_team:
                 home_fouls += 1
-            elif event_team == away_team_short:
+            elif event_team == away_team_short or event_team == away_team:
                 away_fouls += 1
         elif is_foul_deleted:
             # Handle foul deletions by decrementing
-            if event_team == home_team_short and home_fouls > 0:
+            if (event_team == home_team_short or event_team == home_team) and home_fouls > 0:
                 home_fouls -= 1
-            elif event_team == away_team_short and away_fouls > 0:
+            elif (event_team == away_team_short or event_team == away_team) and away_fouls > 0:
                 away_fouls -= 1
+        
+        # Calculate elapsed time in seconds from first event
+        elapsed_seconds = 0
+        if first_event_time and event.get('EventDateTime'):
+            try:
+                event_time = datetime.fromisoformat(event.get('EventDateTime', '').replace('Z', '+00:00'))
+                elapsed_seconds = (event_time - first_event_time).total_seconds()
+            except:
+                pass
+        
+        # Check for timeout event
+        is_timeout = 'timeout' in event_action
         
         # Track score changes
         if event.get('EventScore'):
@@ -3066,15 +3081,9 @@ def _calculate_score_evolution(events, home_team, away_team, teams=None):
                     parts = score_str.split(':')
                     home_score = int(parts[0].strip())
                     away_score = int(parts[1].strip())
-                    
-                    # Calculate elapsed time in seconds from first event
-                    elapsed_seconds = 0
-                    if first_event_time and event.get('EventDateTime'):
-                        try:
-                            event_time = datetime.fromisoformat(event.get('EventDateTime', '').replace('Z', '+00:00'))
-                            elapsed_seconds = (event_time - first_event_time).total_seconds()
-                        except:
-                            pass
+                    last_home_score = home_score
+                    last_away_score = away_score
+                    last_quarter = quarter
                     
                     score_points.append({
                         'quarter': quarter,
@@ -3084,10 +3093,25 @@ def _calculate_score_evolution(events, home_team, away_team, teams=None):
                         'away_fouls': away_fouls,
                         'time': event.get('EventDateTime', ''),
                         'elapsed_seconds': elapsed_seconds,
-                        'event': event.get('EventAction', '')
+                        'event': event.get('EventAction', ''),
+                        'is_timeout': False
                     })
                 except:
                     pass
+        elif is_timeout:
+            # Add timeout marker with last known score
+            score_points.append({
+                'quarter': event.get('EventQuarter', last_quarter),
+                'home_score': last_home_score,
+                'away_score': last_away_score,
+                'home_fouls': home_fouls,
+                'away_fouls': away_fouls,
+                'time': event.get('EventDateTime', ''),
+                'elapsed_seconds': elapsed_seconds,
+                'event': event.get('EventAction', ''),
+                'is_timeout': True,
+                'timeout_team': event_team
+            })
     
     return score_points
 
