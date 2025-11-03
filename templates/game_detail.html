@@ -51,6 +51,37 @@
         margin: 5px 0;
     }
 
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-label {
+        font-size: 0.9em;
+        color: #666;
+        margin-bottom: 5px;
+    }
+
+    .stat-value {
+        font-size: 1.5em;
+        font-weight: bold;
+        color: #667eea;
+    }
+
+    .stat-value.home-team {
+        color: #2980b9;
+    }
+
+    .stat-value.away-team {
+        color: #e67e22;
+    }
+
     .section {
         background: white;
         padding: 25px;
@@ -218,6 +249,10 @@
         .game-info-grid {
             grid-template-columns: 1fr;
         }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
     }
 {% endblock %}
 
@@ -241,34 +276,37 @@
 
         <!-- Game Statistics -->
         {% if game.game_stats %}
-        <div class="game-info-grid" style="margin-top: 20px;">
-            <div class="info-card">
-                <h3>🔄 Lead Changes</h3>
-                <p style="font-size: 2em; font-weight: bold; color: #667eea;">{{ game.game_stats.lead_changes }}</p>
-            </div>
-            <div class="info-card">
-                <h3>⚖️ Tied Scores</h3>
-                <p style="font-size: 2em; font-weight: bold; color: #667eea;">{{ game.game_stats.tied_scores }}</p>
-            </div>
-            <div class="info-card">
-                <h3>📊 {{ game.basic_info.home_team }} Highest Lead</h3>
-                <p style="font-size: 2em; font-weight: bold; color: #2980b9;">
-                    {% if game.game_stats.home_highest_lead %}
-                        +{{ game.game_stats.home_highest_lead }}
-                    {% else %}
-                        N/A
-                    {% endif %}
-                </p>
-            </div>
-            <div class="info-card">
-                <h3>📊 {{ game.basic_info.away_team }} Highest Lead</h3>
-                <p style="font-size: 2em; font-weight: bold; color: #e67e22;">
-                    {% if game.game_stats.away_highest_lead %}
-                        +{{ game.game_stats.away_highest_lead }}
-                    {% else %}
-                        N/A
-                    {% endif %}
-                </p>
+        <div class="info-card" style="margin-top: 20px;">
+            <h3>📊 Game Flow Statistics</h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">🔄 Lead Changes</div>
+                    <div class="stat-value">{{ game.game_stats.lead_changes }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">⚖️ Tied Scores</div>
+                    <div class="stat-value">{{ game.game_stats.tied_scores }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">{{ game.basic_info.home_team }} Lead</div>
+                    <div class="stat-value home-team">
+                        {% if game.game_stats.home_highest_lead %}
+                            +{{ game.game_stats.home_highest_lead }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">{{ game.basic_info.away_team }} Lead</div>
+                    <div class="stat-value away-team">
+                        {% if game.game_stats.away_highest_lead %}
+                            +{{ game.game_stats.away_highest_lead }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
         {% endif %}
