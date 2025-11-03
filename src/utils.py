@@ -3358,7 +3358,11 @@ def get_referee_hover_stats(data, referee_name):
     for idx, row in data.iterrows():
         try:
             referees = ast.literal_eval(row['Referres']) if isinstance(row['Referres'], str) else row['Referres']
-            if referees and any(ref.get('RefereeName') == referee_name for ref in referees):
+            # Check for both 'RefereeName' and 'Referee Name' keys
+            if referees and any(
+                ref.get('RefereeName') == referee_name or ref.get('Referee Name') == referee_name 
+                for ref in referees
+            ):
                 referee_games.append(row)
         except:
             continue
@@ -3420,7 +3424,11 @@ def get_game_hover_stats(data, game_id):
     # Parse referees
     try:
         referees = ast.literal_eval(game['Referres']) if isinstance(game['Referres'], str) else game['Referres']
-        referee_names = [ref.get('RefereeName', 'Unknown') for ref in referees] if referees else []
+        # Check for both key formats
+        referee_names = [
+            ref.get('RefereeName') or ref.get('Referee Name', 'Unknown') 
+            for ref in referees
+        ] if referees else []
     except:
         referee_names = []
     
