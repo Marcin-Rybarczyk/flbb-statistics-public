@@ -3324,13 +3324,13 @@ def get_player_hover_stats(data, player_name):
     last_three_scores = player_games.tail(3)['TotalPoints'].tolist()
     
     return {
-        'games_played': len(player_games),
-        'avg_score': round(player_games['TotalPoints'].mean(), 1),
-        'fouls_per_game': round(player_games['TotalFouls'].mean(), 1),
+        'games_played': int(len(player_games)),
+        'avg_score': float(round(player_games['TotalPoints'].mean(), 1)),
+        'fouls_per_game': float(round(player_games['TotalFouls'].mean(), 1)),
         'best_score': int(player_games['TotalPoints'].max()),
-        'team': team,
+        'team': str(team),
         'player_number': int(player_number) if pd.notna(player_number) else None,
-        'last_three_scores': last_three_scores
+        'last_three_scores': [int(score) for score in last_three_scores]
     }
 
 
@@ -3426,12 +3426,12 @@ def get_team_hover_stats(data, team_name):
                 })
     
     return {
-        'wins': wins,
-        'losses': losses,
+        'wins': int(wins) if wins is not None else 0,
+        'losses': int(losses) if losses is not None else 0,
         'last_five': last_five,
-        'position': position,
-        'total_teams': total_teams,
-        'division': division,
+        'position': int(position) if position is not None else None,
+        'total_teams': int(total_teams) if total_teams is not None else None,
+        'division': str(division) if division is not None else None,
         'top_scorers': top_scorers
     }
 
@@ -3496,8 +3496,8 @@ def get_referee_hover_stats(data, referee_name):
     avg_fouls = round(sum(total_fouls) / len(total_fouls), 1) if total_fouls else 0
     
     return {
-        'games': len(referee_games),
-        'fouls_per_game': avg_fouls
+        'games': int(len(referee_games)),
+        'fouls_per_game': float(avg_fouls)
     }
 
 
@@ -3554,9 +3554,9 @@ def get_game_hover_stats(data, game_id):
         ties = 0
     
     return {
-        'result': f"{game['HomeTeamName']} {game['FinalHomeScore']} - {game['FinalAwayScore']} {game['AwayTeamName']}",
+        'result': f"{game['HomeTeamName']} {int(game['FinalHomeScore'])} - {int(game['FinalAwayScore'])} {game['AwayTeamName']}",
         'referees': referee_names,
-        'date_time': game.get('DateTime', 'N/A'),
-        'lead_changes': lead_changes,
-        'ties': ties
+        'date_time': str(game.get('DateTime', 'N/A')),
+        'lead_changes': int(lead_changes),
+        'ties': int(ties)
     }
