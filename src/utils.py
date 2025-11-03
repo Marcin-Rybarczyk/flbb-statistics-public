@@ -2653,6 +2653,124 @@ def _analyze_player_quarters(data, player_name):
     return quarter_stats
 
 
+def get_team_detail_stats(data, team_name):
+    """
+    Get comprehensive statistics for a specific team.
+    
+    Parameters:
+    data (DataFrame): The game data
+    team_name (str): The name of the team
+    
+    Returns:
+    dict: Comprehensive team statistics including:
+        - basic_stats: Overall team statistics
+        - game_by_game: Detailed game-by-game performance
+        - performance_evolution: Time series of scores and allowed points
+    """
+    if data.empty:
+        return None
+    
+    # Filter games for this team
+    team_games = data[
+        (data['HomeTeamName'] == team_name) | 
+        (data['AwayTeamName'] == team_name)
+    ].copy()
+    
+    if team_games.empty:
+        return None
+    
+    # Sort by date
+    team_games = team_games.sort_values('DateTime')
+    
+    # Process each game
+    team_games['IsHome'] = team_games['HomeTeamName'] == team_name
+    team_games['TeamScore'] = team_games.apply(
+        lambda row: row['FinalHomeScore'] if row['IsHome'] else row['FinalAwayScore'], 
+        axis=1
+    )
+    team_games['OpponentScore'] = team_games.apply(
+        lambda row: row['FinalAwayScore'] if row['IsHome'] else row['FinalHomeScore'], 
+        axis=1
+    )
+    team_games['Opponent'] = team_games.apply(
+        lambda row: row['AwayTeamName'] if row['IsHome'] else row['HomeTeamName'], 
+        axis=1
+    )
+    team_games['Result'] = team_games.apply(
+        lambda row: 'W' if row['TeamScore'] > row['OpponentScore'] else 'L', 
+        axis=1
+    )
+    team_games['Margin'] = team_games['TeamScore'] - team_games['OpponentScore']
+    
+    # Calculate basic statistics
+    wins = len(team_games[team_games['Result'] == 'W'])
+    losses = len(team_games[team_games['Result'] == 'L'])
+    total_games = len(team_games)
+    
+    basic_stats = {
+        'team_name': team_name,
+        'total_games': total_games,
+        'wins': wins,
+        'losses': losses,
+        'win_percentage': round((wins / total_games * 100), 1) if total_games > 0 else 0,
+        'avg_points_scored': round(team_games['TeamScore'].mean(), 1),
+        'avg_points_allowed': round(team_games['OpponentScore'].mean(), 1),
+        'point_differential': round(team_games['Margin'].mean(), 1),
+        'highest_score': int(team_games['TeamScore'].max()),
+        'lowest_score': int(team_games['TeamScore'].min()),
+        'biggest_win': int(team_games['Margin'].max()),
+        'worst_loss': int(team_games['Margin'].min()),
+        'home_games': int(team_games['IsHome'].sum()),
+        'away_games': int((~team_games['IsHome']).sum()),
+    }
+    
+    # Home/away split
+    home_games = team_games[team_games['IsHome']]
+    away_games = team_games[~team_games['IsHome']]
+    
+    if not home_games.empty:
+        home_wins = len(home_games[home_games['Result'] == 'W'])
+        basic_stats['home_win_percentage'] = round((home_wins / len(home_games) * 100), 1)
+        basic_stats['avg_home_scored'] = round(home_games['TeamScore'].mean(), 1)
+    else:
+        basic_stats['home_win_percentage'] = 0
+        basic_stats['avg_home_scored'] = 0
+    
+    if not away_games.empty:
+        away_wins = len(away_games[away_games['Result'] == 'W'])
+        basic_stats['away_win_percentage'] = round((away_wins / len(away_games) * 100), 1)
+        basic_stats['avg_away_scored'] = round(away_games['TeamScore'].mean(), 1)
+    else:
+        basic_stats['away_win_percentage'] = 0
+        basic_stats['avg_away_scored'] = 0
+    
+    # Performance evolution data (for charts)
+    performance_evolution = []
+    cumulative_scored = 0
+    cumulative_allowed = 0
+    
+    for idx, (_, row) in enumerate(team_games.iterrows(), 1):
+        cumulative_scored += int(row['TeamScore'])
+        cumulative_allowed += int(row['OpponentScore'])
+        performance_evolution.append({
+            'game_number': idx,
+            'date': row['DateTime'][:10] if row['DateTime'] else 'N/A',
+            'scored': int(row['TeamScore']),
+            'allowed': int(row['OpponentScore']),
+            'cumulative_scored': cumulative_scored,
+            'cumulative_allowed': cumulative_allowed,
+        })
+    
+    # Game by game data
+    game_by_game = team_games.to_dict('records')
+    
+    return {
+        'basic_stats': basic_stats,
+        'game_by_game': game_by_game,
+        'performance_evolution': performance_evolution
+    }
+
+
 def get_game_details(data, game_id):
     """
     Get comprehensive details for a specific game.

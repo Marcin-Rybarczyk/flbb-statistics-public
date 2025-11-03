@@ -1,0 +1,422 @@
+{% extends "base.html" %}
+
+{% block title %}Team Detail - FLBB Statistics{% endblock %}
+
+{% block page_title %}🏆 Team Detail Statistics{% endblock %}
+{% block page_description %}Comprehensive team performance analysis{% endblock %}
+
+{% block extra_styles %}
+        .search-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .search-box {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            max-width: 600px;
+        }
+        
+        #teamSearch {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 1.1em;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        #teamSearch:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .autocomplete-suggestions {
+            position: absolute;
+            width: 100%;
+            max-height: 300px;
+            overflow-y: auto;
+            background: white;
+            border: 2px solid #667eea;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: none;
+        }
+        
+        .autocomplete-suggestion {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            transition: all 0.2s ease;
+        }
+        
+        .autocomplete-suggestion:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .autocomplete-suggestion strong {
+            color: #667eea;
+        }
+        
+        .team-info-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .team-info-header h2 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: white;
+        }
+        
+        .team-info-header h2:after {
+            display: none;
+        }
+        
+        .performance-chart {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+        
+        .chart-line {
+            display: flex;
+            align-items: flex-end;
+            height: 100%;
+            gap: 2px;
+        }
+        
+        .chart-bar-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        
+        .chart-bar {
+            width: 100%;
+            border-radius: 3px 3px 0 0;
+            transition: all 0.3s ease;
+            position: relative;
+            min-height: 5px;
+        }
+        
+        .chart-bar-scored {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+        }
+        
+        .chart-bar-allowed {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+        
+        .chart-bar:hover {
+            opacity: 0.8;
+            transform: scaleY(1.05);
+        }
+        
+        .chart-label {
+            font-size: 0.7em;
+            color: #7f8c8d;
+            margin-top: 5px;
+            text-align: center;
+        }
+        
+        .chart-legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .legend-color {
+            width: 30px;
+            height: 15px;
+            border-radius: 3px;
+        }
+        
+        .game-row-win {
+            background-color: rgba(46, 204, 113, 0.1) !important;
+        }
+        
+        .game-row-loss {
+            background-color: rgba(231, 76, 60, 0.1) !important;
+        }
+        
+        .no-team-selected {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+        
+        .no-team-selected h3 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+{% endblock %}
+
+{% block content %}
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" 
+                       id="teamSearch" 
+                       placeholder="🔍 Search for a team..." 
+                       autocomplete="off"
+                       value="{{ team_name if team_name else '' }}">
+                <div id="autocompleteSuggestions" class="autocomplete-suggestions"></div>
+            </div>
+        </div>
+        
+        {% if team_stats %}
+        <!-- Team Information Header -->
+        <div class="team-info-header">
+            {% set team_logo_url = get_team_logo_url(team_stats['basic_stats']['team_name']) %}
+            {% if team_logo_url %}
+                <img src="{{ team_logo_url }}" alt="{{ team_stats['basic_stats']['team_name'] }} logo" style="width: 80px; height: 80px; object-fit: contain; margin-bottom: 15px;">
+            {% endif %}
+            <h2>{{ team_stats['basic_stats']['team_name'] }}</h2>
+        </div>
+        
+        <!-- Basic Statistics Summary -->
+        <div class="stat-summary">
+            <div class="stat-card">
+                <h3>Games Played</h3>
+                <p>{{ team_stats['basic_stats']['total_games'] }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>Win Percentage</h3>
+                <p>{{ team_stats['basic_stats']['win_percentage'] }}%</p>
+                <small>{{ team_stats['basic_stats']['wins'] }}W - {{ team_stats['basic_stats']['losses'] }}L</small>
+            </div>
+            <div class="stat-card">
+                <h3>Avg Points Scored</h3>
+                <p>{{ team_stats['basic_stats']['avg_points_scored'] }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>Avg Points Allowed</h3>
+                <p>{{ team_stats['basic_stats']['avg_points_allowed'] }}</p>
+            </div>
+        </div>
+        
+        <!-- Performance Evolution Chart -->
+        <div class="stats-section">
+            <h2>Performance Evolution</h2>
+            <div class="performance-chart">
+                <div class="chart-legend">
+                    <div class="legend-item">
+                        <div class="legend-color chart-bar-scored"></div>
+                        <span>Points Scored</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color chart-bar-allowed"></div>
+                        <span>Points Allowed</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    {% set scored_values = team_stats['performance_evolution']|map(attribute='scored')|list %}
+                    {% set allowed_values = team_stats['performance_evolution']|map(attribute='allowed')|list %}
+                    {% set max_score = [scored_values|max, allowed_values|max]|max %}
+                    <div class="chart-line">
+                        {% for game in team_stats['performance_evolution'] %}
+                        <div class="chart-bar-group" title="Game {{ game['game_number'] }}: {{ game['scored'] }}-{{ game['allowed'] }}">
+                            <div class="chart-bar chart-bar-scored" 
+                                 style="height: {{ (game['scored'] / max_score * 100) }}%;"></div>
+                            <div class="chart-bar chart-bar-allowed" 
+                                 style="height: {{ (game['allowed'] / max_score * 100) }}%;"></div>
+                            {% if loop.index0 % 3 == 0 %}
+                            <div class="chart-label">G{{ game['game_number'] }}</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <p style="text-align: center; color: #7f8c8d; margin-top: 20px;">
+                    <em>Points scored (green) and allowed (red) across all games</em>
+                </p>
+            </div>
+        </div>
+        
+        <!-- Home/Away Performance -->
+        <div class="stats-section">
+            <h2>Home vs Away Performance</h2>
+            <div class="stat-summary">
+                <div class="stat-card">
+                    <h3>Home Games</h3>
+                    <p>{{ team_stats['basic_stats']['home_games'] }}</p>
+                    <small>{{ team_stats['basic_stats']['home_win_percentage'] }}% win rate</small>
+                </div>
+                <div class="stat-card">
+                    <h3>Away Games</h3>
+                    <p>{{ team_stats['basic_stats']['away_games'] }}</p>
+                    <small>{{ team_stats['basic_stats']['away_win_percentage'] }}% win rate</small>
+                </div>
+                <div class="stat-card">
+                    <h3>Avg Home Score</h3>
+                    <p>{{ team_stats['basic_stats']['avg_home_scored'] }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Avg Away Score</h3>
+                    <p>{{ team_stats['basic_stats']['avg_away_scored'] }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Additional Stats -->
+        <div class="stats-section">
+            <h2>Additional Statistics</h2>
+            <div class="stat-summary">
+                <div class="stat-card">
+                    <h3>Highest Score</h3>
+                    <p>{{ team_stats['basic_stats']['highest_score'] }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Lowest Score</h3>
+                    <p>{{ team_stats['basic_stats']['lowest_score'] }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Biggest Win</h3>
+                    <p>+{{ team_stats['basic_stats']['biggest_win'] }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Worst Loss</h3>
+                    <p>{{ team_stats['basic_stats']['worst_loss'] }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Game by Game Performance -->
+        <div class="stats-section">
+            <h2>Game by Game Results</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Game ID</th>
+                        <th>Date</th>
+                        <th>Venue</th>
+                        <th>Opponent</th>
+                        <th>Score</th>
+                        <th>Result</h3>
+                        <th>Margin</th>
+                        <th>Division</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for game in team_stats['game_by_game']|reverse %}
+                    <tr class="{% if game['Result'] == 'W' %}game-row-win{% else %}game-row-loss{% endif %}">
+                        <td><a href="/game-detail/{{ game['GameId'] }}" style="color: #667eea; text-decoration: underline;">{{ game['GameId'] }}</a></td>
+                        <td>{{ game['DateTime'][:10] if game['DateTime'] else 'N/A' }}</td>
+                        <td>{{ 'Home' if game['IsHome'] else 'Away' }}</td>
+                        <td>
+                            {% set opponent_logo_url = get_team_logo_url(game['Opponent']) %}
+                            {% if opponent_logo_url %}
+                                <img src="{{ opponent_logo_url }}" alt="{{ game['Opponent'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                            {% endif %}
+                            <a href="/team-detail?team={{ game['Opponent'] }}" style="color: #667eea; text-decoration: underline;">{{ game['Opponent'] }}</a>
+                        </td>
+                        <td><strong>{{ game['TeamScore'] }} - {{ game['OpponentScore'] }}</strong></td>
+                        <td><strong>{{ game['Result'] }}</strong></td>
+                        <td>{{ '+' if game['Margin'] > 0 else '' }}{{ game['Margin'] }}</td>
+                        <td>{{ game['GameDivisionDisplay'] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p><em>Wins are highlighted in green, losses in red</em></p>
+        </div>
+        
+        {% elif team_name %}
+        <div class="no-team-selected">
+            <h3>Team Not Found</h3>
+            <p>No statistics found for "{{ team_name }}". Please try another search.</p>
+        </div>
+        {% else %}
+        <div class="no-team-selected">
+            <h3>Search for a Team</h3>
+            <p>Use the search box above to find and view detailed statistics for any team in the league.</p>
+        </div>
+        {% endif %}
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        // Team data for autocomplete
+        const allTeams = {{ all_teams|tojson }};
+        
+        const searchInput = document.getElementById('teamSearch');
+        const suggestionsDiv = document.getElementById('autocompleteSuggestions');
+        
+        // Show suggestions on input
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            
+            if (searchTerm.length < 2) {
+                suggestionsDiv.style.display = 'none';
+                return;
+            }
+            
+            // Filter teams
+            const matches = allTeams.filter(team => 
+                team.toLowerCase().includes(searchTerm)
+            );
+            
+            if (matches.length === 0) {
+                suggestionsDiv.style.display = 'none';
+                return;
+            }
+            
+            // Display suggestions
+            suggestionsDiv.innerHTML = matches.slice(0, 10).map(team => `
+                <div class="autocomplete-suggestion" onclick="selectTeam('${team.replace(/'/g, "\\'")}')">
+                    <strong>${team}</strong>
+                </div>
+            `).join('');
+            
+            suggestionsDiv.style.display = 'block';
+        });
+        
+        // Select team
+        function selectTeam(teamName) {
+            searchInput.value = teamName;
+            suggestionsDiv.style.display = 'none';
+            window.location.href = `/team-detail?team=${encodeURIComponent(teamName)}`;
+        }
+        
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+                suggestionsDiv.style.display = 'none';
+            }
+        });
+        
+        // Handle Enter key
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const firstSuggestion = suggestionsDiv.querySelector('.autocomplete-suggestion');
+                if (firstSuggestion) {
+                    firstSuggestion.click();
+                }
+            }
+        });
+    </script>
+{% endblock %}
