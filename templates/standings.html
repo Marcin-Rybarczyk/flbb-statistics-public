@@ -43,7 +43,7 @@
                             {% if team_logo_url %}
                                 <img src="{{ team_logo_url }}" alt="{{ row['Team Name'] }} logo" class="team-logo" style="width: 24px; height: 24px; object-fit: contain; vertical-align: middle; margin-right: 8px;">
                             {% endif %}
-                            <a href="/team-detail?team={{ row['Team Name'] }}" class="team-link">{{ row['Team Name'] }}</a>
+                            <a href="/team-detail?team={{ row['Team Name']|urlencode }}" class="team-link">{{ row['Team Name'] }}</a>
                         </td>
                         <td>{{ row['Games'] }}</td>
                         <td>{{ row['W'] }}</td>
