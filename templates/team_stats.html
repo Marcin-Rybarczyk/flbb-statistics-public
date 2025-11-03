@@ -2,113 +2,27 @@
 
 {% block title %}Team Performance - FLBB Statistics{% endblock %}
 
-{% block page_title %}🏆 Team Performance{% endblock %}
-{% block page_description %}Comprehensive team statistics and performance analysis{% endblock %}
+{% block page_title %}🏆 Complete Team Performance{% endblock %}
+{% block page_description %}Comprehensive team statistics and performance rankings{% endblock %}
 
 {% block content %}
 
-        <!-- Team Selection Form -->
+        <!-- Division Filter -->
         <div class="stats-section">
-            <h2>Select Team for Detailed Analysis</h2>
+            <h2>Filter by Division</h2>
             <form method="post">
-                <select name="team" onchange="this.form.submit()" style="padding: 8px; font-size: 16px; margin-right: 10px;">
-                    <option value="">-- Select a Team --</option>
-                    {% for team in all_teams %}
-                    <option value="{{ team }}" {% if selected_team == team %}selected{% endif %}>{{ team }}</option>
+                <select name="division" onchange="this.form.submit()" style="padding: 8px; font-size: 16px; margin-right: 10px;">
+                    <option value="">-- All Divisions --</option>
+                    {% for division in divisions %}
+                    <option value="{{ division }}" {% if selected_division == division %}selected{% endif %}>{{ division }}</option>
                     {% endfor %}
                 </select>
-                <noscript><input type="submit" value="Select Team" style="padding: 8px; font-size: 16px;"></noscript>
+                <noscript><input type="submit" value="Filter" style="padding: 8px; font-size: 16px;"></noscript>
             </form>
-        </div>
-
-        {% if selected_team and team_specific_stats %}
-        <!-- Selected Team Detailed Analysis -->
-        <div class="stats-section">
-            <h2>
-                {% set team_logo_url = get_team_logo_url(selected_team) %}
-                {% if team_logo_url %}
-                    <img src="{{ team_logo_url }}" alt="{{ selected_team }} logo" class="team-logo-large" style="width: 48px; height: 48px; object-fit: contain; vertical-align: middle; margin-right: 12px;">
-                {% endif %}
-                {{ selected_team }} - Detailed Team Analysis
-            </h2>
-            
-            <div class="stat-summary">
-                <div class="stat-card">
-                    <h3>Win Percentage</h3>
-                    <div class="number">{{ team_specific_stats['WinPercentage'] }}%</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Total Games</h3>
-                    <div class="number">{{ team_specific_stats['TotalGames'] }}</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Avg Points Scored</h3>
-                    <div class="number">{{ "%.1f"|format(team_specific_stats['AvgPointsScored']) }}</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Point Differential</h3>
-                    <div class="number">{{ "%.1f"|format(team_specific_stats['PointsDifferential']) }}</div>
-                </div>
-            </div>
-
-            <!-- Game-by-Game Results -->
-            {% if team_games is not none and not team_games.empty %}
-            <h3>Game-by-Game Results</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Game ID</th>
-                        <th>Date</th>
-                        <th>Venue</th>
-                        <th>Opponent</th>
-                        <th>Score</th>
-                        <th>Result</th>
-                        <th>Margin</th>
-                        <th>Division</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for index, row in team_games.iterrows() %}
-                    <tr class="{% if row['Result'] == 'W' %}highlight{% endif %}">
-                        <td><a href="/game-detail/{{ row['GameId'] }}" style="color: #667eea; text-decoration: underline;">{{ row['GameId'] }}</a></td>
-                        <td>{{ row['DateTime'][:10] if row['DateTime'] else 'N/A' }}</td>
-                        <td>{{ 'Home' if row['IsHome'] else 'Away' }}</td>
-                        <td>
-                            {% set opponent_logo_url = get_team_logo_url(row['Opponent']) %}
-                            {% if opponent_logo_url %}
-                                <img src="{{ opponent_logo_url }}" alt="{{ row['Opponent'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
-                            {% endif %}
-                            <form method="post" action="/team-stats" style="display: inline;">
-                                <input type="hidden" name="team" value="{{ row['Opponent'] }}">
-                                <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Opponent'] }}</button>
-                            </form>
-                        </td>
-                        <td><strong>{{ row['TeamScore'] }} - {{ row['OpponentScore'] }}</strong></td>
-                        <td><strong>{{ row['Result'] }}</strong></td>
-                        <td>{{ '+' if row['Margin'] > 0 else '' }}{{ row['Margin'] }}</td>
-                        <td>{{ row['GameDivisionDisplay'] }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            <p><em>Wins are highlighted in yellow</em></p>
-
-            <!-- Performance Charts (Simple Text-Based) -->
-            <h3>Performance Evolution</h3>
-            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px;">
-                <h4>Scoring Trend:</h4>
-                <div style="font-family: monospace; line-height: 1.4;">
-                {% for index, row in team_games.head(10).iterrows() %}
-                    Game {{ loop.index }}: {{ row['TeamScore'] }} pts {{ '█' * (row['TeamScore'] // 10) }}<br>
-                {% endfor %}
-                {% if team_games.shape[0] > 10 %}
-                    <small>... and {{ team_games.shape[0] - 10 }} more games</small>
-                {% endif %}
-                </div>
-            </div>
+            {% if selected_division %}
+            <p style="margin-top: 10px;"><em>Showing results for: <strong>{{ selected_division }}</strong></em></p>
             {% endif %}
         </div>
-        {% endif %}
 
         {% if team_stats is not none and not team_stats.empty %}
         
@@ -155,7 +69,13 @@
                     {% for index, row in team_stats.iterrows() %}
                     <tr {% if row['WinPercentage'] >= 60 %}class="highlight"{% endif %}>
                         <td>{{ loop.index }}</td>
-                        <td><strong>{{ row['Team'] }}</strong></td>
+                        <td>
+                            {% set team_logo_url = get_team_logo_url(row['Team']) %}
+                            {% if team_logo_url %}
+                                <img src="{{ team_logo_url }}" alt="{{ row['Team'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                            {% endif %}
+                            <a href="/team-detail?team={{ row['Team'] }}" style="color: #667eea; text-decoration: underline; font-weight: bold;">{{ row['Team'] }}</a>
+                        </td>
                         <td>{{ row['TotalGames'] }}</td>
                         <td>{{ row['Wins'] }}</td>
                         <td>{{ row['Losses'] }}</td>
@@ -171,7 +91,7 @@
                     {% endfor %}
                 </tbody>
             </table>
-            <p><em>Teams with 60%+ win rate are highlighted in yellow</em></p>
+            <p><em>Teams with 60%+ win rate are highlighted in yellow. Click team names to view detailed analysis.</em></p>
         </div>
 
         <div class="stats-section">
@@ -190,7 +110,13 @@
                     {% for index, row in team_stats.sort_values('AvgPointsScored', ascending=False).head(10).iterrows() %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td>{{ row['Team'] }}</td>
+                        <td>
+                            {% set team_logo_url = get_team_logo_url(row['Team']) %}
+                            {% if team_logo_url %}
+                                <img src="{{ team_logo_url }}" alt="{{ row['Team'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                            {% endif %}
+                            <a href="/team-detail?team={{ row['Team'] }}" style="color: #667eea; text-decoration: underline;">{{ row['Team'] }}</a>
+                        </td>
                         <td><strong>{{ "%.1f"|format(row['AvgPointsScored']) }}</strong></td>
                         <td>{{ row['HighestScore'] }}</td>
                         <td>{{ row['TotalGames'] }}</td>
@@ -216,7 +142,13 @@
                     {% for index, row in team_stats.sort_values('AvgPointsAllowed', ascending=True).head(10).iterrows() %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td>{{ row['Team'] }}</td>
+                        <td>
+                            {% set team_logo_url = get_team_logo_url(row['Team']) %}
+                            {% if team_logo_url %}
+                                <img src="{{ team_logo_url }}" alt="{{ row['Team'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                            {% endif %}
+                            <a href="/team-detail?team={{ row['Team'] }}" style="color: #667eea; text-decoration: underline;">{{ row['Team'] }}</a>
+                        </td>
                         <td><strong>{{ "%.1f"|format(row['AvgPointsAllowed']) }}</strong></td>
                         <td>{{ "%.1f"|format(row['PointsDifferential']) }}</td>
                         <td>{{ row['TotalGames'] }}</td>

@@ -1,5 +1,6 @@
 import os
 import re
+from urllib.parse import unquote
 from flask import Flask, render_template, request
 import pandas as pd
 from src.utils import (calculate_standings_by_division, get_highest_scoring_games, 
@@ -13,7 +14,8 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
                    get_best_player_combinations, get_referee_game_impact_analysis, get_all_fixtures_data,
                    get_fixtures_matrix_data, get_data_source_info, get_season_info, 
                    get_website_config, list_available_archives, import_season_archive,
-                   get_all_players_list, get_player_detail_stats, get_game_details)
+                   get_all_players_list, get_player_detail_stats, get_game_details, get_referee_detail_stats,
+                   get_team_detail_stats, get_all_referees_list)
 from src.version import get_version_info
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
@@ -155,57 +157,50 @@ def statistics():
 
 @app.route('/team-stats', methods=['GET', 'POST'])
 def team_stats():
-    """Detailed team statistics page with team selection"""
+    """Complete team statistics page with division filter"""
     if data.empty:
         return render_template('team_stats.html', error="No data available", data_source_info=data_source_info)
+    
+    # Get selected division from form
+    selected_division = request.form.get('division')
+    
+    # Get team performance stats
+    team_performance = get_team_performance_stats(data)
+    
+    # Filter by division if selected
+    filtered_data = data
+    if selected_division:
+        filtered_data = data[data['GameDivisionDisplay'] == selected_division]
+        team_performance = get_team_performance_stats(filtered_data)
+    
+    return render_template('team_stats.html', 
+                         team_stats=team_performance,
+                         divisions=divisions,
+                         selected_division=selected_division,
+                         data_source_info=data_source_info)
+
+@app.route('/team-detail')
+def team_detail():
+    """Individual team detail page with comprehensive statistics"""
+    if data.empty:
+        return render_template('team_detail.html', error="No data available", data_source_info=data_source_info)
     
     # Get all unique teams
     home_teams = set(data['HomeTeamName'].unique())
     away_teams = set(data['AwayTeamName'].unique())
     all_teams = sorted(home_teams.union(away_teams))
     
-    selected_team = request.form.get('team')
-    team_performance = get_team_performance_stats(data)
-    team_games = None
-    team_specific_stats = None
+    # Get selected team from query parameter
+    team_name = request.args.get('team')
+    team_stats_detail = None
     
-    if selected_team:
-        # Get games for the selected team
-        team_games = data[
-            (data['HomeTeamName'] == selected_team) | 
-            (data['AwayTeamName'] == selected_team)
-        ].copy()
-        
-        # Process team-specific statistics
-        if not team_games.empty:
-            team_specific_stats = team_performance[team_performance['Team'] == selected_team].iloc[0].to_dict()
-            
-            # Add game-by-game analysis
-            team_games['IsHome'] = team_games['HomeTeamName'] == selected_team
-            team_games['TeamScore'] = team_games.apply(
-                lambda row: row['FinalHomeScore'] if row['IsHome'] else row['FinalAwayScore'], 
-                axis=1
-            )
-            team_games['OpponentScore'] = team_games.apply(
-                lambda row: row['FinalAwayScore'] if row['IsHome'] else row['FinalHomeScore'], 
-                axis=1
-            )
-            team_games['Opponent'] = team_games.apply(
-                lambda row: row['AwayTeamName'] if row['IsHome'] else row['HomeTeamName'], 
-                axis=1
-            )
-            team_games['Result'] = team_games.apply(
-                lambda row: 'W' if row['TeamScore'] > row['OpponentScore'] else 'L', 
-                axis=1
-            )
-            team_games['Margin'] = team_games['TeamScore'] - team_games['OpponentScore']
+    if team_name:
+        team_stats_detail = get_team_detail_stats(data, team_name)
     
-    return render_template('team_stats.html', 
-                         team_stats=team_performance,
+    return render_template('team_detail.html',
                          all_teams=all_teams,
-                         selected_team=selected_team,
-                         team_games=team_games,
-                         team_specific_stats=team_specific_stats,
+                         team_name=team_name,
+                         team_stats=team_stats_detail,
                          divisions=divisions,
                          data_source_info=data_source_info)
 
@@ -283,6 +278,29 @@ def referee_stats():
                          referee_fouls=referee_fouls,
                          referee_least_fouls=referee_least_fouls,
                          referee_impact=referee_impact,
+                         divisions=divisions,
+                         data_source_info=data_source_info)
+
+@app.route('/referee-detail')
+def referee_detail():
+    """Individual referee detail page with search and comprehensive statistics"""
+    if data.empty:
+        return render_template('referee_detail.html', error="No data available", data_source_info=data_source_info)
+    
+    # Get all referees for autocomplete
+    all_referees = get_all_referees_list(data)
+    
+    # Get selected referee from query parameter
+    referee_name = request.args.get('referee')
+    referee_stats_detail = None
+    
+    if referee_name:
+        referee_stats_detail = get_referee_detail_stats(data, referee_name)
+    
+    return render_template('referee_detail.html',
+                         all_referees=all_referees,
+                         referee_name=referee_name,
+                         referee_stats=referee_stats_detail,
                          divisions=divisions,
                          data_source_info=data_source_info)
 

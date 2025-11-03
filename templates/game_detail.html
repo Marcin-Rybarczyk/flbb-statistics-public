@@ -51,6 +51,37 @@
         margin: 5px 0;
     }
 
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-label {
+        font-size: 0.9em;
+        color: #666;
+        margin-bottom: 5px;
+    }
+
+    .stat-value {
+        font-size: 1.5em;
+        font-weight: bold;
+        color: #667eea;
+    }
+
+    .stat-value.home-team {
+        color: #2980b9;
+    }
+
+    .stat-value.away-team {
+        color: #e67e22;
+    }
+
     .section {
         background: white;
         padding: 25px;
@@ -107,6 +138,10 @@
 
     .player-table tr:hover {
         background: rgba(102, 126, 234, 0.1);
+    }
+
+    .player-table a:hover {
+        text-decoration: underline;
     }
 
     .starting-five {
@@ -214,6 +249,10 @@
         .game-info-grid {
             grid-template-columns: 1fr;
         }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
     }
 {% endblock %}
 
@@ -228,47 +267,46 @@
             <h2>{{ game.basic_info.home_team }} vs {{ game.basic_info.away_team }}</h2>
             <div class="final-score">{{ game.basic_info.final_score }}</div>
             <p>{{ game.basic_info.division }}</p>
+            <p style="margin-top: 15px; font-size: 1.1em;">
+                📅 {{ game.basic_info.date_time }} | 📍 {{ game.basic_info.location.Name if game.basic_info.location else 'N/A' }}
+            </p>
         </div>
 
-        <!-- Game Information -->
-        <div class="game-info-grid">
-            <div class="info-card">
-                <h3>📅 Date & Time</h3>
-                <p>{{ game.basic_info.date_time }}</p>
-            </div>
-            <div class="info-card">
-                <h3>📍 Location</h3>
-                <p>{{ game.basic_info.location.Name if game.basic_info.location else 'N/A' }}</p>
-            </div>
-            <div class="info-card">
-                <h3>🏆 Winner</h3>
-                <p>{{ game.basic_info.winner }}</p>
-            </div>
-            <div class="info-card">
-                <h3>🎯 League Points</h3>
-                <p>{{ game.basic_info.home_team }}: {{ game.basic_info.home_league_points }}</p>
-                <p>{{ game.basic_info.away_team }}: {{ game.basic_info.away_league_points }}</p>
-            </div>
-        </div>
 
-        <!-- Referees Section -->
-        {% if game.referees %}
-        <div class="section">
-            <h2>👨‍⚖️ Referees</h2>
-            <div class="referee-list">
-                {% for referee in game.referees %}
-                    <div class="referee-badge">{{ referee['Referee Name'] }}</div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
 
-        <!-- Score Evolution Chart -->
-        {% if game.score_evolution %}
-        <div class="section">
-            <h2>📈 Score Evolution</h2>
-            <div class="chart-container">
-                <canvas id="scoreChart" class="score-evolution-chart"></canvas>
+        <!-- Game Statistics -->
+        {% if game.game_stats %}
+        <div class="info-card" style="margin-top: 20px;">
+            <h3>📊 Game Flow Statistics</h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">🔄 Lead Changes</div>
+                    <div class="stat-value">{{ game.game_stats.lead_changes }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">⚖️ Tied Scores</div>
+                    <div class="stat-value">{{ game.game_stats.tied_scores }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">{{ game.basic_info.home_team }} Lead</div>
+                    <div class="stat-value home-team">
+                        {% if game.game_stats.home_highest_lead %}
+                            +{{ game.game_stats.home_highest_lead }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">{{ game.basic_info.away_team }} Lead</div>
+                    <div class="stat-value away-team">
+                        {% if game.game_stats.away_highest_lead %}
+                            +{{ game.game_stats.away_highest_lead }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
         {% endif %}
@@ -283,6 +321,16 @@
                     <p style="text-align: center; color: #666; margin-bottom: 10px;">
                         {{ team.result }} - {{ team.total_won_points }} points
                     </p>
+                    {% if team.coach or team.timeouts_used %}
+                    <p style="text-align: center; color: #555; margin-bottom: 10px; font-size: 0.95em;">
+                        {% if team.coach and team.coach != 'N/A' %}
+                        <strong>👔 Coach:</strong> {{ team.coach }}
+                        {% endif %}
+                        {% if team.timeouts_used > 0 %}
+                        <span style="margin-left: 15px;"><strong>⏱️ Timeouts:</strong> {{ team.timeouts_used }}</span>
+                        {% endif %}
+                    </p>
+                    {% endif %}
                     <table class="player-table">
                         <thead>
                             <tr>
@@ -299,7 +347,7 @@
                             {% for player in team.players %}
                             <tr class="{% if player['Starting Five'] == 'true' %}starting-five{% endif %}">
                                 <td>{{ player['Player Number'] }}</td>
-                                <td>{{ player['Player Name'] }}</td>
+                                <td><a href="/player-detail?player={{ player['Player Name']|urlencode }}" style="color: #667eea; text-decoration: none; font-weight: 500;">{{ player['Player Name'] }}</a></td>
                                 <td><strong>{{ player['Total Points'] }}</strong></td>
                                 <td>{{ player['1P Made Shots'] }}</td>
                                 <td>{{ player['2P Made Shots'] }}</td>
@@ -307,6 +355,16 @@
                                 <td>{{ player['Total Fouls'] }}</td>
                             </tr>
                             {% endfor %}
+                            <!-- Total Row -->
+                            <tr style="background: #f0f0f0; font-weight: bold; border-top: 2px solid #667eea;">
+                                <td></td>
+                                <td>TOTAL</td>
+                                <td><strong>{{ team.totals.points }}</strong></td>
+                                <td>{{ team.totals['1p'] }}</td>
+                                <td>{{ team.totals['2p'] }}</td>
+                                <td>{{ team.totals['3p'] }}</td>
+                                <td>{{ team.totals.fouls }}</td>
+                            </tr>
                         </tbody>
                     </table>
                     <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
@@ -318,6 +376,16 @@
                 {% endfor %}
             </div>
         </div>
+
+        <!-- Score Evolution Chart -->
+        {% if game.score_evolution %}
+        <div class="section">
+            <h2>📈 Score Evolution</h2>
+            <div class="chart-container">
+                <canvas id="scoreChart" class="score-evolution-chart"></canvas>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Game Events Timeline -->
         {% if game.events %}
@@ -356,33 +424,66 @@
         // Prepare data for score evolution chart
         const scoreData = {{ game.score_evolution | tojson }};
         
-        // Extract quarters and scores
-        const labels = scoreData.map((point, index) => `Event ${index + 1}`);
+        // Extract elapsed time in minutes for x-axis
+        const elapsedMinutes = scoreData.map(point => point.elapsed_seconds / 60);
         const homeScores = scoreData.map(point => point.home_score);
         const awayScores = scoreData.map(point => point.away_score);
+        const homeFouls = scoreData.map(point => point.home_fouls || 0);
+        const awayFouls = scoreData.map(point => point.away_fouls || 0);
+        const quarters = scoreData.map(point => point.quarter);
         
         // Create the chart
         const ctx = document.getElementById('scoreChart').getContext('2d');
         new Chart(ctx, {
             type: 'line',
             data: {
-                labels: labels,
+                labels: elapsedMinutes,
                 datasets: [
                     {
-                        label: '{{ game.basic_info.home_team }}',
+                        label: '{{ game.basic_info.home_team }} Score',
                         data: homeScores,
                         borderColor: '#2980b9',
                         backgroundColor: 'rgba(41, 128, 185, 0.1)',
                         tension: 0.4,
-                        fill: true
+                        fill: true,
+                        yAxisID: 'y',
+                        pointRadius: 2,
+                        borderWidth: 2
                     },
                     {
-                        label: '{{ game.basic_info.away_team }}',
+                        label: '{{ game.basic_info.away_team }} Score',
                         data: awayScores,
                         borderColor: '#e67e22',
                         backgroundColor: 'rgba(230, 126, 34, 0.1)',
                         tension: 0.4,
-                        fill: true
+                        fill: true,
+                        yAxisID: 'y',
+                        pointRadius: 2,
+                        borderWidth: 2
+                    },
+                    {
+                        label: '{{ game.basic_info.home_team }} Fouls',
+                        data: homeFouls,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                        tension: 0.4,
+                        fill: false,
+                        borderDash: [5, 5],
+                        pointRadius: 3,
+                        borderWidth: 2,
+                        yAxisID: 'y1'
+                    },
+                    {
+                        label: '{{ game.basic_info.away_team }} Fouls',
+                        data: awayFouls,
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                        tension: 0.4,
+                        fill: false,
+                        borderDash: [5, 5],
+                        pointRadius: 3,
+                        borderWidth: 2,
+                        yAxisID: 'y1'
                     }
                 ]
             },
@@ -396,28 +497,101 @@
                 plugins: {
                     legend: {
                         display: true,
-                        position: 'top'
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: {
+                                size: 11
+                            }
+                        }
                     },
                     tooltip: {
                         callbacks: {
                             title: function(context) {
                                 const index = context[0].dataIndex;
                                 const point = scoreData[index];
-                                return `Quarter ${point.quarter}`;
+                                const mins = Math.floor(point.elapsed_seconds / 60);
+                                const secs = Math.floor(point.elapsed_seconds % 60);
+                                return `Quarter ${point.quarter} - ${mins}:${secs.toString().padStart(2, '0')}`;
+                            },
+                            afterBody: function(context) {
+                                const index = context[0].dataIndex;
+                                const point = scoreData[index];
+                                return [
+                                    '',
+                                    `{{ game.basic_info.home_team }} Fouls: ${point.home_fouls || 0}`,
+                                    `{{ game.basic_info.away_team }} Fouls: ${point.away_fouls || 0}`
+                                ];
                             }
                         }
                     }
                 },
                 scales: {
                     y: {
+                        type: 'linear',
+                        position: 'left',
                         beginAtZero: true,
                         title: {
                             display: true,
-                            text: 'Score'
+                            text: 'Score',
+                            font: {
+                                weight: 'bold',
+                                size: 12
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        position: 'right',
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Fouls',
+                            font: {
+                                weight: 'bold',
+                                size: 12
+                            }
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        },
+                        ticks: {
+                            stepSize: 1
                         }
                     },
                     x: {
-                        display: false
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'Game Time (minutes)',
+                            font: {
+                                weight: 'bold',
+                                size: 12
+                            }
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                // Format as MM:SS
+                                const mins = Math.floor(value);
+                                const secs = Math.floor((value - mins) * 60);
+                                return `${mins}:${secs.toString().padStart(2, '0')}`;
+                            }
+                        },
+                        grid: {
+                            color: function(context) {
+                                // Highlight quarter boundaries with darker grid lines
+                                const minute = context.tick.value;
+                                // Approximate quarter boundaries (every 10 minutes)
+                                if (minute % 10 === 0 || Math.abs(minute - 10) < 0.5 || Math.abs(minute - 20) < 0.5 || Math.abs(minute - 30) < 0.5) {
+                                    return 'rgba(102, 126, 234, 0.3)';
+                                }
+                                return 'rgba(0, 0, 0, 0.05)';
+                            }
+                        }
                     }
                 }
             }

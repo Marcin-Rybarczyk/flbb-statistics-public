@@ -230,6 +230,8 @@
                             <th>Player</th>
                             <th>Team</th>
                             <th>Total Fouls</th>
+                            <th>Foul Details</th>
+                            <th>Weighted Total Fouls</th>
                             <th>Games</th>
                             <th>Fouls per Game</th>
                         </tr>
@@ -246,6 +248,8 @@
                                 </form>
                             </td>
                             <td><strong>{{ row['TotalFouls'] }}</strong></td>
+                            <td style="font-size: 0.9em; color: #666;">({{ row['FoulDetails'] }})</td>
+                            <td><strong>{{ row['WeightedTotalFouls']|int }}</strong></td>
                             <td>{{ row['GamesPlayed'] }}</td>
                             <td>{{ "%.1f"|format(row['AvgFoulsPerGame']) }}</td>
                         </tr>

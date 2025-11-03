@@ -137,6 +137,30 @@
             text-transform: uppercase;
             font-size: 0.9em;
             letter-spacing: 0.5px;
+            cursor: pointer;
+            position: relative;
+            user-select: none;
+        }
+
+        th:hover {
+            background: linear-gradient(135deg, #5568d3, #6a3d8f);
+        }
+
+        th.sortable::after {
+            content: ' ⇅';
+            opacity: 0.5;
+            font-size: 0.8em;
+            margin-left: 5px;
+        }
+
+        th.sort-asc::after {
+            content: ' ▲';
+            opacity: 1;
+        }
+
+        th.sort-desc::after {
+            content: ' ▼';
+            opacity: 1;
         }
 
         tr:nth-child(even) {
@@ -305,7 +329,9 @@
             <a href="/player-stats" {% if request and request.endpoint == 'player_stats' %}class="active"{% endif %}>👤 Player Stats</a>
             <a href="/player-detail" {% if request and request.endpoint == 'player_detail' %}class="active"{% endif %}>🔍 Player Detail</a>
             <a href="/team-stats" {% if request and request.endpoint == 'team_stats' %}class="active"{% endif %}>🏆 Team Stats</a>
+            <a href="/team-detail" {% if request and request.endpoint == 'team_detail' %}class="active"{% endif %}>🔍 Team Detail</a>
             <a href="/referee-stats" {% if request and request.endpoint == 'referee_stats' %}class="active"{% endif %}>👨‍⚖️ Referee Stats</a>
+            <a href="/referee-detail" {% if request and request.endpoint == 'referee_detail' %}class="active"{% endif %}>🔍 Referee Detail</a>
             <a href="/deeper-analysis" {% if request and request.endpoint == 'deeper_analysis' %}class="active"{% endif %}>🔍 Deep Analysis</a>
             <a href="/admin" {% if request and request.endpoint == 'admin' %}class="active"{% endif %}>⚙️ Admin</a>
         </div>
@@ -341,6 +367,123 @@
         </div>
         {% endif %}
     </div>
+
+    <script>
+        // Table Sorting Functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get all tables with thead
+            const tables = document.querySelectorAll('table');
+            
+            tables.forEach(table => {
+                const thead = table.querySelector('thead');
+                if (!thead) return; // Skip tables without thead
+                
+                const headers = thead.querySelectorAll('th');
+                const tbody = table.querySelector('tbody');
+                if (!tbody) return; // Skip tables without tbody
+                
+                // Make headers sortable and add class
+                headers.forEach((header, index) => {
+                    header.classList.add('sortable');
+                    header.setAttribute('data-column', index);
+                    
+                    header.addEventListener('click', function() {
+                        sortTable(table, index, header);
+                    });
+                });
+            });
+        });
+        
+        function sortTable(table, columnIndex, header) {
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const headers = table.querySelectorAll('th');
+            
+            // Determine current sort direction
+            const currentDirection = header.classList.contains('sort-asc') ? 'desc' : 'asc';
+            
+            // Remove sort classes from all headers
+            headers.forEach(h => {
+                h.classList.remove('sort-asc', 'sort-desc');
+            });
+            
+            // Add appropriate class to current header
+            header.classList.add(currentDirection === 'asc' ? 'sort-asc' : 'sort-desc');
+            
+            // Sort rows
+            rows.sort((a, b) => {
+                const aCell = a.querySelectorAll('td')[columnIndex];
+                const bCell = b.querySelectorAll('td')[columnIndex];
+                
+                if (!aCell || !bCell) return 0;
+                
+                let aValue = getCellValue(aCell);
+                let bValue = getCellValue(bCell);
+                
+                // Handle different data types
+                const aNum = parseNumber(aValue);
+                const bNum = parseNumber(bValue);
+                
+                // If both are valid numbers, compare as numbers
+                if (!isNaN(aNum) && !isNaN(bNum)) {
+                    return currentDirection === 'asc' ? aNum - bNum : bNum - aNum;
+                }
+                
+                // Otherwise compare as strings
+                aValue = aValue.toLowerCase();
+                bValue = bValue.toLowerCase();
+                
+                if (currentDirection === 'asc') {
+                    return aValue.localeCompare(bValue);
+                } else {
+                    return bValue.localeCompare(aValue);
+                }
+            });
+            
+            // Reorder the rows in the table using DocumentFragment for better performance
+            const fragment = document.createDocumentFragment();
+            rows.forEach(row => fragment.appendChild(row));
+            tbody.appendChild(fragment);
+        }
+        
+        function getCellValue(cell) {
+            // Try to get value from various sources
+            // First check for links
+            const link = cell.querySelector('a');
+            if (link) {
+                return link.textContent.trim();
+            }
+            
+            // Check for buttons
+            const button = cell.querySelector('button');
+            if (button) {
+                return button.textContent.trim();
+            }
+            
+            // Check for strong tags
+            const strong = cell.querySelector('strong');
+            if (strong) {
+                return strong.textContent.trim();
+            }
+            
+            // Return direct text content
+            return cell.textContent.trim();
+        }
+        
+        function parseNumber(value) {
+            // Remove common non-numeric characters
+            const cleaned = value.replace(/[,%$€£]/g, '').replace(/\s+/g, '');
+            
+            // Handle percentages
+            if (value.includes('%')) {
+                return parseFloat(cleaned);
+            }
+            
+            // Handle regular numbers (including decimals and negatives)
+            const num = parseFloat(cleaned);
+            return num;
+        }
+    </script>
 
     {% block scripts %}{% endblock %}
 </body>

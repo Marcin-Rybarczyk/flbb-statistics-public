@@ -350,6 +350,7 @@ def extract_all_player_stats(data):
     for _, game in data.iterrows():
         game_id = game['GameId']
         game_date = game['DateTime']
+        game_division = game.get('GameDivisionDisplay', 'Unknown')
         home_team = game.get('HomeTeamName', 'Unknown')
         away_team = game.get('AwayTeamName', 'Unknown')
         
@@ -387,6 +388,7 @@ def extract_all_player_stats(data):
                 player_record = {
                     'GameId': game_id,
                     'GameDate': game_date,
+                    'GameDivision': game_division,
                     'PlayerName': player.get('Player Name', 'Unknown'),
                     'PlayerNumber': player.get('Player Number', 0),
                     'Team': team_name,
@@ -858,7 +860,11 @@ def get_top_foulers(data, top_n=10, division=None):
     division (str): Optional division filter
     
     Returns:
-    DataFrame: Top foulers with their statistics
+    DataFrame: Top foulers with their statistics including:
+        - TotalFouls: Sum of all fouls
+        - WeightedTotalFouls: Weighted sum (P/P1/P2/P3=1, T1/U1/U2/U3=2, GD=5)
+        - FoulDetails: String describing foul type breakdown
+        - Individual foul type columns (PFouls, P1Fouls, etc.)
     """
     # Filter by division if specified
     if division:
@@ -876,12 +882,58 @@ def get_top_foulers(data, top_n=10, division=None):
         'P1Fouls': 'sum',
         'P2Fouls': 'sum',
         'P3Fouls': 'sum',
+        'T1Fouls': 'sum',
+        'U1Fouls': 'sum',
+        'U2Fouls': 'sum',
+        'U3Fouls': 'sum',
+        'GDFouls': 'sum',
         'GameId': 'count',  # Games played
         'TotalPoints': 'sum'
     }).reset_index()
     
     foul_stats.rename(columns={'GameId': 'GamesPlayed'}, inplace=True)
     foul_stats['AvgFoulsPerGame'] = (foul_stats['TotalFouls'] / foul_stats['GamesPlayed']).round(1)
+    
+    # Calculate weighted total fouls
+    # P, P1, P2, P3 = weight 1
+    # T1, U1, U2, U3 = weight 2
+    # GD = weight 5
+    foul_stats['WeightedTotalFouls'] = (
+        foul_stats['PFouls'] * 1 +
+        foul_stats['P1Fouls'] * 1 +
+        foul_stats['P2Fouls'] * 1 +
+        foul_stats['P3Fouls'] * 1 +
+        foul_stats['T1Fouls'] * 2 +
+        foul_stats['U1Fouls'] * 2 +
+        foul_stats['U2Fouls'] * 2 +
+        foul_stats['U3Fouls'] * 2 +
+        foul_stats['GDFouls'] * 5
+    )
+    
+    # Create foul details string
+    def create_foul_details(row):
+        details = []
+        if row['PFouls'] > 0:
+            details.append(f"P: {int(row['PFouls'])}")
+        if row['P1Fouls'] > 0:
+            details.append(f"P1: {int(row['P1Fouls'])}")
+        if row['P2Fouls'] > 0:
+            details.append(f"P2: {int(row['P2Fouls'])}")
+        if row['P3Fouls'] > 0:
+            details.append(f"P3: {int(row['P3Fouls'])}")
+        if row['T1Fouls'] > 0:
+            details.append(f"T1: {int(row['T1Fouls'])}")
+        if row['U1Fouls'] > 0:
+            details.append(f"U1: {int(row['U1Fouls'])}")
+        if row['U2Fouls'] > 0:
+            details.append(f"U2: {int(row['U2Fouls'])}")
+        if row['U3Fouls'] > 0:
+            details.append(f"U3: {int(row['U3Fouls'])}")
+        if row['GDFouls'] > 0:
+            details.append(f"GD: {int(row['GDFouls'])}")
+        return ', '.join(details) if details else ''
+    
+    foul_stats['FoulDetails'] = foul_stats.apply(create_foul_details, axis=1)
     
     # Sort by total fouls and return top N
     return foul_stats.sort_values('TotalFouls', ascending=False).head(top_n).reset_index(drop=True)
@@ -1119,6 +1171,152 @@ def get_referees_least_fouls_per_game(data):
     
     return qualified_refs.sort_values('AvgFoulsPerGame', ascending=True)
 
+def get_referee_detail_stats(data, referee_name):
+    """
+    Get detailed statistics for a specific referee including:
+    - List of games arbitrated
+    - Foul type breakdown
+    - Game-by-game statistics
+    
+    Parameters:
+    data (DataFrame): The game data
+    referee_name (str): The referee name to get details for
+    
+    Returns:
+    dict: Dictionary containing referee statistics and game list
+    """
+    import ast
+    
+    if data.empty:
+        return None
+    
+    referee_games = []
+    foul_types = defaultdict(int)
+    total_fouls = 0
+    
+    # Iterate through all games to find games this referee officiated
+    for _, game in data.iterrows():
+        try:
+            # Parse referee data
+            if isinstance(game['Referres'], str):
+                refs_data = ast.literal_eval(game['Referres'])
+            else:
+                refs_data = game['Referres']
+        except:
+            continue
+        
+        if not isinstance(refs_data, list):
+            continue
+        
+        # Check if this referee was in this game
+        referee_in_game = False
+        for ref in refs_data:
+            if isinstance(ref, dict) and ref.get('Referee Name') == referee_name:
+                referee_in_game = True
+                break
+        
+        if not referee_in_game:
+            continue
+        
+        # This referee was in this game, extract details
+        game_fouls = 0
+        game_foul_types = defaultdict(int)
+        
+        # Parse game events to count fouls and foul types
+        try:
+            if isinstance(game['GameEvents'], str):
+                events_data = ast.literal_eval(game['GameEvents'])
+            else:
+                events_data = game['GameEvents']
+            
+            # Count foul events by type
+            for event in events_data:
+                if isinstance(event, dict) and 'EventAction' in event:
+                    action = event['EventAction']
+                    
+                    # Check for foul added events (not deleted)
+                    if 'Foul Added' in action:
+                        game_fouls += 1
+                        total_fouls += 1
+                        
+                        # Extract foul type - check more specific patterns first
+                        # This ensures 'P2 Foul Added' and 'P1 Foul Added' are matched
+                        # before the more general 'P Foul Added'
+                        if 'P3 Foul Added' in action:
+                            game_foul_types['P3'] += 1
+                            foul_types['P3'] += 1
+                        elif 'P2 Foul Added' in action:
+                            game_foul_types['P2'] += 1
+                            foul_types['P2'] += 1
+                        elif 'P1 Foul Added' in action:
+                            game_foul_types['P1'] += 1
+                            foul_types['P1'] += 1
+                        elif 'P Foul Added' in action:
+                            game_foul_types['P'] += 1
+                            foul_types['P'] += 1
+                        elif 'U2 Foul Added' in action:
+                            game_foul_types['U2'] += 1
+                            foul_types['U2'] += 1
+                        elif 'U1 Foul Added' in action:
+                            game_foul_types['U1'] += 1
+                            foul_types['U1'] += 1
+                        elif 'T1 Foul Added' in action:
+                            game_foul_types['T1'] += 1
+                            foul_types['T1'] += 1
+                        elif 'C1 Foul Added' in action:
+                            game_foul_types['C1'] += 1
+                            foul_types['C1'] += 1
+                        elif 'B1 Foul Added' in action:
+                            game_foul_types['B1'] += 1
+                            foul_types['B1'] += 1
+                        elif 'D2 Foul Added' in action:
+                            game_foul_types['D2'] += 1
+                            foul_types['D2'] += 1
+                        else:
+                            # Catch any unexpected foul types not yet categorized
+                            # If this happens, the foul type should be investigated and potentially
+                            # added as a new category above
+                            game_foul_types['Other'] += 1
+                            foul_types['Other'] += 1
+        except:
+            pass
+        
+        # Add game to referee's game list
+        game_info = {
+            'game_id': game['GameId'],
+            'date_time': game['DateTime'],
+            'division': game['GameDivisionDisplay'],
+            'home_team': game['HomeTeamName'],
+            'away_team': game['AwayTeamName'],
+            'final_score': game['GameFinalScore'],
+            'home_score': game['FinalHomeScore'],
+            'away_score': game['FinalAwayScore'],
+            'winner': game['GameWinner'],
+            'location': game['GameLocation'],
+            'fouls_called': game_fouls,
+            'foul_types': dict(game_foul_types)
+        }
+        referee_games.append(game_info)
+    
+    if not referee_games:
+        return None
+    
+    # Sort games by date (most recent first)
+    referee_games.sort(key=lambda x: x['date_time'], reverse=True)
+    
+    # Calculate summary statistics
+    total_games = len(referee_games)
+    avg_fouls_per_game = total_fouls / total_games if total_games > 0 else 0
+    
+    return {
+        'referee_name': referee_name,
+        'total_games': total_games,
+        'total_fouls': total_fouls,
+        'avg_fouls_per_game': round(avg_fouls_per_game, 1),
+        'foul_types': dict(foul_types),
+        'games': referee_games
+    }
+
 def analyze_game_events(data):
     """
     Analyze game events to extract tie scores, lead changes, biggest leads, etc.
@@ -1154,6 +1352,9 @@ def analyze_game_events(data):
         if not isinstance(events_data, list):
             events_data = []
         
+        # Sort events chronologically for accurate analysis
+        sorted_events = sorted(events_data, key=lambda x: x.get('EventDateTime', '') if isinstance(x, dict) else '')
+        
         # Analyze score progression
         tie_count = 0
         lead_changes = 0
@@ -1162,7 +1363,7 @@ def analyze_game_events(data):
         current_advantage = 0
         previous_leader = None
         
-        for event in events_data:
+        for event in sorted_events:
             if not isinstance(event, dict):
                 continue
                 
@@ -2354,6 +2555,33 @@ def get_all_players_list(data):
     
     return players_list
 
+def get_all_referees_list(data):
+    """
+    Get a list of all unique referees for autocomplete/search.
+    
+    This function extracts referee names from game data and returns them
+    sorted alphabetically for use in search autocomplete functionality.
+    
+    Parameters:
+    data (DataFrame): The game data containing referee information
+    
+    Returns:
+    list: List of unique referee names sorted alphabetically, or empty list if no data
+    
+    Note:
+    Depends on extract_referee_stats() which parses referee data from the 
+    'Referres' column in the game data DataFrame.
+    """
+    ref_stats = extract_referee_stats(data)
+    
+    if ref_stats.empty:
+        return []
+    
+    # Get unique referee names and sort
+    unique_referees = sorted(ref_stats['RefereeName'].unique())
+    
+    return unique_referees
+
 def get_player_detail_stats(data, player_name):
     """
     Get comprehensive statistics for a specific player.
@@ -2507,6 +2735,124 @@ def _analyze_player_quarters(data, player_name):
     return quarter_stats
 
 
+def get_team_detail_stats(data, team_name):
+    """
+    Get comprehensive statistics for a specific team.
+    
+    Parameters:
+    data (DataFrame): The game data
+    team_name (str): The name of the team
+    
+    Returns:
+    dict: Comprehensive team statistics including:
+        - basic_stats: Overall team statistics
+        - game_by_game: Detailed game-by-game performance
+        - performance_evolution: Time series of scores and allowed points
+    """
+    if data.empty:
+        return None
+    
+    # Filter games for this team
+    team_games = data[
+        (data['HomeTeamName'] == team_name) | 
+        (data['AwayTeamName'] == team_name)
+    ].copy()
+    
+    if team_games.empty:
+        return None
+    
+    # Sort by date
+    team_games = team_games.sort_values('DateTime')
+    
+    # Process each game
+    team_games['IsHome'] = team_games['HomeTeamName'] == team_name
+    team_games['TeamScore'] = team_games.apply(
+        lambda row: row['FinalHomeScore'] if row['IsHome'] else row['FinalAwayScore'], 
+        axis=1
+    )
+    team_games['OpponentScore'] = team_games.apply(
+        lambda row: row['FinalAwayScore'] if row['IsHome'] else row['FinalHomeScore'], 
+        axis=1
+    )
+    team_games['Opponent'] = team_games.apply(
+        lambda row: row['AwayTeamName'] if row['IsHome'] else row['HomeTeamName'], 
+        axis=1
+    )
+    team_games['Result'] = team_games.apply(
+        lambda row: 'W' if row['TeamScore'] > row['OpponentScore'] else 'L', 
+        axis=1
+    )
+    team_games['Margin'] = team_games['TeamScore'] - team_games['OpponentScore']
+    
+    # Calculate basic statistics
+    wins = len(team_games[team_games['Result'] == 'W'])
+    losses = len(team_games[team_games['Result'] == 'L'])
+    total_games = len(team_games)
+    
+    basic_stats = {
+        'team_name': team_name,
+        'total_games': total_games,
+        'wins': wins,
+        'losses': losses,
+        'win_percentage': round((wins / total_games * 100), 1) if total_games > 0 else 0,
+        'avg_points_scored': round(team_games['TeamScore'].mean(), 1),
+        'avg_points_allowed': round(team_games['OpponentScore'].mean(), 1),
+        'point_differential': round(team_games['Margin'].mean(), 1),
+        'highest_score': int(team_games['TeamScore'].max()),
+        'lowest_score': int(team_games['TeamScore'].min()),
+        'biggest_win': int(team_games['Margin'].max()),
+        'worst_loss': int(team_games['Margin'].min()),
+        'home_games': int(team_games['IsHome'].sum()),
+        'away_games': int((~team_games['IsHome']).sum()),
+    }
+    
+    # Home/away split
+    home_games = team_games[team_games['IsHome']]
+    away_games = team_games[~team_games['IsHome']]
+    
+    if not home_games.empty:
+        home_wins = len(home_games[home_games['Result'] == 'W'])
+        basic_stats['home_win_percentage'] = round((home_wins / len(home_games) * 100), 1)
+        basic_stats['avg_home_scored'] = round(home_games['TeamScore'].mean(), 1)
+    else:
+        basic_stats['home_win_percentage'] = 0
+        basic_stats['avg_home_scored'] = 0
+    
+    if not away_games.empty:
+        away_wins = len(away_games[away_games['Result'] == 'W'])
+        basic_stats['away_win_percentage'] = round((away_wins / len(away_games) * 100), 1)
+        basic_stats['avg_away_scored'] = round(away_games['TeamScore'].mean(), 1)
+    else:
+        basic_stats['away_win_percentage'] = 0
+        basic_stats['avg_away_scored'] = 0
+    
+    # Performance evolution data (for charts)
+    performance_evolution = []
+    cumulative_scored = 0
+    cumulative_allowed = 0
+    
+    for idx, (_, row) in enumerate(team_games.iterrows(), 1):
+        cumulative_scored += int(row['TeamScore'])
+        cumulative_allowed += int(row['OpponentScore'])
+        performance_evolution.append({
+            'game_number': idx,
+            'date': row['DateTime'][:10] if row['DateTime'] else 'N/A',
+            'scored': int(row['TeamScore']),
+            'allowed': int(row['OpponentScore']),
+            'cumulative_scored': cumulative_scored,
+            'cumulative_allowed': cumulative_allowed,
+        })
+    
+    # Game by game data
+    game_by_game = team_games.to_dict('records')
+    
+    return {
+        'basic_stats': basic_stats,
+        'game_by_game': game_by_game,
+        'performance_evolution': performance_evolution
+    }
+
+
 def get_game_details(data, game_id):
     """
     Get comprehensive details for a specific game.
@@ -2575,20 +2921,60 @@ def get_game_details(data, game_id):
     }
     
     # Calculate score evolution from events
-    score_evolution = _calculate_score_evolution(events, game['HomeTeamName'], game['AwayTeamName'])
+    score_evolution = _calculate_score_evolution(events, game['HomeTeamName'], game['AwayTeamName'], teams)
+    
+    # Calculate advanced game statistics
+    game_stats = _calculate_game_statistics(score_evolution)
+    
+    # Calculate timeout and coach information from events
+    team_timeouts = {}
+    team_coaches = {}
+    for event in events:
+        if event.get('EventAction', '').lower() == 'timeout':
+            team_name = event.get('EventTeam', '')
+            if team_name:
+                team_timeouts[team_name] = team_timeouts.get(team_name, 0) + 1
+                # Try to get coach name from the event actor
+                actor = event.get('EventActor', '')
+                if actor and actor != '* Coach *' and team_name not in team_coaches:
+                    team_coaches[team_name] = actor
     
     # Process teams and players
     teams_data = []
     for team in teams:
+        team_name = team.get('Team Name', '')
+        team_name_short = team.get('Team Name Short', '')
+        
+        # Calculate totals for player statistics
+        players = team.get('Players', [])
+        total_points = sum(int(p.get('Total Points', 0)) for p in players)
+        total_1p = sum(int(p.get('1P Made Shots', 0)) for p in players)
+        total_2p = sum(int(p.get('2P Made Shots', 0)) for p in players)
+        total_3p = sum(int(p.get('3P Made Shots', 0)) for p in players)
+        total_fouls = sum(int(p.get('Total Fouls', 0)) for p in players)
+        
+        # Match timeouts and coach by either full name or short name
+        timeouts = team_timeouts.get(team_name, 0) or team_timeouts.get(team_name_short, 0)
+        coach = team_coaches.get(team_name, team_coaches.get(team_name_short, 'N/A'))
+        
         team_info = {
-            'name': team.get('Team Name', ''),
-            'name_short': team.get('Team Name Short', ''),
+            'name': team_name,
+            'name_short': team_name_short,
             'role': team.get('Team Role', ''),
             'result': team.get('Result Outcome', ''),
             'league_points': team.get('League Points', 0),
             'total_won_points': team.get('Total Won Points', 0),
             'total_lost_points': team.get('Total Lost Points', 0),
-            'players': team.get('Players', [])
+            'players': players,
+            'coach': coach,
+            'timeouts_used': timeouts,
+            'totals': {
+                'points': total_points,
+                '1p': total_1p,
+                '2p': total_2p,
+                '3p': total_3p,
+                'fouls': total_fouls
+            }
         }
         teams_data.append(team_info)
     
@@ -2600,11 +2986,12 @@ def get_game_details(data, game_id):
         'teams': teams_data,
         'events': sorted_events,
         'score_evolution': score_evolution,
+        'game_stats': game_stats,
         'referees': referees
     }
 
 
-def _calculate_score_evolution(events, home_team, away_team):
+def _calculate_score_evolution(events, home_team, away_team, teams=None):
     """
     Calculate score evolution throughout the game from events.
     
@@ -2612,16 +2999,63 @@ def _calculate_score_evolution(events, home_team, away_team):
     events (list): List of game events
     home_team (str): Home team name
     away_team (str): Away team name
+    teams (list): List of team objects with Team Name and Team Name Short
     
     Returns:
-    list: List of score points with quarters and scores
+    list: List of score points with quarters, scores, foul counts, and elapsed time
     """
+    from datetime import datetime
+    
     score_points = []
+    home_fouls = 0
+    away_fouls = 0
+    
+    # Extract team short names for matching event teams
+    home_team_short = home_team
+    away_team_short = away_team
+    
+    if teams:
+        for team in teams:
+            if team.get('Team Name') == home_team:
+                home_team_short = team.get('Team Name Short', home_team)
+            elif team.get('Team Name') == away_team:
+                away_team_short = team.get('Team Name Short', away_team)
     
     # Sort events chronologically
     sorted_events = sorted(events, key=lambda x: x.get('EventDateTime', ''))
     
+    # Find the first event time to calculate elapsed time
+    first_event_time = None
     for event in sorted_events:
+        if event.get('EventDateTime'):
+            try:
+                first_event_time = datetime.fromisoformat(event.get('EventDateTime', '').replace('Z', '+00:00'))
+                break
+            except:
+                pass
+    
+    for event in sorted_events:
+        # Track fouls
+        event_action = event.get('EventAction', '').lower()
+        event_team = event.get('EventTeam', '')
+        
+        # Check if this is a foul event (but not a foul deletion)
+        is_foul_added = any(keyword in event_action for keyword in ['foul added', 'faute'])
+        is_foul_deleted = 'foul deleted' in event_action
+        
+        if is_foul_added and not is_foul_deleted:
+            if event_team == home_team_short:
+                home_fouls += 1
+            elif event_team == away_team_short:
+                away_fouls += 1
+        elif is_foul_deleted:
+            # Handle foul deletions by decrementing
+            if event_team == home_team_short and home_fouls > 0:
+                home_fouls -= 1
+            elif event_team == away_team_short and away_fouls > 0:
+                away_fouls -= 1
+        
+        # Track score changes
         if event.get('EventScore'):
             score_str = event.get('EventScore', '')
             quarter = event.get('EventQuarter', 0)
@@ -2633,14 +3067,89 @@ def _calculate_score_evolution(events, home_team, away_team):
                     home_score = int(parts[0].strip())
                     away_score = int(parts[1].strip())
                     
+                    # Calculate elapsed time in seconds from first event
+                    elapsed_seconds = 0
+                    if first_event_time and event.get('EventDateTime'):
+                        try:
+                            event_time = datetime.fromisoformat(event.get('EventDateTime', '').replace('Z', '+00:00'))
+                            elapsed_seconds = (event_time - first_event_time).total_seconds()
+                        except:
+                            pass
+                    
                     score_points.append({
                         'quarter': quarter,
                         'home_score': home_score,
                         'away_score': away_score,
+                        'home_fouls': home_fouls,
+                        'away_fouls': away_fouls,
                         'time': event.get('EventDateTime', ''),
+                        'elapsed_seconds': elapsed_seconds,
                         'event': event.get('EventAction', '')
                     })
                 except:
                     pass
     
     return score_points
+
+
+def _calculate_game_statistics(score_evolution):
+    """
+    Calculate advanced game statistics from score evolution.
+    
+    Parameters:
+    score_evolution (list): List of score points throughout the game
+    
+    Returns:
+    dict: Dictionary containing:
+        - tied_scores: Number of times the score was tied
+        - lead_changes: Number of times the lead changed
+        - home_highest_lead: Highest lead for home team (or None if never led)
+        - away_highest_lead: Highest lead for away team (or None if never led)
+    """
+    if not score_evolution:
+        return {
+            'tied_scores': 0,
+            'lead_changes': 0,
+            'home_highest_lead': None,
+            'away_highest_lead': None
+        }
+    
+    tied_scores = 0
+    lead_changes = 0
+    home_highest_lead = 0
+    away_highest_lead = 0
+    previous_leader = None  # 'home' or 'away' (ties are skipped)
+    
+    for point in score_evolution:
+        home_score = point['home_score']
+        away_score = point['away_score']
+        
+        # Count tied scores
+        if home_score == away_score:
+            tied_scores += 1
+            current_leader = 'tied'
+        else:
+            # Determine current leader
+            if home_score > away_score:
+                current_leader = 'home'
+                lead = home_score - away_score
+                home_highest_lead = max(home_highest_lead, lead)
+            else:
+                current_leader = 'away'
+                lead = away_score - home_score
+                away_highest_lead = max(away_highest_lead, lead)
+            
+            # Count lead changes (only when lead switches between teams, not including ties)
+            if previous_leader is not None and current_leader != previous_leader:
+                lead_changes += 1
+            
+            # Update previous_leader only for non-tied states
+            previous_leader = current_leader
+    
+    # Return None for highest lead if team never led
+    return {
+        'tied_scores': tied_scores,
+        'lead_changes': lead_changes,
+        'home_highest_lead': home_highest_lead if home_highest_lead > 0 else None,
+        'away_highest_lead': away_highest_lead if away_highest_lead > 0 else None
+    }
