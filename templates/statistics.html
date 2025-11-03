@@ -5,33 +5,144 @@
 {% block page_title %}🎮 Game Statistics{% endblock %}
 {% block page_description %}Comprehensive game statistics and analysis{% endblock %}
 
+{% block extra_styles %}
+        .tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px 10px 0 0;
+            overflow: hidden;
+            margin-bottom: 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            text-align: center;
+            font-weight: 600;
+            color: #555;
+            transition: all 0.3s ease;
+            border-right: 1px solid #e0e0e0;
+        }
+
+        .tab:last-child {
+            border-right: none;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .tab:hover:not(.active) {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .tab-content {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .filter-section {
+            margin-bottom: 20px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-section select {
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            background: white;
+            font-size: 16px;
+            min-width: 250px;
+            margin: 0 10px;
+        }
+
+        .filter-section label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-right: 8px;
+        }
+
+        .division-info {
+            margin-bottom: 20px;
+            text-align: center;
+            background: rgba(102, 126, 234, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+            }
+        }
+{% endblock %}
+
 {% block content %}
 
         <!-- Division Filter -->
-        <div class="stats-section">
-            <h2>Filter by Division</h2>
-            <form method="post" action="/statistics" style="text-align: center; margin: 20px 0;">
-                <select name="division" id="division" style="padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; min-width: 250px;">
-                    <option value="">All Divisions</option>
-                    {% for division in divisions %}
-                    <option value="{{ division }}" {% if selected_division == division %}selected{% endif %}>{{ division }}</option>
-                    {% endfor %}
-                </select>
-                <button type="submit" style="padding: 10px 20px; font-size: 16px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">Filter</button>
-                {% if selected_division %}
-                <a href="/statistics" style="padding: 10px 20px; font-size: 16px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px; text-decoration: none; display: inline-block;">Clear Filter</a>
-                {% endif %}
-            </form>
-            {% if selected_division %}
-            <p style="text-align: center; color: #667eea; font-size: 18px; margin-top: 10px;">
-                <strong>Showing statistics for: {{ selected_division }}</strong>
-            </p>
-            {% endif %}
+        <div class="filter-section">
+            <label for="division-filter">Filter by Division:</label>
+            <select id="division-filter" onchange="filterByDivision(this.value)">
+                <option value="">All Divisions</option>
+                {% for division in divisions %}
+                    <option value="{{ division }}" 
+                            {% if division == selected_division %}selected{% endif %}>
+                        {{ division }}
+                    </option>
+                {% endfor %}
+            </select>
         </div>
 
-        <div class="stats-section">
-            <h2>Top 10 Highest Scoring Games</h2>
-            {% if highest_games is defined and highest_games is not none and not highest_games.empty %}
+        <!-- Division Info -->
+        {% if selected_division %}
+        <div class="division-info">
+            📊 Showing statistics for: <strong>{{ selected_division }}</strong>
+        </div>
+        {% else %}
+        <div class="division-info">
+            📊 Showing statistics for: <strong>All Divisions</strong>
+        </div>
+        {% endif %}
+
+        <!-- Tabbed Interface -->
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('highest-scoring')">🏆 Highest Scoring</div>
+            <div class="tab" onclick="showTab('tie-scores')">⚖️ Tie Scores</div>
+            <div class="tab" onclick="showTab('lead-changes')">🔄 Lead Changes</div>
+            <div class="tab" onclick="showTab('biggest-leads')">📈 Biggest Leads</div>
+            <div class="tab" onclick="showTab('win-margins')">💪 Win Margins</div>
+        </div>
+
+        <!-- Top 10 Highest Scoring Games Tab -->
+        <div id="highest-scoring" class="tab-content active">
+            <div class="stats-section">
+                <h2>Top 10 Highest Scoring Games</h2>
+                {% if highest_games is defined and highest_games is not none and not highest_games.empty %}
             <table>
                 <thead>
                     <tr>
@@ -68,13 +179,16 @@
                     {% endfor %}
                 </tbody>
             </table>
-            {% else %}
-            <p><em>{{ error or "No games data available." }}</em></p>
-            {% endif %}
+                {% else %}
+                <p><em>{{ error or "No games data available." }}</em></p>
+                {% endif %}
+            </div>
         </div>
 
-        <div class="stats-section">
-            <h2>Games with Most Tie Scores</h2>
+        <!-- Games with Most Tie Scores Tab -->
+        <div id="tie-scores" class="tab-content">
+            <div class="stats-section">
+                <h2>Games with Most Tie Scores</h2>
             {% if most_ties is defined and not most_ties.empty %}
             <table>
                 <thead>
@@ -110,13 +224,16 @@
                     {% endfor %}
                 </tbody>
             </table>
-            {% else %}
-            <p><em>No tie score data available.</em></p>
-            {% endif %}
+                {% else %}
+                <p><em>No tie score data available.</em></p>
+                {% endif %}
+            </div>
         </div>
 
-        <div class="stats-section">
-            <h2>Games with Most Lead Changes</h2>
+        <!-- Games with Most Lead Changes Tab -->
+        <div id="lead-changes" class="tab-content">
+            <div class="stats-section">
+                <h2>Games with Most Lead Changes</h2>
             {% if most_lead_changes is defined and not most_lead_changes.empty %}
             <table>
                 <thead>
@@ -152,13 +269,16 @@
                     {% endfor %}
                 </tbody>
             </table>
-            {% else %}
-            <p><em>No lead change data available.</em></p>
-            {% endif %}
+                {% else %}
+                <p><em>No lead change data available.</em></p>
+                {% endif %}
+            </div>
         </div>
 
-        <div class="stats-section">
-            <h2>Games with Biggest Leads</h2>
+        <!-- Games with Biggest Leads Tab -->
+        <div id="biggest-leads" class="tab-content">
+            <div class="stats-section">
+                <h2>Games with Biggest Leads</h2>
             {% if biggest_leads is defined and not biggest_leads.empty %}
             <table>
                 <thead>
@@ -194,13 +314,16 @@
                     {% endfor %}
                 </tbody>
             </table>
-            {% else %}
-            <p><em>No biggest lead data available.</em></p>
-            {% endif %}
+                {% else %}
+                <p><em>No biggest lead data available.</em></p>
+                {% endif %}
+            </div>
         </div>
 
-        <div class="stats-section">
-            <h2>Biggest Win Margins</h2>
+        <!-- Biggest Win Margins Tab -->
+        <div id="win-margins" class="tab-content">
+            <div class="stats-section">
+                <h2>Biggest Win Margins</h2>
             {% if biggest_wins is defined and not biggest_wins.empty %}
             <table>
                 <thead>
@@ -243,8 +366,41 @@
                     {% endfor %}
                 </tbody>
             </table>
-            {% else %}
-            <p><em>No win margin data available.</em></p>
-            {% endif %}
+                {% else %}
+                <p><em>No win margin data available.</em></p>
+                {% endif %}
+            </div>
         </div>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tab contents
+            var tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(function(content) {
+                content.classList.remove('active');
+            });
+
+            // Remove active class from all tabs
+            var tabs = document.querySelectorAll('.tab');
+            tabs.forEach(function(tab) {
+                tab.classList.remove('active');
+            });
+
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+
+        function filterByDivision(division) {
+            const params = new URLSearchParams(window.location.search);
+            if (division) {
+                params.set('division', division);
+            } else {
+                params.delete('division');
+            }
+            window.location.search = params.toString();
+        }
+    </script>
 {% endblock %}
