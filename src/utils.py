@@ -2245,6 +2245,21 @@ def get_top_scorer_by_game(data):
         except:
             referee_names = []
         
+        # Calculate hotness for finished games
+        hotness_score = 0
+        hotness_icon = "❄️"
+        if pd.notna(home_score) and pd.notna(away_score):
+            try:
+                if isinstance(game['GameEvents'], str):
+                    events_data = ast.literal_eval(game['GameEvents'])
+                    teams_data = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
+                    score_evolution = _calculate_score_evolution(events_data, home_team, away_team, teams_data)
+                    game_stats = _calculate_game_statistics(score_evolution)
+                    hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'])
+                    hotness_icon = get_hotness_icon(hotness_score)
+            except:
+                pass
+        
         fixtures.append({
             'GameId': game_id,
             'HomeTeam': home_team,
@@ -2258,7 +2273,9 @@ def get_top_scorer_by_game(data):
             'TopScorerPoints': top_scorer_points,
             'TopScorerTeam': top_scorer_team if top_scorer_team else 'N/A',
             'Referees': referee_names,
-            'IsFinished': pd.notna(home_score) and pd.notna(away_score)
+            'IsFinished': pd.notna(home_score) and pd.notna(away_score),
+            'HotnessScore': hotness_score,
+            'HotnessIcon': hotness_icon
         })
     
     return pd.DataFrame(fixtures)
@@ -2325,6 +2342,21 @@ def get_fixtures_matrix_data(data, division_filter=None):
             # Parse location to get just the name
             location_name = parse_location_name(game['GameLocation'])
             
+            # Calculate hotness for finished games
+            hotness_score = 0
+            hotness_icon = "❄️"
+            if pd.notna(game['FinalHomeScore']) and pd.notna(game['FinalAwayScore']):
+                try:
+                    import ast
+                    events = ast.literal_eval(game['GameEvents']) if isinstance(game['GameEvents'], str) else game['GameEvents']
+                    teams = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
+                    score_evolution = _calculate_score_evolution(events, game['HomeTeamName'], game['AwayTeamName'], teams)
+                    game_stats = _calculate_game_statistics(score_evolution)
+                    hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'])
+                    hotness_icon = get_hotness_icon(hotness_score)
+                except:
+                    pass
+            
             # Get enhanced game info
             game_info = {
                 'game_id': game['GameId'],
@@ -2335,7 +2367,9 @@ def get_fixtures_matrix_data(data, division_filter=None):
                 'division': game['GameDivisionDisplay'],
                 'is_finished': pd.notna(game['FinalHomeScore']) and pd.notna(game['FinalAwayScore']),
                 'referees': parse_referees(game['Referres']),
-                'top_scorer': get_game_top_scorer(game)
+                'top_scorer': get_game_top_scorer(game),
+                'hotness_score': hotness_score,
+                'hotness_icon': hotness_icon
             }
             
             matrix[home_team][away_team].append(game_info)
@@ -2963,8 +2997,29 @@ def get_team_detail_stats(data, team_name):
             'cumulative_allowed': cumulative_allowed,
         })
     
-    # Game by game data
-    game_by_game = team_games.to_dict('records')
+    # Game by game data with hotness calculation
+    game_by_game = []
+    for _, row in team_games.iterrows():
+        game_dict = row.to_dict()
+        
+        # Calculate hotness for finished games
+        hotness_score = 0
+        hotness_icon = "❄️"
+        if pd.notna(row['TeamScore']) and pd.notna(row['OpponentScore']):
+            try:
+                import ast
+                events = ast.literal_eval(row['GameEvents']) if isinstance(row['GameEvents'], str) else row['GameEvents']
+                teams = ast.literal_eval(row['Teams']) if isinstance(row['Teams'], str) else row['Teams']
+                score_evolution = _calculate_score_evolution(events, row['HomeTeamName'], row['AwayTeamName'], teams)
+                game_stats = _calculate_game_statistics(score_evolution)
+                hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'])
+                hotness_icon = get_hotness_icon(hotness_score)
+            except:
+                pass
+        
+        game_dict['HotnessScore'] = hotness_score
+        game_dict['HotnessIcon'] = hotness_icon
+        game_by_game.append(game_dict)
     
     return {
         'basic_stats': basic_stats,
@@ -3329,11 +3384,10 @@ def get_hotness_icon(hotness_score):
     Get the emoji icon(s) representing the game hotness.
     
     Ranges:
-    0-19: ❄️❄️ (Very Cold)
-    20-39: ❄️ (Cold)
-    40-59: 🌡️ (Moderate)
-    60-79: 🔥 (Hot)
-    80-100: 🔥🔥 (Very Hot)
+    0-20: ❄️ (Cold - snowflake)
+    21-50: 🌡️ (Warm - thermometer)
+    51-80: 🔥 (Hot - single flame)
+    81-100: 🔥🔥 (Thriller - double flame)
     
     Parameters:
     hotness_score (int): The hotness score (0-100)
@@ -3341,13 +3395,11 @@ def get_hotness_icon(hotness_score):
     Returns:
     str: Emoji icon(s) representing the hotness level
     """
-    if hotness_score < 20:
-        return "❄️❄️"
-    elif hotness_score < 40:
+    if hotness_score <= 20:
         return "❄️"
-    elif hotness_score < 60:
+    elif hotness_score <= 50:
         return "🌡️"
-    elif hotness_score < 80:
+    elif hotness_score <= 80:
         return "🔥"
     else:
         return "🔥🔥"
@@ -3626,7 +3678,7 @@ def get_game_hover_stats(data, game_id):
         lead_changes = 0
         ties = 0
         hotness_score = 0
-        hotness_icon = "❄️❄️"
+        hotness_icon = "❄️"
     
     return {
         'result': f"{game['HomeTeamName']} {int(game['FinalHomeScore'])} - {int(game['FinalAwayScore'])} {game['AwayTeamName']}",
