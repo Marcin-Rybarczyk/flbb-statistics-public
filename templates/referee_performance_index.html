@@ -1,0 +1,459 @@
+{% extends "base.html" %}
+
+{% block title %}Referee Performance Index - FLBB Statistics{% endblock %}
+
+{% block page_title %}📊 Referee Performance Index (RPI){% endblock %}
+{% block page_description %}Comprehensive referee rankings based on fairness, consistency, game control, and experience{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .rpi-card {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border-radius: 15px;
+        padding: 30px;
+        margin: 20px 0;
+        color: white;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    }
+
+    .rpi-score {
+        font-size: 3em;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+
+    .metric-card {
+        background: white;
+        border-radius: 10px;
+        padding: 15px;
+        margin: 10px;
+        text-align: center;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+
+    .metric-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .metric-label {
+        color: #666;
+        font-size: 0.9em;
+        margin-bottom: 5px;
+    }
+
+    .metric-value {
+        color: #667eea;
+        font-size: 2em;
+        font-weight: bold;
+    }
+
+    .score-bar {
+        height: 30px;
+        border-radius: 5px;
+        background: linear-gradient(90deg, #e74c3c, #f39c12, #f1c40f, #2ecc71, #27ae60);
+        position: relative;
+        margin: 10px 0;
+    }
+
+    .score-marker {
+        position: absolute;
+        top: -5px;
+        width: 3px;
+        height: 40px;
+        background: #2c3e50;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    }
+
+    .score-label {
+        position: absolute;
+        top: -25px;
+        transform: translateX(-50%);
+        font-weight: bold;
+        font-size: 0.9em;
+        color: #2c3e50;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    thead {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+    }
+
+    th, td {
+        padding: 12px;
+        text-align: left;
+    }
+
+    tbody tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+
+    tbody tr:hover {
+        background-color: #e9ecef;
+    }
+
+    .rank-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 0.9em;
+    }
+
+    .top-rank {
+        background: linear-gradient(135deg, #f39c12, #e74c3c);
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin: 20px 0;
+    }
+
+    .referee-link {
+        color: #667eea;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        font-weight: 500;
+    }
+
+    .referee-link:hover {
+        color: #764ba2;
+        text-decoration: underline;
+    }
+
+    .info-box {
+        background: #f0f7ff;
+        border-left: 4px solid #667eea;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 5px;
+    }
+
+    .info-box h3 {
+        margin-top: 0;
+        color: #667eea;
+    }
+
+    .methodology {
+        background: #fff9e6;
+        border-left: 4px solid #f39c12;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 5px;
+    }
+
+    .methodology h3 {
+        margin-top: 0;
+        color: #f39c12;
+    }
+
+    .score-breakdown {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 10px;
+        margin: 10px 0;
+    }
+
+    .score-item {
+        background: rgba(102, 126, 234, 0.1);
+        padding: 10px;
+        border-radius: 5px;
+        text-align: center;
+    }
+
+    .score-item-label {
+        font-size: 0.85em;
+        color: #666;
+        margin-bottom: 5px;
+    }
+
+    .score-item-value {
+        font-size: 1.2em;
+        font-weight: bold;
+        color: #667eea;
+    }
+
+    .visualization-section {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin: 20px 0;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% else %}
+        <!-- RPI Explanation -->
+        <div class="info-box">
+            <h3>📊 What is the Referee Performance Index (RPI)?</h3>
+            <p>The RPI is a comprehensive metric that evaluates referee performance across multiple dimensions:</p>
+            <div class="score-breakdown">
+                <div class="score-item">
+                    <div class="score-item-label">⚖️ Fairness (30%)</div>
+                    <div class="score-item-value">Balance in fouls</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-item-label">🎯 Consistency (30%)</div>
+                    <div class="score-item-value">Stable performance</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-item-label">🎮 Game Control (25%)</div>
+                    <div class="score-item-value">Technical fouls</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-item-label">📚 Experience (15%)</div>
+                    <div class="score-item-value">Games officiated</div>
+                </div>
+            </div>
+            <p style="margin-top: 15px;"><strong>Note:</strong> Only referees with at least 3 games are included in the rankings to ensure statistical significance.</p>
+        </div>
+
+        <!-- Summary Statistics -->
+        {% if rpi_data is defined and not rpi_data.empty %}
+        <div class="stats-section">
+            <h2>📈 Overview</h2>
+            <div class="stats-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Qualified Referees</div>
+                    <div class="metric-value">{{ rpi_data|length }}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Average RPI</div>
+                    <div class="metric-value">{{ "%.1f"|format(rpi_data['RPI'].mean()) }}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Top RPI</div>
+                    <div class="metric-value">{{ "%.1f"|format(rpi_data['RPI'].max()) }}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Total Games</div>
+                    <div class="metric-value">{{ rpi_data['GamesRefereed'].sum() }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top 3 Referees Spotlight -->
+        <div class="stats-section">
+            <h2>🏆 Top Performers</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                {% for index, ref in rpi_data.head(3).iterrows() %}
+                <div class="rpi-card">
+                    <div style="font-size: 1.2em;">
+                        {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% else %}🥉{% endif %}
+                        Rank #{{ ref['Rank'] }}
+                    </div>
+                    <h3 style="margin: 10px 0;">
+                        <a href="/referee-detail?referee={{ ref['RefereeName']|urlencode }}" style="color: white; text-decoration: none;">
+                            {{ ref['RefereeName'] }}
+                        </a>
+                    </h3>
+                    <div class="rpi-score">{{ "%.1f"|format(ref['RPI']) }}</div>
+                    <div style="font-size: 0.9em; opacity: 0.9;">
+                        {{ ref['GamesRefereed'] }} games officiated
+                    </div>
+                    <div style="margin-top: 15px; font-size: 0.85em;">
+                        <div>⚖️ Fairness: {{ "%.0f"|format(ref['FairnessScore']) }}%</div>
+                        <div>🎯 Consistency: {{ "%.0f"|format(ref['ConsistencyScore']) }}%</div>
+                        <div>🎮 Control: {{ "%.0f"|format(ref['GameControlScore']) }}%</div>
+                        <div>📚 Experience: {{ "%.0f"|format(ref['ExperienceScore']) }}%</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Complete Rankings Table -->
+        <div class="stats-section">
+            <h2>🎖️ Complete Rankings</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Referee Name</th>
+                        <th>RPI</th>
+                        <th>Games</th>
+                        <th>Fairness</th>
+                        <th>Consistency</th>
+                        <th>Control</th>
+                        <th>Experience</th>
+                        <th>Avg Fouls/Game</th>
+                        <th>Avg Foul Diff</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for index, ref in rpi_data.iterrows() %}
+                    <tr>
+                        <td>
+                            <span class="rank-badge {% if ref['Rank'] <= 3 %}top-rank{% endif %}">
+                                #{{ ref['Rank'] }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="/referee-detail?referee={{ ref['RefereeName']|urlencode }}" class="referee-link">
+                                {{ ref['RefereeName'] }}
+                            </a>
+                        </td>
+                        <td><strong style="color: #667eea;">{{ "%.1f"|format(ref['RPI']) }}</strong></td>
+                        <td>{{ ref['GamesRefereed'] }}</td>
+                        <td>
+                            <div style="position: relative; width: 60px; height: 20px; background: #e0e0e0; border-radius: 10px; overflow: hidden;">
+                                <div style="width: {{ ref['FairnessScore'] }}%; height: 100%; background: linear-gradient(90deg, #2ecc71, #27ae60); border-radius: 10px;"></div>
+                                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 0.75em; font-weight: bold;">
+                                    {{ "%.0f"|format(ref['FairnessScore']) }}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="position: relative; width: 60px; height: 20px; background: #e0e0e0; border-radius: 10px; overflow: hidden;">
+                                <div style="width: {{ ref['ConsistencyScore'] }}%; height: 100%; background: linear-gradient(90deg, #3498db, #2980b9); border-radius: 10px;"></div>
+                                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 0.75em; font-weight: bold;">
+                                    {{ "%.0f"|format(ref['ConsistencyScore']) }}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="position: relative; width: 60px; height: 20px; background: #e0e0e0; border-radius: 10px; overflow: hidden;">
+                                <div style="width: {{ ref['GameControlScore'] }}%; height: 100%; background: linear-gradient(90deg, #f39c12, #e67e22); border-radius: 10px;"></div>
+                                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 0.75em; font-weight: bold;">
+                                    {{ "%.0f"|format(ref['GameControlScore']) }}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="position: relative; width: 60px; height: 20px; background: #e0e0e0; border-radius: 10px; overflow: hidden;">
+                                <div style="width: {{ ref['ExperienceScore'] }}%; height: 100%; background: linear-gradient(90deg, #9b59b6, #8e44ad); border-radius: 10px;"></div>
+                                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 0.75em; font-weight: bold;">
+                                    {{ "%.0f"|format(ref['ExperienceScore']) }}
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ "%.1f"|format(ref['AvgFoulsPerGame']) }}</td>
+                        <td>{{ "%.1f"|format(ref['AvgFoulDifferential']) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Scatter Plot Section -->
+        <div class="stats-section">
+            <h2>📉 Fairness vs Consistency Analysis</h2>
+            <div class="visualization-section">
+                <p><strong>Top-left quadrant</strong> represents referees who are both <strong>fair</strong> (balanced foul calls) and <strong>consistent</strong> (stable game-to-game performance).</p>
+                <div style="margin-top: 20px;">
+                    <canvas id="scatterChart" width="800" height="500"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Methodology -->
+        <div class="methodology">
+            <h3>📋 Methodology</h3>
+            <p><strong>How is RPI calculated?</strong></p>
+            <ul>
+                <li><strong>Fairness Score (30%):</strong> Measures balance in foul calls between home and away teams. Lower foul differential = higher score.</li>
+                <li><strong>Consistency Score (30%):</strong> Measures variance in fouls called per game. Lower variance = higher score.</li>
+                <li><strong>Game Control Score (25%):</strong> Evaluates technical/unsportsmanlike foul rates. Optimal technical foul rate around 7.5%.</li>
+                <li><strong>Experience Score (15%):</strong> Based on number of games officiated with logarithmic scaling for diminishing returns.</li>
+            </ul>
+            <p><strong>Final RPI</strong> = Weighted average of all four scores, normalized to 0-100 scale.</p>
+        </div>
+
+        {% else %}
+            <p class="error">No referee performance data available.</p>
+        {% endif %}
+    {% endif %}
+
+    <!-- Chart.js for scatter plot -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script>
+        {% if scatter_data %}
+        const scatterData = {{ scatter_data|tojson }};
+        
+        const ctx = document.getElementById('scatterChart').getContext('2d');
+        const scatterChart = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Referees',
+                    data: scatterData.map(ref => ({
+                        x: ref.fairness,
+                        y: ref.consistency,
+                        r: Math.sqrt(ref.games) * 3,
+                        name: ref.name,
+                        rpi: ref.rpi
+                    })),
+                    backgroundColor: 'rgba(102, 126, 234, 0.6)',
+                    borderColor: 'rgba(102, 126, 234, 1)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const point = context.raw;
+                                return [
+                                    point.name,
+                                    `RPI: ${point.rpi}`,
+                                    `Fairness: ${point.x.toFixed(1)}`,
+                                    `Consistency: ${point.y.toFixed(1)}`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Fairness Score →',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        min: 0,
+                        max: 105
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Consistency Score →',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        min: 0,
+                        max: 105
+                    }
+                }
+            }
+        });
+        {% endif %}
+    </script>
+{% endblock %}
