@@ -401,7 +401,7 @@
                 <tbody>
                     {% for index, row in fixtures.iterrows() %}
                     <tr class="fixture-row" onclick="window.location.href='/game-detail/{{ row['GameId'] }}'" style="cursor: pointer;">
-                        <td><a href="/game-detail/{{ row['GameId'] }}" style="color: #667eea; text-decoration: none; font-weight: 600;">{{ row['GameId'] }}</a></td>
+                        <td><a href="/game-detail/{{ row['GameId'] }}" class="game-link">{{ row['GameId'] }}</a></td>
                         <td class="date-time">
                             {% if row['DateTime'] %}
                                 {{ row['DateTime'][:16].replace('T', ' ') if 'T' in (row['DateTime'] or '') else row['DateTime'][:16] }}

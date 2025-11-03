@@ -354,7 +354,7 @@
                             {% for player in team.players %}
                             <tr class="{% if player['Starting Five'] == 'true' %}starting-five{% endif %}">
                                 <td>{{ player['Player Number'] }}</td>
-                                <td><a href="/player-detail?player={{ player['Player Name']|urlencode }}" style="color: #667eea; text-decoration: none; font-weight: 500;">{{ player['Player Name'] }}</a></td>
+                                <td><a href="/player-detail?player={{ player['Player Name']|urlencode }}" class="player-link">{{ player['Player Name'] }}</a></td>
                                 <td><strong>{{ player['Total Points'] }}</strong></td>
                                 <td>{{ player['1P Made Shots'] }}</td>
                                 <td>{{ player['2P Made Shots'] }}</td>

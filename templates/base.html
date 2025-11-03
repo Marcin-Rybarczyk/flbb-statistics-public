@@ -307,128 +307,33 @@
             font-size: 0.9em;
         }
 
-        /* Hover Tooltip Styles */
-        .hoverable-item {
-            cursor: pointer;
-            position: relative;
+        /* Standardized clickable entity links */
+        .player-link, .team-link, .game-link, .referee-link {
             color: #667eea;
             text-decoration: none;
-            transition: color 0.2s ease;
+            font-weight: bold;
+            transition: all 0.2s ease;
         }
 
-        .hoverable-item:hover {
+        .player-link:hover, .team-link:hover, .game-link:hover, .referee-link:hover {
             color: #764ba2;
-            text-decoration: underline;
-        }
-
-        .hover-tooltip {
-            position: fixed;
-            background: white;
-            border: 2px solid #667eea;
-            border-radius: 10px;
-            padding: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            z-index: 10000;
-            min-width: 250px;
-            max-width: 400px;
-            display: none;
-            pointer-events: none;
-        }
-
-        .hover-tooltip.show {
-            display: block;
-        }
-
-        .hover-tooltip h4 {
-            margin: 0 0 10px 0;
-            color: #2c3e50;
-            font-size: 1.1em;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 8px;
-        }
-
-        .hover-tooltip .stat-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 5px 0;
-            font-size: 0.95em;
-        }
-
-        .hover-tooltip .stat-label {
-            color: #7f8c8d;
-            font-weight: 500;
-        }
-
-        .hover-tooltip .stat-value {
-            color: #2c3e50;
-            font-weight: bold;
-        }
-
-        .hover-tooltip .streak {
-            display: inline-block;
-            padding: 2px 6px;
-            margin: 0 2px;
+            background-color: rgba(102, 126, 234, 0.1);
+            text-decoration: none;
+            padding: 2px 4px;
             border-radius: 3px;
-            font-weight: bold;
-            font-size: 0.85em;
         }
 
-        .hover-tooltip .streak.win {
-            background: #27ae60;
-            color: white;
-        }
-
-        .hover-tooltip .streak.loss {
-            background: #e74c3c;
-            color: white;
-        }
-
-        .hover-tooltip .loading {
-            text-align: center;
-            color: #7f8c8d;
-            font-style: italic;
-        }
-
-        /* Context Menu Styles */
-        .context-menu {
-            position: fixed;
-            background: white;
-            border: 2px solid #667eea;
-            border-radius: 8px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            z-index: 10001;
-            min-width: 180px;
-            display: none;
-            overflow: hidden;
-        }
-
-        .context-menu.show {
-            display: block;
-        }
-
-        .context-menu-item {
-            padding: 12px 20px;
+        /* For team buttons styled as links */
+        button.team-link {
+            background: none;
+            border: none;
             cursor: pointer;
-            transition: background 0.2s ease;
-            border-bottom: 1px solid #eee;
-            color: #2c3e50;
-            font-weight: 500;
+            font-size: inherit;
+            padding: 0;
         }
 
-        .context-menu-item:last-child {
-            border-bottom: none;
-        }
-
-        .context-menu-item:hover {
-            background: rgba(102, 126, 234, 0.1);
-            color: #667eea;
-        }
-
-        .context-menu-item i {
-            margin-right: 10px;
-            width: 16px;
-            display: inline-block;
-            text-align: center;
+        button.team-link:hover {
+            padding: 2px 4px;
         }
 
         {% block extra_styles %}{% endblock %}
