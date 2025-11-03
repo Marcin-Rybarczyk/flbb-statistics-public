@@ -582,11 +582,7 @@ def get_player_shooting_efficiency(data, top_n=20, division=None):
     division (str): Optional division filter
     
     Returns:
-    DataFrame: Players with free throw statistics including:
-        - TotalFreeThrowsMade: Total 1P shots made
-        - FreeThrowPercentageOfScore: Percentage of total points from free throws
-        - AvgFreeThrowsPerGame: Average free throws per game
-        - AvgPointsPerGame: Average total points per game
+    DataFrame: Players with free throw statistics
     """
     # Filter by division if specified
     if division:
@@ -614,14 +610,6 @@ def get_player_shooting_efficiency(data, top_n=20, division=None):
                                          ft_stats['GamesPlayed']).round(2)
     ft_stats['AvgPointsPerGame'] = (ft_stats['TotalPoints'] / 
                                     ft_stats['GamesPlayed']).round(1)
-    
-    # Calculate percentage of score from free throws (1P shots)
-    # Free throws are worth 1 point each, so FT points = TotalFreeThrowsMade
-    ft_stats['FreeThrowPercentageOfScore'] = 0.0
-    mask = ft_stats['TotalPoints'] > 0
-    ft_stats.loc[mask, 'FreeThrowPercentageOfScore'] = (
-        (ft_stats.loc[mask, 'TotalFreeThrowsMade'] / ft_stats.loc[mask, 'TotalPoints']) * 100
-    ).round(1)
     
     # Filter players with at least 5 games and at least 5 total free throws made
     ft_stats = ft_stats[

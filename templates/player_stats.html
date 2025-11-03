@@ -307,7 +307,7 @@
         <div id="shooting-efficiency" class="tab-content">
             <div class="stats-section">
                 <h2>Free Throw Leaders</h2>
-                <p><em>Players ranked by total free throws made (minimum 5 games and 5 free throws). FT% of Score shows what percentage of their total points come from free throws.</em></p>
+                <p><em>Players ranked by total free throws made (minimum 5 games and 5 free throws)</em></p>
                 <table>
                     <thead>
                         <tr>
@@ -315,7 +315,6 @@
                             <th>Player</th>
                             <th>Team</th>
                             <th>Total FT Made</th>
-                            <th>FT% of Score</th>
                             <th>Games Played</th>
                             <th>Avg FT/Game</th>
                         </tr>
@@ -333,7 +332,6 @@
                                 </form>
                             </td>
                             <td><strong>{{ row['TotalFreeThrowsMade'] }}</strong></td>
-                            <td>{{ "%.1f"|format(row['FreeThrowPercentageOfScore']) }}%</td>
                             <td>{{ row['GamesPlayed'] }}</td>
                             <td>{{ "%.2f"|format(row['AvgFreeThrowsPerGame']) }}</td>
                         </tr>
