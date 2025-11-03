@@ -5,6 +5,7 @@ from collections import defaultdict
 import zipfile
 import tempfile
 from datetime import datetime
+import html
 
 
 FULL_GAME_STATS_OUTPUT_DIR = "full-game-stats-output"
@@ -14,6 +15,9 @@ FORCE_TO_CREATE_CSV = True
 # Flag to control automatic player database CSV generation during data load
 # Set to False to disable automatic generation (can still be called manually)
 AUTO_CREATE_PLAYER_DATABASE = False
+
+# Foul visualization settings
+MAX_FOUL_BLOCKS_DISPLAY = 20  # Maximum number of visual blocks (■) to display for a single foul type
 
 # Configuration file paths
 CONFIG_FILEPATH = "data/config.json"
@@ -915,6 +919,14 @@ def get_top_foulers(data, top_n=10, division=None):
         """
         Create visual foul details with colored blocks sorted by severity.
         
+        Args:
+            row (pandas.Series): A row from the foul statistics DataFrame containing
+                                foul counts for each type (PFouls, P1Fouls, etc.)
+        
+        Returns:
+            str: HTML string representing foul details with colored visual blocks
+                 sorted by severity (most severe first)
+        
         Foul severity order (most severe first):
         - GD (Game Disqualification): #8B0000 (dark red)
         - U3, U2, U1 (Unsportsmanlike): #DC143C, #FF6347, #FF8C69 (red shades)
@@ -939,15 +951,20 @@ def get_top_foulers(data, top_n=10, division=None):
             if count > 0:
                 count = int(count)
                 # Create visual blocks (■) limited to reasonable display
-                blocks = '■' * min(count, 20)  # Cap at 20 for display
-                if count > 20:
-                    blocks += f'...+{count-20}'
+                blocks = '■' * min(count, MAX_FOUL_BLOCKS_DISPLAY)
+                if count > MAX_FOUL_BLOCKS_DISPLAY:
+                    blocks += f'...+{count - MAX_FOUL_BLOCKS_DISPLAY}'
+                
+                # Escape HTML to prevent XSS
+                escaped_title = html.escape(title)
+                escaped_foul_code = html.escape(foul_code)
+                escaped_blocks = html.escape(blocks)
                 
                 # Create HTML for this foul type
                 foul_html = (
-                    f'<div class="foul-card" title="{title}">'
-                    f'<span class="foul-label">{foul_code}:</span>'
-                    f'<span class="foul-blocks" style="color: {color};">{blocks}</span> '
+                    f'<div class="foul-card" title="{escaped_title}">'
+                    f'<span class="foul-label">{escaped_foul_code}:</span>'
+                    f'<span class="foul-blocks" style="color: {color};">{escaped_blocks}</span> '
                     f'<span class="foul-count">({count})</span>'
                     f'</div>'
                 )
