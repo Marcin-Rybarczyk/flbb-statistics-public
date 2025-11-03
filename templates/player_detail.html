@@ -439,12 +439,12 @@
                         <td>{{ game.GameDivision }}</td>
                         <td>
                             <div style="margin-bottom: 4px;">
-                                <a href="/game-detail/{{ game.GameId }}" style="color: #667eea; text-decoration: underline; font-size: 0.85em;">Game {{ game.GameId }}</a>
+                                <a href="/game-detail/{{ game.GameId }}" class="game-link" style="font-size: 0.85em;">Game {{ game.GameId }}</a>
                             </div>
                             <div>
-                                <a href="/team-detail?team={{ game.Team }}" style="color: #667eea; text-decoration: underline;">{{ game.Team }}</a>
+                                <a href="/team-detail?team={{ game.Team }}" class="team-link">{{ game.Team }}</a>
                                 vs
-                                <a href="/team-detail?team={{ game.OpponentTeam }}" style="color: #667eea; text-decoration: underline;">{{ game.OpponentTeam }}</a>
+                                <a href="/team-detail?team={{ game.OpponentTeam }}" class="team-link">{{ game.OpponentTeam }}</a>
                             </div>
                         </td>
                         <td>

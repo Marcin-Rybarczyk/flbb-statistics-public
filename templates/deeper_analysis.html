@@ -230,11 +230,11 @@
                         {% for index, row in player_impact.iterrows() %}
                         <tr>
                             <td><strong>{{ loop.index }}</strong></td>
-                            <td><strong><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" style="color: #667eea; text-decoration: underline;">{{ row['PlayerName'] }}</a></strong></td>
+                            <td><strong><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></strong></td>
                             <td>
                                 <form method="post" action="/team-stats" style="display: inline;">
                                     <input type="hidden" name="team" value="{{ row['Team'] }}">
-                                    <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team'] }}</button>
+                                    <button type="submit" class="team-link">{{ row['Team'] }}</button>
                                 </form>
                             </td>
                             <td>{{ row['GamesPlayed'] }}</td>
@@ -290,11 +290,11 @@
                         {% for index, row in foul_impact.iterrows() %}
                         <tr>
                             <td><strong>{{ loop.index }}</strong></td>
-                            <td><strong><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" style="color: #667eea; text-decoration: underline;">{{ row['PlayerName'] }}</a></strong></td>
+                            <td><strong><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></strong></td>
                             <td>
                                 <form method="post" action="/team-stats" style="display: inline;">
                                     <input type="hidden" name="team" value="{{ row['Team'] }}">
-                                    <button type="submit" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: inherit; padding: 0;">{{ row['Team'] }}</button>
+                                    <button type="submit" class="team-link">{{ row['Team'] }}</button>
                                 </form>
                             </td>
                             <td>{{ row['TotalFouls'] }}</td>
@@ -349,7 +349,7 @@
                         {% for index, row in player_combinations['player_synergies'].iterrows() %}
                         <tr>
                             <td><strong>{{ loop.index }}</strong></td>
-                            <td><strong><a href="/player-detail?player={{ row['Player1']|urlencode }}" style="color: #667eea; text-decoration: underline;">{{ row['Player1'] }}</a> + <a href="/player-detail?player={{ row['Player2']|urlencode }}" style="color: #667eea; text-decoration: underline;">{{ row['Player2'] }}</a></strong></td>
+                            <td><strong><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['Player1'] }}</a> + <a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['Player2'] }}</a></strong></td>
                             <td>{{ row['GamesTogether'] }}</td>
                             <td class="positive">{{ "%.1f"|format(row['WinRate']) }}%</td>
                             <td>{{ row.get('CombinedAvgPoints', 'N/A') }}</td>
