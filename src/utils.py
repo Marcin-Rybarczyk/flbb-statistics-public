@@ -3046,6 +3046,12 @@ def get_game_details(data, game_id):
     # Calculate advanced game statistics
     game_stats = _calculate_game_statistics(score_evolution)
     
+    # Calculate hotness score
+    hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'])
+    hotness_icon = get_hotness_icon(hotness_score)
+    game_stats['hotness_score'] = hotness_score
+    game_stats['hotness_icon'] = hotness_icon
+    
     # Calculate timeout and coach information from events
     team_timeouts = {}
     team_coaches = {}
@@ -3301,6 +3307,50 @@ def _calculate_game_statistics(score_evolution):
         'home_highest_lead': home_highest_lead if home_highest_lead > 0 else None,
         'away_highest_lead': away_highest_lead if away_highest_lead > 0 else None
     }
+
+
+def calculate_hotness_score(lead_changes, ties):
+    """
+    Calculate game hotness score based on lead changes and tied scores.
+    Formula: min(100, (LeadChanges * 3 + Ties * 2))
+    
+    Parameters:
+    lead_changes (int): Number of lead changes in the game
+    ties (int): Number of times the score was tied
+    
+    Returns:
+    int: Hotness score between 0 and 100
+    """
+    return min(100, (lead_changes * 3 + ties * 2))
+
+
+def get_hotness_icon(hotness_score):
+    """
+    Get the emoji icon(s) representing the game hotness.
+    
+    Ranges:
+    0-19: ❄️❄️ (Very Cold)
+    20-39: ❄️ (Cold)
+    40-59: 🌡️ (Moderate)
+    60-79: 🔥 (Hot)
+    80-100: 🔥🔥 (Very Hot)
+    
+    Parameters:
+    hotness_score (int): The hotness score (0-100)
+    
+    Returns:
+    str: Emoji icon(s) representing the hotness level
+    """
+    if hotness_score < 20:
+        return "❄️❄️"
+    elif hotness_score < 40:
+        return "❄️"
+    elif hotness_score < 60:
+        return "🌡️"
+    elif hotness_score < 80:
+        return "🔥"
+    else:
+        return "🔥🔥"
 
 
 def get_player_hover_stats(data, player_name):
@@ -3570,14 +3620,20 @@ def get_game_hover_stats(data, game_id):
         game_stats = _calculate_game_statistics(score_evolution)
         lead_changes = game_stats.get('lead_changes', 0)
         ties = game_stats.get('tied_scores', 0)
+        hotness_score = calculate_hotness_score(lead_changes, ties)
+        hotness_icon = get_hotness_icon(hotness_score)
     except:
         lead_changes = 0
         ties = 0
+        hotness_score = 0
+        hotness_icon = "❄️❄️"
     
     return {
         'result': f"{game['HomeTeamName']} {int(game['FinalHomeScore'])} - {int(game['FinalAwayScore'])} {game['AwayTeamName']}",
         'referees': referee_names,
-        'date_time': str(game.get('DateTime', 'N/A')),
-        'lead_changes': int(lead_changes),
-        'ties': int(ties)
+        'date_time': game.get('DateTime', 'N/A'),
+        'lead_changes': lead_changes,
+        'ties': ties,
+        'hotness_score': hotness_score,
+        'hotness_icon': hotness_icon
     }

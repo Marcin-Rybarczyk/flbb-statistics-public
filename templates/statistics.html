@@ -159,7 +159,7 @@
                     {% for index, row in highest_games.iterrows() %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td><a href="/game-detail/{{ row['GameId'] }}" class="game-link">{{ row['GameId'] }}</a></td>
+                        <td><a href="/game-detail/{{ row['GameId'] }}" class="game-link hoverable-item" data-type="game" data-id="{{ row['GameId'] }}">{{ row['GameId'] }}</a></td>
                         <td>
                             <form method="post" action="/team-stats" style="display: inline;">
                                 <input type="hidden" name="team" value="{{ row['HomeTeamName'] }}">
@@ -205,7 +205,7 @@
                     {% for index, row in most_ties.iterrows() %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td><a href="/game-detail/{{ row['GameId'] }}" class="game-link">{{ row['GameId'] }}</a></td>
+                        <td><a href="/game-detail/{{ row['GameId'] }}" class="game-link hoverable-item" data-type="game" data-id="{{ row['GameId'] }}">{{ row['GameId'] }}</a></td>
                         <td>
                             <form method="post" action="/team-stats" style="display: inline;">
                                 <input type="hidden" name="team" value="{{ row['HomeTeam'] }}">
@@ -250,7 +250,7 @@
                     {% for index, row in most_lead_changes.iterrows() %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td><a href="/game-detail/{{ row['GameId'] }}" class="game-link">{{ row['GameId'] }}</a></td>
+                        <td><a href="/game-detail/{{ row['GameId'] }}" class="game-link hoverable-item" data-type="game" data-id="{{ row['GameId'] }}">{{ row['GameId'] }}</a></td>
                         <td>
                             <form method="post" action="/team-stats" style="display: inline;">
                                 <input type="hidden" name="team" value="{{ row['HomeTeam'] }}">
@@ -295,7 +295,7 @@
                     {% for index, row in biggest_leads.iterrows() %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td><a href="/game-detail/{{ row['GameId'] }}" class="game-link">{{ row['GameId'] }}</a></td>
+                        <td><a href="/game-detail/{{ row['GameId'] }}" class="game-link hoverable-item" data-type="game" data-id="{{ row['GameId'] }}">{{ row['GameId'] }}</a></td>
                         <td>
                             <form method="post" action="/team-stats" style="display: inline;">
                                 <input type="hidden" name="team" value="{{ row['HomeTeam'] }}">
@@ -341,7 +341,7 @@
                     {% for index, row in biggest_wins.iterrows() %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td><a href="/game-detail/{{ row['GameId'] }}" class="game-link">{{ row['GameId'] }}</a></td>
+                        <td><a href="/game-detail/{{ row['GameId'] }}" class="game-link hoverable-item" data-type="game" data-id="{{ row['GameId'] }}">{{ row['GameId'] }}</a></td>
                         <td>
                             <form method="post" action="/team-stats" style="display: inline;">
                                 <input type="hidden" name="team" value="{{ row['HomeTeam'] }}">
