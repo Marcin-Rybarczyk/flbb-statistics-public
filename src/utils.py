@@ -3308,10 +3308,10 @@ def get_hotness_icon(hotness_score):
     Get the emoji icon(s) representing the game hotness.
     
     Ranges:
-    0-20: ❄️❄️ (Very Cold)
-    20-40: ❄️ (Cold)
-    40-60: 🌡️ (Moderate)
-    60-80: 🔥 (Hot)
+    0-19: ❄️❄️ (Very Cold)
+    20-39: ❄️ (Cold)
+    40-59: 🌡️ (Moderate)
+    60-79: 🔥 (Hot)
     80-100: 🔥🔥 (Very Hot)
     
     Parameters:
