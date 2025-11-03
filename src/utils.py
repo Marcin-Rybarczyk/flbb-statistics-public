@@ -3241,3 +3241,213 @@ def _calculate_game_statistics(score_evolution):
         'home_highest_lead': home_highest_lead if home_highest_lead > 0 else None,
         'away_highest_lead': away_highest_lead if away_highest_lead > 0 else None
     }
+
+
+def get_player_hover_stats(data, player_name):
+    """
+    Get basic statistics for a player to display in hover tooltip.
+    
+    Parameters:
+    data (DataFrame): The game data
+    player_name (str): The name of the player
+    
+    Returns:
+    dict: Dictionary containing:
+        - games_played: Number of games
+        - avg_score: Average points per game
+        - fouls_per_game: Average fouls per game
+        - best_score: Highest score in one game
+    """
+    player_stats = extract_all_player_stats(data)
+    
+    if player_stats.empty:
+        return None
+    
+    # Filter for the specific player
+    player_games = player_stats[player_stats['PlayerName'] == player_name].copy()
+    
+    if player_games.empty:
+        return None
+    
+    return {
+        'games_played': len(player_games),
+        'avg_score': round(player_games['TotalPoints'].mean(), 1),
+        'fouls_per_game': round(player_games['TotalFouls'].mean(), 1),
+        'best_score': int(player_games['TotalPoints'].max())
+    }
+
+
+def get_team_hover_stats(data, team_name):
+    """
+    Get basic statistics for a team to display in hover tooltip.
+    
+    Parameters:
+    data (DataFrame): The game data
+    team_name (str): The name of the team
+    
+    Returns:
+    dict: Dictionary containing:
+        - wins: Number of wins
+        - losses: Number of losses
+        - last_five: List of results for last 5 games (W/L)
+    """
+    if data.empty:
+        return None
+    
+    # Filter games for this team
+    team_games = data[
+        (data['HomeTeamName'] == team_name) | 
+        (data['AwayTeamName'] == team_name)
+    ].copy()
+    
+    if team_games.empty:
+        return None
+    
+    # Sort by date
+    team_games = team_games.sort_values('DateTime')
+    
+    # Process each game
+    team_games['IsHome'] = team_games['HomeTeamName'] == team_name
+    team_games['TeamScore'] = team_games.apply(
+        lambda row: row['FinalHomeScore'] if row['IsHome'] else row['FinalAwayScore'], 
+        axis=1
+    )
+    team_games['OpponentScore'] = team_games.apply(
+        lambda row: row['FinalAwayScore'] if row['IsHome'] else row['FinalHomeScore'], 
+        axis=1
+    )
+    team_games['Result'] = team_games.apply(
+        lambda row: 'W' if row['TeamScore'] > row['OpponentScore'] else 'L', 
+        axis=1
+    )
+    
+    # Calculate wins and losses
+    wins = len(team_games[team_games['Result'] == 'W'])
+    losses = len(team_games[team_games['Result'] == 'L'])
+    
+    # Get last 5 games
+    last_five = team_games.tail(5)['Result'].tolist()
+    
+    return {
+        'wins': wins,
+        'losses': losses,
+        'last_five': last_five
+    }
+
+
+def get_referee_hover_stats(data, referee_name):
+    """
+    Get basic statistics for a referee to display in hover tooltip.
+    
+    Parameters:
+    data (DataFrame): The game data
+    referee_name (str): The name of the referee
+    
+    Returns:
+    dict: Dictionary containing:
+        - games: Number of games
+        - fouls_per_game: Average fouls per game
+    """
+    import ast
+    
+    if data.empty:
+        return None
+    
+    # Find games where this referee officiated
+    referee_games = []
+    for idx, row in data.iterrows():
+        try:
+            referees = ast.literal_eval(row['Referres']) if isinstance(row['Referres'], str) else row['Referres']
+            # Check for both 'RefereeName' and 'Referee Name' keys
+            if referees and any(
+                ref.get('RefereeName') == referee_name or ref.get('Referee Name') == referee_name 
+                for ref in referees
+            ):
+                referee_games.append(row)
+        except:
+            continue
+    
+    if not referee_games:
+        return None
+    
+    # Extract total fouls for each game
+    total_fouls = []
+    for game_row in referee_games:
+        try:
+            teams = ast.literal_eval(game_row['Teams']) if isinstance(game_row['Teams'], str) else game_row['Teams']
+            game_fouls = 0
+            for team in teams:
+                if 'Players' in team:
+                    for player in team['Players']:
+                        game_fouls += player.get('TotalFouls', 0)
+            total_fouls.append(game_fouls)
+        except:
+            continue
+    
+    avg_fouls = round(sum(total_fouls) / len(total_fouls), 1) if total_fouls else 0
+    
+    return {
+        'games': len(referee_games),
+        'fouls_per_game': avg_fouls
+    }
+
+
+def get_game_hover_stats(data, game_id):
+    """
+    Get basic statistics for a game to display in hover tooltip.
+    
+    Parameters:
+    data (DataFrame): The game data
+    game_id (str or int): The game ID
+    
+    Returns:
+    dict: Dictionary containing:
+        - result: Final score string
+        - referees: List of referee names
+        - date_time: Game date and time
+        - lead_changes: Number of lead changes
+        - ties: Number of times score was tied
+    """
+    import ast
+    
+    # Convert game_id to string for comparison
+    game_id = str(game_id)
+    
+    # Find the game
+    game_row = data[data['GameId'].astype(str) == game_id]
+    
+    if game_row.empty:
+        return None
+    
+    game = game_row.iloc[0]
+    
+    # Parse referees
+    try:
+        referees = ast.literal_eval(game['Referres']) if isinstance(game['Referres'], str) else game['Referres']
+        # Check for both key formats
+        referee_names = [
+            ref.get('RefereeName') or ref.get('Referee Name', 'Unknown') 
+            for ref in referees
+        ] if referees else []
+    except:
+        referee_names = []
+    
+    # Parse events for lead changes and ties
+    try:
+        events = ast.literal_eval(game['GameEvents']) if isinstance(game['GameEvents'], str) else game['GameEvents']
+        teams = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
+        score_evolution = _calculate_score_evolution(events, game['HomeTeamName'], game['AwayTeamName'], teams)
+        game_stats = _calculate_game_statistics(score_evolution)
+        lead_changes = game_stats.get('lead_changes', 0)
+        ties = game_stats.get('tied_scores', 0)
+    except:
+        lead_changes = 0
+        ties = 0
+    
+    return {
+        'result': f"{game['HomeTeamName']} {game['FinalHomeScore']} - {game['FinalAwayScore']} {game['AwayTeamName']}",
+        'referees': referee_names,
+        'date_time': game.get('DateTime', 'N/A'),
+        'lead_changes': lead_changes,
+        'ties': ties
+    }
