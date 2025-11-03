@@ -964,7 +964,10 @@ def get_top_foulers(data, top_n=10, division=None):
                     # Note: The actual total count is always shown in the (count) text, so users
                     # can see the full number even when the visual display is truncated
                     if big_blocks > MAX_FOUL_BLOCKS_DISPLAY:
-                        # When truncating, show only big blocks and include total in the overflow count
+                        # When truncating, calculate total remaining fouls (not displayed visually)
+                        # Example: 215 fouls = 21 big blocks + 5 small blocks
+                        #   Display: 20 big blocks + "...+15" + "(215)"
+                        #   The "...+15" represents 1 truncated big block (10 fouls) + 5 small blocks
                         remaining_fouls = (big_blocks - MAX_FOUL_BLOCKS_DISPLAY) * 10 + small_blocks
                         blocks = '◼' * MAX_FOUL_BLOCKS_DISPLAY + f'...+{remaining_fouls}'
                     else:
