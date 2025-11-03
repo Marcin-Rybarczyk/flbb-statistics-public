@@ -414,6 +414,8 @@
                     <tr>
                         <th>Date</th>
                         <th>Game ID</th>
+                        <th>Team</th>
+                        <th>Division</th>
                         <th>Opponent</th>
                         <th>Status</th>
                         <th>Points</th>
@@ -436,7 +438,9 @@
                     {% for game in player_stats.game_by_game %}
                     <tr>
                         <td>{{ game.GameDate }}</td>
-                        <td>{{ game.GameId }}</td>
+                        <td><a href="/game-detail/{{ game.GameId }}" style="color: #667eea; text-decoration: underline;">{{ game.GameId }}</a></td>
+                        <td>{{ game.Team }}</td>
+                        <td>{{ game.GameDivision }}</td>
                         <td>{{ game.OpponentTeam }}</td>
                         <td>
                             {% if game.StartingFive %}
