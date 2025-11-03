@@ -90,21 +90,24 @@ else:
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    """Home page with navigation tiles"""
+    return render_template('index.html', 
+                         divisions=divisions,
+                         data_source_info=data_source_info)
+
+@app.route('/standings', methods=['GET', 'POST'])
+def standings():
+    """Division standings page"""
     selected_division = request.form.get('division')
     standings = None
-    highest_games = None
 
     if selected_division and not data.empty:
         # Calculate standings for the selected division
         standings = calculate_standings_by_division(data, selected_division)
-        # Get highest scoring games for the division
-        division_data = data[data['GameDivisionDisplay'] == selected_division]
-        highest_games = get_highest_scoring_games(division_data, 5)
 
-    return render_template('index.html', 
+    return render_template('standings.html', 
                          divisions=divisions, 
-                         standings=standings, 
-                         highest_games=highest_games,
+                         standings=standings,
                          selected_division=selected_division,
                          data_source_info=data_source_info)
 
