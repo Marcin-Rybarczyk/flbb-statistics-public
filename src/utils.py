@@ -3836,12 +3836,86 @@ def get_team_detail_stats(data, team_name):
     # Extract player statistics for this team
     player_stats = _extract_team_player_stats(team_games, team_name)
     
+    # Get next 5 upcoming games for this team
+    next_games = get_team_next_games(team_name, limit=5)
+    
     return {
         'basic_stats': basic_stats,
         'game_by_game': game_by_game,
         'performance_evolution': performance_evolution,
-        'player_stats': player_stats
+        'player_stats': player_stats,
+        'next_games': next_games
     }
+
+
+def get_team_next_games(team_name, limit=5, gamesdb_path='data/gamesDB.json'):
+    """
+    Get the next upcoming games for a specific team.
+    
+    Parameters:
+    team_name (str): The name of the team
+    limit (int): Maximum number of games to return (default: 5)
+    gamesdb_path (str): Path to gamesDB.json file
+    
+    Returns:
+    list: List of upcoming game dictionaries with formatted information
+    """
+    from datetime import datetime
+    
+    # Load future games
+    future_games = load_future_games_from_gamesdb(gamesdb_path)
+    if not future_games:
+        return []
+    
+    # Normalize the team name for comparison
+    normalized_team_name = normalize_team_name_for_display(team_name)
+    
+    # Filter games for this team and parse dates
+    team_future_games = []
+    for game in future_games:
+        home_team, away_team = parse_team_names_from_url(game.get('GameUrl', ''))
+        
+        # Check if this team is playing
+        if home_team == normalized_team_name or away_team == normalized_team_name:
+            # Parse the game date
+            game_date = None
+            game_datetime = None
+            if 'ScheduledGameDate' in game and isinstance(game['ScheduledGameDate'], dict):
+                date_str = game['ScheduledGameDate'].get('DateTime')
+                if date_str:
+                    try:
+                        game_datetime = datetime.strptime(date_str, GAMESDB_DATE_FORMAT)
+                        game_date = game_datetime.strftime('%Y-%m-%d')
+                    except (ValueError, TypeError):
+                        pass
+            
+            # Determine if team is home or away
+            is_home = home_team == normalized_team_name
+            opponent = away_team if is_home else home_team
+            
+            # Convert division name
+            division_display = convert_division_name(game.get('GameDivisionName', ''))
+            
+            team_future_games.append({
+                'game_id': game.get('GameId'),
+                'date': game_date,
+                'datetime_obj': game_datetime,
+                'division': division_display,
+                'opponent': opponent,
+                'is_home': is_home,
+                'location': 'Home' if is_home else 'Away',
+                'game_url': game.get('GameUrl')
+            })
+    
+    # Sort by date (earliest first) and limit to requested number
+    # Use a large naive datetime for games without dates to sort them to the end
+    team_future_games.sort(key=lambda x: x['datetime_obj'] if x['datetime_obj'] else datetime(9999, 12, 31))
+    
+    # Remove datetime_obj as it's not JSON serializable
+    for game in team_future_games[:limit]:
+        game.pop('datetime_obj', None)
+    
+    return team_future_games[:limit]
 
 
 def get_team_player_stats_for_future_game(team_name, players_db_path='data/players-database.csv'):
