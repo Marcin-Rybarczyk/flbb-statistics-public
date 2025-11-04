@@ -2840,6 +2840,9 @@ def get_fixtures_matrix_data(data, division_filter=None):
         if not future_games_df.empty:
             filtered_data = pd.concat([filtered_data, future_games_df], ignore_index=True)
     
+    # Get closest games for each team to determine which games are "next" for which team
+    closest_games = get_closest_games_by_team(data, division_filter)
+    
     # Get unique teams with normalization
     home_teams = set(normalize_team_name_for_display(name) for name in filtered_data['HomeTeamName'].dropna())
     away_teams = set(normalize_team_name_for_display(name) for name in filtered_data['AwayTeamName'].dropna())
@@ -2895,11 +2898,18 @@ def get_fixtures_matrix_data(data, division_filter=None):
             home_score_int = int(home_score_val) if pd.notna(home_score_val) else None
             away_score_int = int(away_score_val) if pd.notna(away_score_val) else None
             
+            # Determine which team(s) this game is the next game for
+            game_id = game['GameId']
+            is_next_for_home = closest_games.get(raw_home) == game_id
+            is_next_for_away = closest_games.get(raw_away) == game_id
+            
             game_info = {
-                'game_id': game['GameId'],
+                'game_id': game_id,
                 'date': game['DateTime'][:16] if pd.notna(game['DateTime']) else 'TBD',
                 'home_score': home_score_int,
                 'away_score': away_score_int,
+                'home_team_raw': raw_home,
+                'away_team_raw': raw_away,
                 'location': location_name,
                 'division': game['GameDivisionDisplay'],
                 'is_finished': is_finished,
@@ -2907,7 +2917,9 @@ def get_fixtures_matrix_data(data, division_filter=None):
                 'top_scorer': get_game_top_scorer(game) if is_finished else {'name': None, 'points': 0, 'team': None},
                 'hotness_score': hotness_score,
                 'hotness_icon': hotness_icon,
-                'is_future': game.get('IsFutureGame', False)
+                'is_future': game.get('IsFutureGame', False),
+                'is_next_for_home': is_next_for_home,
+                'is_next_for_away': is_next_for_away
             }
             
             matrix[home_team][away_team].append(game_info)
