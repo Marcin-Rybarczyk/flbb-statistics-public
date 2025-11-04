@@ -32,6 +32,88 @@
             margin-bottom: 30px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             text-align: center;
+            position: relative;
+        }
+
+        .layout-switcher {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .layout-switcher-label {
+            font-size: 0.85em;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .layout-switcher-button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .layout-switcher-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .theme-menu {
+            position: absolute;
+            top: 50px;
+            right: 20px;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            display: none;
+            z-index: 1000;
+            min-width: 200px;
+        }
+
+        .theme-menu.show {
+            display: block;
+        }
+
+        .theme-option {
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .theme-option:hover {
+            transform: translateX(5px);
+        }
+
+        .theme-option.active {
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 3px solid #667eea;
+        }
+
+        .theme-color-preview {
+            width: 30px;
+            height: 20px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
         }
 
         .header h1 {
@@ -125,7 +207,7 @@
         }
 
         th, td {
-            padding: 12px 15px;
+            padding: 8px 12px;
             text-align: left;
             border-bottom: 1px solid #eee;
         }
@@ -135,15 +217,90 @@
             color: white;
             font-weight: 600;
             text-transform: uppercase;
-            font-size: 0.9em;
+            font-size: 0.75em;
             letter-spacing: 0.5px;
             cursor: pointer;
             position: relative;
             user-select: none;
+            padding: 8px 12px;
         }
 
         th:hover {
             background: linear-gradient(135deg, #5568d3, #6a3d8f);
+        }
+
+        /* Theme 1: Default Purple Gradient */
+        .theme-default th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .theme-default th:hover {
+            background: linear-gradient(135deg, #5568d3, #6a3d8f);
+        }
+
+        /* Theme 2: Ocean Blue */
+        .theme-ocean th {
+            background: linear-gradient(135deg, #2193b0, #6dd5ed);
+        }
+
+        .theme-ocean th:hover {
+            background: linear-gradient(135deg, #1c7a93, #5bc0db);
+        }
+
+        .theme-ocean tr:hover {
+            background-color: rgba(33, 147, 176, 0.1);
+        }
+
+        /* Theme 3: Sunset Orange */
+        .theme-sunset th {
+            background: linear-gradient(135deg, #f37335, #fdc830);
+        }
+
+        .theme-sunset th:hover {
+            background: linear-gradient(135deg, #d96129, #e4b525);
+        }
+
+        .theme-sunset tr:hover {
+            background-color: rgba(243, 115, 53, 0.1);
+        }
+
+        /* Theme 4: Forest Green */
+        .theme-forest th {
+            background: linear-gradient(135deg, #134e5e, #71b280);
+        }
+
+        .theme-forest th:hover {
+            background: linear-gradient(135deg, #0f3d4a, #5d9669);
+        }
+
+        .theme-forest tr:hover {
+            background-color: rgba(113, 178, 128, 0.1);
+        }
+
+        /* Theme 5: Minimal Gray */
+        .theme-minimal th {
+            background: linear-gradient(135deg, #485563, #29323c);
+        }
+
+        .theme-minimal th:hover {
+            background: linear-gradient(135deg, #3a4451, #1f262e);
+        }
+
+        .theme-minimal tr:hover {
+            background-color: rgba(72, 85, 99, 0.1);
+        }
+
+        /* Theme 6: Cherry Red */
+        .theme-cherry th {
+            background: linear-gradient(135deg, #eb3349, #f45c43);
+        }
+
+        .theme-cherry th:hover {
+            background: linear-gradient(135deg, #d12a3e, #dc4b39);
+        }
+
+        .theme-cherry tr:hover {
+            background-color: rgba(235, 51, 73, 0.1);
         }
 
         th.sortable::after {
@@ -270,6 +427,18 @@
                 font-size: 2em;
             }
             
+            .layout-switcher {
+                position: static;
+                justify-content: center;
+                margin-bottom: 15px;
+            }
+
+            .theme-menu {
+                right: 10px;
+                left: 10px;
+                max-width: calc(100% - 20px);
+            }
+            
             .navigation {
                 padding: 10px;
             }
@@ -289,7 +458,12 @@
             }
             
             th, td {
-                padding: 8px 10px;
+                padding: 6px 8px;
+                font-size: 0.85em;
+            }
+
+            th {
+                font-size: 0.7em;
             }
         }
 
@@ -481,6 +655,36 @@
 <body>
     <div class="container">
         <div class="header">
+            <div class="layout-switcher">
+                <span class="layout-switcher-label">Table Style:</span>
+                <button class="layout-switcher-button" id="themeToggle">🎨 Change Theme</button>
+            </div>
+            <div class="theme-menu" id="themeMenu">
+                <div class="theme-option" data-theme="default">
+                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #667eea, #764ba2);"></div>
+                    <span>Default Purple</span>
+                </div>
+                <div class="theme-option" data-theme="ocean">
+                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #2193b0, #6dd5ed);"></div>
+                    <span>Ocean Blue</span>
+                </div>
+                <div class="theme-option" data-theme="sunset">
+                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #f37335, #fdc830);"></div>
+                    <span>Sunset Orange</span>
+                </div>
+                <div class="theme-option" data-theme="forest">
+                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #134e5e, #71b280);"></div>
+                    <span>Forest Green</span>
+                </div>
+                <div class="theme-option" data-theme="minimal">
+                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #485563, #29323c);"></div>
+                    <span>Minimal Gray</span>
+                </div>
+                <div class="theme-option" data-theme="cherry">
+                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #eb3349, #f45c43);"></div>
+                    <span>Cherry Red</span>
+                </div>
+            </div>
             <h1>{% block page_title %}🏀 {{ website_config.title }}{% endblock %}</h1>
             <p>{% block page_description %}{{ website_config.description }}{% endblock %}</p>
             <div style="margin-top: 10px; color: #34495e; font-size: 0.9em;">
@@ -1104,6 +1308,60 @@
 
             // Hide context menu on scroll
             document.addEventListener('scroll', hideContextMenu);
+        })();
+    </script>
+
+    <script>
+        // Table Theme Switcher
+        (function() {
+            const themeToggle = document.getElementById('themeToggle');
+            const themeMenu = document.getElementById('themeMenu');
+            const themeOptions = document.querySelectorAll('.theme-option');
+            const body = document.body;
+            
+            // Load saved theme or use default
+            const savedTheme = localStorage.getItem('tableTheme') || 'default';
+            applyTheme(savedTheme);
+            
+            // Toggle theme menu
+            themeToggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                themeMenu.classList.toggle('show');
+            });
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!themeMenu.contains(e.target) && e.target !== themeToggle) {
+                    themeMenu.classList.remove('show');
+                }
+            });
+            
+            // Handle theme selection
+            themeOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const theme = this.dataset.theme;
+                    applyTheme(theme);
+                    localStorage.setItem('tableTheme', theme);
+                    themeMenu.classList.remove('show');
+                });
+            });
+            
+            function applyTheme(theme) {
+                // Remove all theme classes
+                body.classList.remove('theme-default', 'theme-ocean', 'theme-sunset', 
+                                      'theme-forest', 'theme-minimal', 'theme-cherry');
+                
+                // Add selected theme class
+                body.classList.add('theme-' + theme);
+                
+                // Update active option
+                themeOptions.forEach(opt => {
+                    opt.classList.remove('active');
+                    if (opt.dataset.theme === theme) {
+                        opt.classList.add('active');
+                    }
+                });
+            }
         })();
     </script>
 
