@@ -10,7 +10,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    # 🧠 Run only if commit message contains "deploy-to-mydevil"
     if: github.event_name == 'workflow_dispatch'
 
     steps:
@@ -30,7 +29,7 @@ jobs:
           set -e
           ssh ${{ secrets.MYDEVIL_USER }}@${{ secrets.MYDEVIL_HOST }} << 'EOF'
           set -e
-          cd ~/domains/test.flbb.ryba.usermd.net/public_python
+          cd ~/domains/${{ secrets.MYDEVIL_TEST_DOMAIN_NAME }}/public_python
           if [ ! -d .git ]; then
             echo "🔧 First-time setup: cloning repository..."
             git clone git@github.com:Marcin-Rybarczyk/flbb-statistics-public.git .
@@ -38,10 +37,7 @@ jobs:
             echo "📦 Pulling latest changes..."
             git pull origin ${{ branch
           fi
-          source ~/flaskenv/bin/activate
-          pip install -r requirements.txt
-          mkdir -p tmp
-          touch tmp/restart.txt
+          devil www restart ${{ secrets.MYDEVIL_TEST_DOMAIN_NAME }}
           EOF
 
       - name: 🧾 Deployment Summary
