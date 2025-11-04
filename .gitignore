@@ -1,4 +1,5 @@
 !data/full-game-stats.csv
+!data/gamesDB.json
 data/**
 archives/**
 google-drive-sync/**
