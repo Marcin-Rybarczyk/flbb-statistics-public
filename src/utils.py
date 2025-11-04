@@ -2544,8 +2544,8 @@ def load_future_games_from_gamesdb(gamesdb_path='data/gamesDB.json'):
         with open(gamesdb_path, 'r', encoding='utf-8-sig') as f:
             games = json.load(f)
         
-        # Filter for future games (not started)
-        future_games = [g for g in games if g.get('GameStatus') != 'Finished']
+        # Filter for future games (not started yet)
+        future_games = [g for g in games if g.get('GameStatus') == 'NotStarted']
         return future_games
     except Exception as e:
         print(f"Error loading future games from {gamesdb_path}: {e}")
@@ -2571,9 +2571,9 @@ def parse_team_names_from_url(game_url):
             home_slug = parts[-3]
             away_slug = parts[-2]
             
-            # Convert slugs to readable names (replace hyphens with spaces, capitalize)
-            home_team = ' '.join(word.capitalize() for word in home_slug.split('-'))
-            away_team = ' '.join(word.capitalize() for word in away_slug.split('-'))
+            # Convert slugs to readable names (replace hyphens with spaces, title case)
+            home_team = ' '.join(word.title() for word in home_slug.split('-'))
+            away_team = ' '.join(word.title() for word in away_slug.split('-'))
             
             return home_team, away_team
     except Exception as e:
@@ -2789,7 +2789,7 @@ def get_closest_games_by_team(data, division_filter=None):
     
     # Filter for future games only
     future_games = all_fixtures[
-        (all_fixtures['IsFutureGame'] == True) & 
+        (all_fixtures['IsFutureGame']) & 
         (all_fixtures['DateTime'].notna())
     ].copy()
     
