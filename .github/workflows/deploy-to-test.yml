@@ -1,17 +1,16 @@
-name: Deploy to MyDevil.net
+name: Deploy to Test server
 
 on:
   push:
     branches:
-      - feature-mydevil  # adjust to your main branch
+      - development
   workflow_dispatch:  # allow manual trigger too
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    # 🧠 Run only if commit message contains "deploy-to-mydevil"
-    if: contains(github.event.head_commit.message, 'deploy-to-mydevil') || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
 
     steps:
       - name: 🧾 Checkout code
@@ -30,18 +29,15 @@ jobs:
           set -e
           ssh ${{ secrets.MYDEVIL_USER }}@${{ secrets.MYDEVIL_HOST }} << 'EOF'
           set -e
-          cd ~/domains/flbb.ryba.usermd.net/public_python/public
+          cd ~/domains/${{ secrets.MYDEVIL_TEST_DOMAIN_NAME }}/public_python
           if [ ! -d .git ]; then
             echo "🔧 First-time setup: cloning repository..."
             git clone git@github.com:Marcin-Rybarczyk/flbb-statistics-public.git .
           else
             echo "📦 Pulling latest changes..."
-            git pull origin feature-mydevil
+            git pull origin ${{ branch
           fi
-          source ~/flaskenv/bin/activate
-          pip install -r requirements.txt
-          mkdir -p tmp
-          touch tmp/restart.txt
+          devil www restart ${{ secrets.MYDEVIL_TEST_DOMAIN_NAME }}
           EOF
 
       - name: 🧾 Deployment Summary
