@@ -1132,7 +1132,7 @@
                             data.top_scorers.forEach((scorer, idx) => {
                                 topScorersHtml += `<div style="display: flex; justify-content: space-between; padding: 2px 0; font-size: 0.85em;">
                                     <span>${idx + 1}. ${scorer.name}</span>
-                                    <span style="font-weight: 600; color: #667eea;">${scorer.avg_points} pts</span>
+                                    <span style="font-weight: 600; color: #667eea;">${scorer.total_points} pts (${scorer.avg_points} avg)</span>
                                 </div>`;
                             });
                             topScorersHtml += '</div>';

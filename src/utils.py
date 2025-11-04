@@ -3955,7 +3955,7 @@ def get_team_hover_stats(data, team_name):
         - position: Current position in division standings
         - total_teams: Total number of teams in division
         - division: Division name
-        - top_scorers: List of top 5 scorers with their average points
+        - top_scorers: List of top 5 scorers ranked by total points (descending) with total_points and avg_points
     """
     if data.empty:
         return None
@@ -4015,18 +4015,20 @@ def get_team_hover_stats(data, team_name):
     if not player_stats.empty:
         team_players = player_stats[player_stats['Team'] == team_name].copy()
         if not team_players.empty:
-            # Group by player name and calculate average points
-            player_avg = team_players.groupby('PlayerName').agg({
-                'TotalPoints': 'mean',
+            # Group by player name and calculate total points and average points
+            player_totals = team_players.groupby('PlayerName').agg({
+                'TotalPoints': ['sum', 'mean'],
                 'GameId': 'count'
-            }).rename(columns={'TotalPoints': 'AvgPoints', 'GameId': 'GamesPlayed'})
+            })
+            player_totals.columns = ['TotalPoints', 'AvgPoints', 'GamesPlayed']
             
-            # Sort by average points and get top 5
-            player_avg = player_avg.sort_values('AvgPoints', ascending=False).head(5)
+            # Sort by total points descending and get top 5
+            player_totals = player_totals.sort_values('TotalPoints', ascending=False).head(5)
             
-            for player_name, row in player_avg.iterrows():
+            for player_name, row in player_totals.iterrows():
                 top_scorers.append({
                     'name': player_name,
+                    'total_points': int(row['TotalPoints']),
                     'avg_points': round(row['AvgPoints'], 1)
                 })
     
