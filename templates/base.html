@@ -656,30 +656,35 @@
         <div class="header">
             <div class="layout-switcher">
                 <span class="layout-switcher-label">Table Style:</span>
-                <button class="layout-switcher-button" id="themeToggle">🎨 Change Theme</button>
+                <button class="layout-switcher-button" id="themeToggle" 
+                        aria-expanded="false" 
+                        aria-haspopup="true" 
+                        aria-controls="themeMenu">
+                    🎨 Change Theme
+                </button>
             </div>
-            <div class="theme-menu" id="themeMenu">
-                <div class="theme-option" data-theme="default">
+            <div class="theme-menu" id="themeMenu" role="menu" aria-hidden="true">
+                <div class="theme-option" data-theme="default" role="menuitem" tabindex="0">
                     <div class="theme-color-preview" style="background: linear-gradient(135deg, #667eea, #764ba2);"></div>
                     <span>Default Purple</span>
                 </div>
-                <div class="theme-option" data-theme="ocean">
+                <div class="theme-option" data-theme="ocean" role="menuitem" tabindex="0">
                     <div class="theme-color-preview" style="background: linear-gradient(135deg, #2193b0, #6dd5ed);"></div>
                     <span>Ocean Blue</span>
                 </div>
-                <div class="theme-option" data-theme="sunset">
+                <div class="theme-option" data-theme="sunset" role="menuitem" tabindex="0">
                     <div class="theme-color-preview" style="background: linear-gradient(135deg, #f37335, #fdc830);"></div>
                     <span>Sunset Orange</span>
                 </div>
-                <div class="theme-option" data-theme="forest">
+                <div class="theme-option" data-theme="forest" role="menuitem" tabindex="0">
                     <div class="theme-color-preview" style="background: linear-gradient(135deg, #134e5e, #71b280);"></div>
                     <span>Forest Green</span>
                 </div>
-                <div class="theme-option" data-theme="minimal">
+                <div class="theme-option" data-theme="minimal" role="menuitem" tabindex="0">
                     <div class="theme-color-preview" style="background: linear-gradient(135deg, #485563, #29323c);"></div>
                     <span>Minimal Gray</span>
                 </div>
-                <div class="theme-option" data-theme="cherry">
+                <div class="theme-option" data-theme="cherry" role="menuitem" tabindex="0">
                     <div class="theme-color-preview" style="background: linear-gradient(135deg, #eb3349, #f45c43);"></div>
                     <span>Cherry Red</span>
                 </div>
@@ -1323,8 +1328,8 @@
             
             // Load saved theme or use default (with validation)
             let savedTheme = localStorage.getItem('tableTheme') || 'default';
-            // Validate theme name format and existence
-            if (!/^[a-z0-9-]+$/i.test(savedTheme) || !availableThemes.includes(savedTheme)) {
+            // Validate theme name format (alphanumeric only) and existence
+            if (!/^[a-z0-9]+$/i.test(savedTheme) || !availableThemes.includes(savedTheme)) {
                 savedTheme = 'default';
             }
             applyTheme(savedTheme);
@@ -1332,7 +1337,10 @@
             // Toggle theme menu
             themeToggle.addEventListener('click', function(e) {
                 e.stopPropagation();
+                const isExpanded = themeMenu.classList.contains('show');
                 themeMenu.classList.toggle('show');
+                themeToggle.setAttribute('aria-expanded', !isExpanded);
+                themeMenu.setAttribute('aria-hidden', isExpanded);
             });
             
             // Close menu when clicking outside
@@ -1341,20 +1349,41 @@
                 const isClickInsideToggle = themeToggle.contains(clickedElement);
                 const isClickInsideMenu = themeMenu.contains(clickedElement);
                 
-                if (!isClickInsideToggle && !isClickInsideMenu) {
+                if (!isClickInsideToggle && !isClickInsideMenu && themeMenu.classList.contains('show')) {
                     themeMenu.classList.remove('show');
+                    themeToggle.setAttribute('aria-expanded', 'false');
+                    themeMenu.setAttribute('aria-hidden', 'true');
                 }
             });
             
             // Handle theme selection
             themeOptions.forEach(option => {
+                // Mouse/touch click handler
                 option.addEventListener('click', function() {
-                    const theme = this.dataset.theme;
-                    applyTheme(theme);
-                    localStorage.setItem('tableTheme', theme);
-                    themeMenu.classList.remove('show');
+                    selectTheme(this.dataset.theme);
+                });
+                
+                // Keyboard navigation handler
+                option.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        selectTheme(this.dataset.theme);
+                    } else if (e.key === 'Escape') {
+                        themeMenu.classList.remove('show');
+                        themeToggle.setAttribute('aria-expanded', 'false');
+                        themeMenu.setAttribute('aria-hidden', 'true');
+                        themeToggle.focus();
+                    }
                 });
             });
+            
+            function selectTheme(theme) {
+                applyTheme(theme);
+                localStorage.setItem('tableTheme', theme);
+                themeMenu.classList.remove('show');
+                themeToggle.setAttribute('aria-expanded', 'false');
+                themeMenu.setAttribute('aria-hidden', 'true');
+            }
             
             function applyTheme(theme) {
                 // Remove all theme classes
