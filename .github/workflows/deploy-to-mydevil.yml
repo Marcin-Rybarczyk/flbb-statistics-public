@@ -1,4 +1,4 @@
-name: Deploy to http://test.flbb-public.ryba.usermd.net/
+name: Deploy to Test server
 
 on:
   push:
