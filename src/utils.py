@@ -3886,7 +3886,7 @@ def get_team_next_games(team_name, limit=5, gamesdb_path='data/gamesDB.json'):
                     try:
                         game_datetime = datetime.strptime(date_str, GAMESDB_DATE_FORMAT)
                         game_date = game_datetime.strftime('%Y-%m-%d')
-                    except:
+                    except (ValueError, TypeError):
                         pass
             
             # Determine if team is home or away
@@ -3908,7 +3908,8 @@ def get_team_next_games(team_name, limit=5, gamesdb_path='data/gamesDB.json'):
             })
     
     # Sort by date (earliest first) and limit to requested number
-    team_future_games.sort(key=lambda x: x['datetime_obj'] if x['datetime_obj'] else datetime.max)
+    # Use a large naive datetime for games without dates to sort them to the end
+    team_future_games.sort(key=lambda x: x['datetime_obj'] if x['datetime_obj'] else datetime(9999, 12, 31))
     
     # Remove datetime_obj as it's not JSON serializable
     for game in team_future_games[:limit]:
