@@ -297,6 +297,30 @@ def test_edge_case_fewer_than_five():
     return True
 
 
+def test_edge_case_all_zeros():
+    """Test that function handles players with all zero stats"""
+    players = [
+        {'Player Name': 'New Player 1', 'Starting Percentage': 0.0, 'Games Played': 0, 'Avg Points Per Game': 0.0},
+        {'Player Name': 'New Player 2', 'Starting Percentage': 0.0, 'Games Played': 0, 'Avg Points Per Game': 0.0},
+        {'Player Name': 'New Player 3', 'Starting Percentage': 0.0, 'Games Played': 0, 'Avg Points Per Game': 0.0},
+        {'Player Name': 'New Player 4', 'Starting Percentage': 0.0, 'Games Played': 0, 'Avg Points Per Game': 0.0},
+        {'Player Name': 'New Player 5', 'Starting Percentage': 0.0, 'Games Played': 0, 'Avg Points Per Game': 0.0},
+        {'Player Name': 'New Player 6', 'Starting Percentage': 0.0, 'Games Played': 0, 'Avg Points Per Game': 0.0},
+    ]
+    
+    result = predict_starting_five(players)
+    starters = [p for p in result if p['Starting Five'] == 'true']
+    bench = [p for p in result if p['Starting Five'] == 'false']
+    
+    print(f"\n✅ Test: All players with zero stats")
+    print(f"   {len(starters)} players marked as starters, {len(bench)} on bench")
+    
+    # Should still select exactly 5 as starters (or all if fewer than 5)
+    assert len(starters) == 5, "Should select 5 starters even with all zeros"
+    assert len(bench) == 1, "Should have 1 bench player"
+    return True
+
+
 def main():
     """Run all tests"""
     print("=" * 70)
@@ -310,6 +334,7 @@ def main():
         test_formula_balances_all_factors,
         test_edge_case_empty_list,
         test_edge_case_fewer_than_five,
+        test_edge_case_all_zeros,
     ]
     
     results = []

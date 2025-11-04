@@ -4041,16 +4041,18 @@ def predict_starting_five(players):
     
     # Calculate scores for all players
     player_scores = []
-    max_games = max((p.get('Games Played', 0) for p in players), default=1)
-    max_points = max((p.get('Avg Points Per Game', 0) for p in players), default=1)
+    max_games = max((p.get('Games Played', 0) for p in players), default=0)
+    max_points = max((p.get('Avg Points Per Game', 0) for p in players), default=0)
     
     for player in players:
         scores = calculate_player_score(player)
         
         # Normalize games played (0-1 scale)
+        # If max_games is 0, all players have 0 games, so games_score is 0 for all
         games_score = scores['games_played'] / max_games if max_games > 0 else 0
         
         # Normalize average points (0-1 scale)
+        # If max_points is 0, all players have 0 points, so points_score is 0 for all
         points_score = scores['avg_points'] / max_points if max_points > 0 else 0
         
         # Calculate weighted composite score
