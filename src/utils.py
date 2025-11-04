@@ -2510,20 +2510,25 @@ def get_top_scorer_by_game(data):
             except:
                 pass
         
+        # Convert scores to int to avoid float display issues
+        home_score_int = int(home_score) if pd.notna(home_score) else None
+        away_score_int = int(away_score) if pd.notna(away_score) else None
+        top_scorer_points_int = int(top_scorer_points) if top_scorer_points else 0
+        
         fixtures.append({
             'GameId': game_id,
             'HomeTeam': home_team,
             'AwayTeam': away_team,
             'HomeTeamName': home_team,  # Add for consistency with future games
             'AwayTeamName': away_team,  # Add for consistency with future games
-            'HomeScore': home_score,
-            'AwayScore': away_score,
+            'HomeScore': home_score_int,
+            'AwayScore': away_score_int,
             'DateTime': date_time,
             'Division': division,
             'GameDivisionDisplay': division,  # Add for consistency with future games
             'Location': parse_location_name(location),  # Use the same parsing function
             'TopScorerName': top_scorer_name if top_scorer_name else 'N/A',
-            'TopScorerPoints': top_scorer_points,
+            'TopScorerPoints': top_scorer_points_int,
             'TopScorerTeam': top_scorer_team if top_scorer_team else 'N/A',
             'Referees': referee_names,
             'IsFinished': pd.notna(home_score) and pd.notna(away_score),
@@ -2531,7 +2536,15 @@ def get_top_scorer_by_game(data):
             'HotnessIcon': hotness_icon
         })
     
-    return pd.DataFrame(fixtures)
+    df = pd.DataFrame(fixtures)
+    
+    # Convert score columns to nullable integer type to avoid float display
+    if not df.empty:
+        for col in ['HomeScore', 'AwayScore', 'TopScorerPoints']:
+            if col in df.columns:
+                df[col] = df[col].astype('Int64')
+    
+    return df
 
 
 def load_future_games_from_gamesdb(gamesdb_path='data/gamesDB.json'):
@@ -2875,11 +2888,17 @@ def get_fixtures_matrix_data(data, division_filter=None):
                     pass
             
             # Get enhanced game info
+            # Convert scores to int to avoid float display issues
+            home_score_val = game.get('FinalHomeScore')
+            away_score_val = game.get('FinalAwayScore')
+            home_score_int = int(home_score_val) if pd.notna(home_score_val) else None
+            away_score_int = int(away_score_val) if pd.notna(away_score_val) else None
+            
             game_info = {
                 'game_id': game['GameId'],
                 'date': game['DateTime'][:16] if pd.notna(game['DateTime']) else 'TBD',
-                'home_score': game.get('FinalHomeScore') if pd.notna(game.get('FinalHomeScore')) else None,
-                'away_score': game.get('FinalAwayScore') if pd.notna(game.get('FinalAwayScore')) else None,
+                'home_score': home_score_int,
+                'away_score': away_score_int,
                 'location': location_name,
                 'division': game['GameDivisionDisplay'],
                 'is_finished': is_finished,
