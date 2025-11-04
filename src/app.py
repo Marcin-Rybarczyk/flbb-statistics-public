@@ -107,8 +107,16 @@ if not data.empty:
         data = data.drop('Unnamed: 0', axis=1)
     # Extract unique divisions
     divisions = data['GameDivisionDisplay'].unique()
+    # Extract unique teams from player stats
+    from src.utils import extract_all_player_stats
+    player_stats = extract_all_player_stats(data)
+    if not player_stats.empty:
+        teams = sorted(player_stats['Team'].unique())
+    else:
+        teams = []
 else:
     divisions = []
+    teams = []
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -218,20 +226,21 @@ def player_stats():
     if data.empty:
         return render_template('player_stats.html', error="No data available", data_source_info=data_source_info)
     
-    # Get selected division from form
+    # Get selected division and team from form
     selected_division = request.form.get('division')
+    selected_team = request.form.get('team')
     
-    # Get comprehensive player statistics (filtered by division if selected)
-    top_scorers = get_top_scorers(data, 50, division=selected_division)  # Get top 50 for comprehensive view
-    highest_single_scores = get_highest_single_game_score(data, 10, division=selected_division)  # Now returns top 10
-    top_three_pointers = get_top_three_pointers(data, 20, division=selected_division)
-    top_foulers = get_top_foulers(data, 20, division=selected_division)
+    # Get comprehensive player statistics (filtered by division and team if selected)
+    top_scorers = get_top_scorers(data, 50, division=selected_division, team=selected_team)  # Get top 50 for comprehensive view
+    highest_single_scores = get_highest_single_game_score(data, 10, division=selected_division, team=selected_team)  # Now returns top 10
+    top_three_pointers = get_top_three_pointers(data, 20, division=selected_division, team=selected_team)
+    top_foulers = get_top_foulers(data, 20, division=selected_division, team=selected_team)
     
     # New basketball-specific statistics
-    shooting_efficiency = get_player_shooting_efficiency(data, 20, division=selected_division)
-    starter_bench_stats = get_starting_five_vs_bench_stats(data, division=selected_division)
-    double_digit_scorers = get_double_digit_scorers(data, division=selected_division)
-    consistent_scorers = get_consistent_scorers(data, division=selected_division)
+    shooting_efficiency = get_player_shooting_efficiency(data, 20, division=selected_division, team=selected_team)
+    starter_bench_stats = get_starting_five_vs_bench_stats(data, division=selected_division, team=selected_team)
+    double_digit_scorers = get_double_digit_scorers(data, division=selected_division, team=selected_team)
+    consistent_scorers = get_consistent_scorers(data, division=selected_division, team=selected_team)
     
     return render_template('player_stats.html',
                          top_scorers=top_scorers,
@@ -243,7 +252,9 @@ def player_stats():
                          double_digit_scorers=double_digit_scorers,
                          consistent_scorers=consistent_scorers,
                          divisions=divisions,
+                         teams=teams,
                          selected_division=selected_division,
+                         selected_team=selected_team,
                          data_source_info=data_source_info)
 
 @app.route('/player-detail')
