@@ -326,7 +326,7 @@
         <div class="player-info-header">
             <h2>{{ player_stats.basic_stats.player_name }}</h2>
             <div class="team-info">
-                <a href="/team-detail?team={{ player_stats.basic_stats.team }}" style="color: white; text-decoration: none; opacity: 0.9; transition: opacity 0.3s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">
+                <a href="/team-detail?team={{ player_stats.basic_stats.team|urlencode }}" style="color: white; text-decoration: none; opacity: 0.9; transition: opacity 0.3s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">
                     {{ player_stats.basic_stats.team }}
                 </a>
             </div>
