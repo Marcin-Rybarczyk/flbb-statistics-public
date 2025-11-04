@@ -2964,13 +2964,28 @@ def get_player_detail_stats(data, player_name):
         return None
     
     # Get most used player number
-    player_number = player_games['PlayerNumber'].mode()[0] if not player_games['PlayerNumber'].mode().empty else (player_games['PlayerNumber'].iloc[0] if len(player_games) > 0 else 0)
+    player_number_mode = player_games['PlayerNumber'].mode()
+    if not player_number_mode.empty:
+        player_number = player_number_mode[0]
+    elif len(player_games) > 0:
+        player_number = player_games['PlayerNumber'].iloc[0]
+    else:
+        player_number = 0
+    
+    # Convert to int, handling NaN values
+    try:
+        if pd.isna(player_number):
+            player_number = 0
+        else:
+            player_number = int(player_number)
+    except (ValueError, TypeError):
+        player_number = 0
     
     # Basic aggregated statistics
     basic_stats = {
         'player_name': player_name,
         'team': player_games['Team'].mode()[0] if not player_games['Team'].mode().empty else player_games['Team'].iloc[0],
-        'player_number': int(player_number) if player_number else 0,
+        'player_number': player_number,
         'games_played': len(player_games),
         'total_points': int(player_games['TotalPoints'].sum()),
         'avg_points_per_game': round(player_games['TotalPoints'].mean(), 1),
@@ -3034,7 +3049,8 @@ def get_player_detail_stats(data, player_name):
                 hotness_icon = get_hotness_icon(hotness_score)
                 game_record['HotnessScore'] = hotness_score
                 game_record['HotnessIcon'] = hotness_icon
-            except:
+            except (ValueError, KeyError, TypeError, AttributeError) as e:
+                # If hotness calculation fails, default to cold game
                 game_record['HotnessScore'] = 0
                 game_record['HotnessIcon'] = "❄️"
     
