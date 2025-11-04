@@ -2963,10 +2963,29 @@ def get_player_detail_stats(data, player_name):
     if player_games.empty:
         return None
     
+    # Get most used player number
+    player_number_mode = player_games['PlayerNumber'].mode()
+    if not player_number_mode.empty:
+        player_number = player_number_mode[0]
+    elif len(player_games) > 0:
+        player_number = player_games['PlayerNumber'].iloc[0]
+    else:
+        player_number = 0
+    
+    # Convert to int, handling NaN values
+    try:
+        if pd.isna(player_number):
+            player_number = 0
+        else:
+            player_number = int(player_number)
+    except (ValueError, TypeError):
+        player_number = 0
+    
     # Basic aggregated statistics
     basic_stats = {
         'player_name': player_name,
         'team': player_games['Team'].mode()[0] if not player_games['Team'].mode().empty else player_games['Team'].iloc[0],
+        'player_number': player_number,
         'games_played': len(player_games),
         'total_points': int(player_games['TotalPoints'].sum()),
         'avg_points_per_game': round(player_games['TotalPoints'].mean(), 1),
@@ -3012,6 +3031,28 @@ def get_player_detail_stats(data, player_name):
     
     # Game-by-game breakdown (sorted by date, most recent first)
     game_by_game = player_games.sort_values('GameDate', ascending=False).to_dict('records')
+    
+    # Add hotness score to each game
+    for game_record in game_by_game:
+        game_id = game_record['GameId']
+        game_row = data[data['GameId'] == game_id]
+        if not game_row.empty:
+            game = game_row.iloc[0]
+            # Calculate hotness score for this game
+            try:
+                import ast
+                events = ast.literal_eval(game['GameEvents']) if isinstance(game['GameEvents'], str) else game['GameEvents']
+                teams = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
+                score_evolution = _calculate_score_evolution(events, game['HomeTeamName'], game['AwayTeamName'], teams)
+                game_stats = _calculate_game_statistics(score_evolution)
+                hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'], game_stats.get('close_game_ratio'))
+                hotness_icon = get_hotness_icon(hotness_score)
+                game_record['HotnessScore'] = hotness_score
+                game_record['HotnessIcon'] = hotness_icon
+            except (ValueError, KeyError, TypeError, AttributeError) as e:
+                # If hotness calculation fails, default to cold game
+                game_record['HotnessScore'] = 0
+                game_record['HotnessIcon'] = "❄️"
     
     # Get quarter-by-quarter analysis from game events
     quarter_analysis = _analyze_player_quarters(data, player_name)
