@@ -270,6 +270,126 @@
             <p><em>Wins are highlighted in green, losses in red</em></p>
         </div>
         
+        <!-- Player Statistics Panels -->
+        {% if team_stats.player_stats and team_stats.player_stats.has_data %}
+        
+        <!-- Panel 1: All Players List with Extended Stats -->
+        <div class="stats-section">
+            <h2>🏀 Team Roster & Player Statistics</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Player Name</th>
+                        <th>Games</th>
+                        <th>Total Points</th>
+                        <th>Avg Points</th>
+                        <th>Total Fouls</th>
+                        <th>Avg Fouls</th>
+                        <th>2P Made</th>
+                        <th>3P Made</th>
+                        <th>1P Made</th>
+                        <th>Starting %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in team_stats.player_stats.all_players %}
+                    <tr>
+                        <td><strong>{{ player.number }}</strong></td>
+                        <td><strong>{{ player.name }}</strong></td>
+                        <td>{{ player.games_played }}</td>
+                        <td><strong>{{ player.total_points }}</strong></td>
+                        <td>{{ player.avg_points }}</td>
+                        <td>{{ player.total_fouls }}</td>
+                        <td>{{ player.avg_fouls }}</td>
+                        <td>{{ player.total_2p }}</td>
+                        <td>{{ player.total_3p }}</td>
+                        <td>{{ player.total_1p }}</td>
+                        <td>{{ player.starting_percentage }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p><em>Players sorted by total points scored</em></p>
+        </div>
+        
+        <!-- Panel 2: Quarter by Quarter Performance -->
+        <div class="stats-section">
+            <h2>📊 Quarter by Quarter Performance</h2>
+            <p style="text-align: center; color: #7f8c8d; margin-bottom: 20px;">
+                <em>Average points and fouls per player in each quarter</em>
+            </p>
+            <table>
+                <thead>
+                    <tr>
+                        <th rowspan="2">#</th>
+                        <th rowspan="2">Player Name</th>
+                        <th colspan="2">Q1</th>
+                        <th colspan="2">Q2</th>
+                        <th colspan="2">Q3</th>
+                        <th colspan="2">Q4</th>
+                    </tr>
+                    <tr>
+                        <th>Pts</th>
+                        <th>Fouls</th>
+                        <th>Pts</th>
+                        <th>Fouls</th>
+                        <th>Pts</th>
+                        <th>Fouls</th>
+                        <th>Pts</th>
+                        <th>Fouls</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in team_stats.player_stats.quarter_by_quarter %}
+                    <tr>
+                        <td><strong>{{ player.number }}</strong></td>
+                        <td><strong>{{ player.name }}</strong></td>
+                        {% for quarter_data in player.quarters %}
+                        <td>{{ quarter_data.avg_points }}</td>
+                        <td>{{ quarter_data.avg_fouls }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Panel 3: Performance Evolution - Last 5 Games -->
+        <div class="stats-section">
+            <h2>📈 Player Performance Evolution - Last 5 Games</h2>
+            <p style="text-align: center; color: #7f8c8d; margin-bottom: 20px;">
+                <em>Individual player performance across their last 5 games</em>
+            </p>
+            
+            <div style="margin-bottom: 30px;">
+                <label for="playerSelect" style="font-weight: bold; margin-right: 10px;">Select Player:</label>
+                <select id="playerSelect" style="padding: 8px 15px; font-size: 1em; border: 2px solid #ddd; border-radius: 5px;">
+                    <option value="">-- Select a player --</option>
+                    {% for player in team_stats.player_stats.all_players %}
+                    <option value="{{ loop.index0 }}">{{ player.name }} (#{{ player.number }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div id="playerPerformanceContainer" style="display: none;">
+                <div class="performance-chart">
+                    <div class="chart-container">
+                        <canvas id="playerPerformanceChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Last 5 Games Table -->
+                <div id="playerGamesTable" style="margin-top: 30px;"></div>
+            </div>
+            
+            <div id="noPlayerSelected" style="text-align: center; padding: 40px; color: #7f8c8d;">
+                <p><em>Please select a player to view their performance evolution</em></p>
+            </div>
+        </div>
+        
+        {% endif %}
+        
         {% elif team_name %}
         <div class="no-team-selected">
             <h3>Team Not Found</h3>
@@ -497,6 +617,172 @@
                 }
             }
         });
+        
+        // Player Performance Evolution Chart
+        {% if team_stats.player_stats and team_stats.player_stats.has_data %}
+        const playersData = {{ team_stats.player_stats.all_players|tojson }};
+        const playerSelect = document.getElementById('playerSelect');
+        const playerPerformanceContainer = document.getElementById('playerPerformanceContainer');
+        const noPlayerSelected = document.getElementById('noPlayerSelected');
+        let playerChart = null;
+        
+        playerSelect.addEventListener('change', function() {
+            const selectedIndex = parseInt(this.value);
+            
+            if (isNaN(selectedIndex)) {
+                playerPerformanceContainer.style.display = 'none';
+                noPlayerSelected.style.display = 'block';
+                return;
+            }
+            
+            const player = playersData[selectedIndex];
+            noPlayerSelected.style.display = 'none';
+            playerPerformanceContainer.style.display = 'block';
+            
+            // Prepare chart data
+            const last5Games = player.last_5_games.slice().reverse(); // Reverse to show chronologically
+            
+            if (last5Games.length === 0) {
+                document.getElementById('playerGamesTable').innerHTML = '<p style="text-align: center; color: #7f8c8d;"><em>No recent game data available</em></p>';
+                return;
+            }
+            
+            const chartData = {
+                labels: last5Games.map((g, i) => `Game ${i + 1}`),
+                datasets: [
+                    {
+                        label: 'Points',
+                        data: last5Games.map(g => g.points),
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        yAxisID: 'y-points'
+                    },
+                    {
+                        label: 'Fouls',
+                        data: last5Games.map(g => g.fouls),
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        borderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        yAxisID: 'y-fouls'
+                    }
+                ]
+            };
+            
+            // Destroy previous chart if exists
+            if (playerChart) {
+                playerChart.destroy();
+            }
+            
+            // Create new chart
+            const ctx = document.getElementById('playerPerformanceChart').getContext('2d');
+            playerChart = new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `${player.name} - Last ${last5Games.length} Games`,
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            },
+                            color: '#2c3e50'
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const game = last5Games[context.dataIndex];
+                                    return [
+                                        `${context.dataset.label}: ${context.parsed.y}`,
+                                        `Date: ${game.date}`,
+                                        `vs ${game.opponent}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        'y-points': {
+                            type: 'linear',
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Points',
+                                color: '#667eea',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        },
+                        'y-fouls': {
+                            type: 'linear',
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Fouls',
+                                color: '#e74c3c',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Games (Chronological)',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Build games table
+            let tableHTML = '<h3>Game-by-Game Breakdown</h3><table><thead><tr><th>Game</th><th>Date</th><th>Opponent</th><th>Points</th><th>Fouls</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th></tr></thead><tbody>';
+            
+            last5Games.forEach((game, idx) => {
+                tableHTML += `<tr>
+                    <td>${idx + 1}</td>
+                    <td>${game.date}</td>
+                    <td>${game.opponent}</td>
+                    <td><strong>${game.points}</strong></td>
+                    <td>${game.fouls}</td>`;
+                
+                // Add quarter breakdown
+                for (let q = 1; q <= 4; q++) {
+                    const qData = game.quarters[q] || {points: 0, fouls: 0};
+                    tableHTML += `<td><span style="color: #667eea;">${qData.points}p</span> / <span style="color: #e74c3c;">${qData.fouls}f</span></td>`;
+                }
+                
+                tableHTML += '</tr>';
+            });
+            
+            tableHTML += '</tbody></table><p><em>Quarter breakdown shows points (blue) and fouls (red) for each quarter</em></p>';
+            
+            document.getElementById('playerGamesTable').innerHTML = tableHTML;
+        });
+        {% endif %}
+        
         {% endif %}
     </script>
 {% endblock %}

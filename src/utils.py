@@ -3089,6 +3089,185 @@ def _analyze_player_quarters(data, player_name):
     return quarter_stats
 
 
+def _extract_team_player_stats(team_games, team_name):
+    """
+    Extract comprehensive player statistics for a team from their games.
+    
+    Parameters:
+    team_games (DataFrame): Games filtered for the team
+    team_name (str): Name of the team
+    
+    Returns:
+    dict: Dictionary containing:
+        - all_players: List of all players with comprehensive stats
+        - quarter_by_quarter: Quarter-by-quarter breakdown for each player
+        - performance_evolution: Last 5 games performance for each player
+    """
+    import ast
+    from collections import defaultdict
+    
+    # Initialize data structures
+    player_totals = defaultdict(lambda: {
+        'name': '',
+        'number': 0,
+        'games_played': 0,
+        'total_points': 0,
+        'total_fouls': 0,
+        'total_2p': 0,
+        'total_3p': 0,
+        'total_1p': 0,
+        'starting_five_count': 0,
+        'quarters': defaultdict(lambda: {'points': 0, 'fouls': 0, 'games': 0}),
+        'last_5_games': []
+    })
+    
+    # Process each game
+    for _, game in team_games.iterrows():
+        try:
+            # Parse the Teams data
+            teams_data = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
+            
+            # Find the team's data (home or away)
+            team_data = None
+            is_home = game['HomeTeamName'] == team_name
+            
+            for team in teams_data:
+                if (is_home and team.get('Team Role') == 'Home') or \
+                   (not is_home and team.get('Team Role') == 'Away'):
+                    team_data = team
+                    break
+            
+            if not team_data or 'Players' not in team_data:
+                continue
+            
+            # Parse game events for quarter-by-quarter data
+            game_events = ast.literal_eval(game['GameEvents']) if isinstance(game['GameEvents'], str) else game['GameEvents']
+            
+            # Process each player
+            for player in team_data['Players']:
+                player_name = player.get('Player Name', '')
+                player_number = player.get('Player Number', 0)
+                
+                if not player_name:
+                    continue
+                
+                # Use player name as key
+                key = player_name
+                
+                # Update basic stats
+                player_totals[key]['name'] = player_name
+                player_totals[key]['number'] = player_number
+                player_totals[key]['games_played'] += 1
+                player_totals[key]['total_points'] += player.get('Total Points', 0)
+                player_totals[key]['total_fouls'] += player.get('Total Fouls', 0)
+                player_totals[key]['total_2p'] += player.get('2P Made Shots', 0)
+                player_totals[key]['total_3p'] += player.get('3P Made Shots', 0)
+                player_totals[key]['total_1p'] += player.get('1P Made Shots', 0)
+                
+                if player.get('Starting Five') == 'true':
+                    player_totals[key]['starting_five_count'] += 1
+                
+                # Calculate quarter-by-quarter stats from game events
+                quarter_stats = defaultdict(lambda: {'points': 0, 'fouls': 0})
+                
+                for event in game_events:
+                    if event.get('EventActor') == player_name and event.get('EventTeam') == team_data.get('Team Name Short'):
+                        quarter = event.get('EventQuarter')
+                        action = event.get('EventAction', '')
+                        
+                        # Count points
+                        if 'Points Added' in action:
+                            if '1P' in action:
+                                quarter_stats[quarter]['points'] += 1
+                            elif '2P' in action:
+                                quarter_stats[quarter]['points'] += 2
+                            elif '3P' in action:
+                                quarter_stats[quarter]['points'] += 3
+                        
+                        # Count fouls
+                        if 'Foul Added' in action:
+                            quarter_stats[quarter]['fouls'] += 1
+                
+                # Update quarter totals
+                for quarter in [1, 2, 3, 4]:
+                    if quarter in quarter_stats:
+                        player_totals[key]['quarters'][quarter]['points'] += quarter_stats[quarter]['points']
+                        player_totals[key]['quarters'][quarter]['fouls'] += quarter_stats[quarter]['fouls']
+                        player_totals[key]['quarters'][quarter]['games'] += 1
+                
+                # Add to last 5 games data
+                game_data = {
+                    'game_id': game['GameId'],
+                    'date': game['DateTime'][:10] if game['DateTime'] else 'N/A',
+                    'opponent': game['AwayTeamName'] if is_home else game['HomeTeamName'],
+                    'points': player.get('Total Points', 0),
+                    'fouls': player.get('Total Fouls', 0),
+                    'quarters': dict(quarter_stats)
+                }
+                player_totals[key]['last_5_games'].append(game_data)
+                
+        except Exception as e:
+            # Skip games with parsing errors
+            continue
+    
+    # Convert to final format
+    all_players = []
+    for player_key, stats in player_totals.items():
+        # Keep only last 5 games
+        stats['last_5_games'] = sorted(stats['last_5_games'], 
+                                       key=lambda x: x['date'], 
+                                       reverse=True)[:5]
+        
+        # Calculate averages
+        games = stats['games_played']
+        player_dict = {
+            'name': stats['name'],
+            'number': stats['number'],
+            'games_played': games,
+            'total_points': stats['total_points'],
+            'total_fouls': stats['total_fouls'],
+            'avg_points': round(stats['total_points'] / games, 1) if games > 0 else 0,
+            'avg_fouls': round(stats['total_fouls'] / games, 1) if games > 0 else 0,
+            'total_2p': stats['total_2p'],
+            'total_3p': stats['total_3p'],
+            'total_1p': stats['total_1p'],
+            'starting_percentage': round(stats['starting_five_count'] / games * 100, 1) if games > 0 else 0,
+            'quarters': dict(stats['quarters']),
+            'last_5_games': stats['last_5_games']
+        }
+        all_players.append(player_dict)
+    
+    # Sort by total points descending
+    all_players.sort(key=lambda x: x['total_points'], reverse=True)
+    
+    # Create quarter-by-quarter summary
+    quarter_by_quarter = []
+    for player in all_players:
+        quarters_data = []
+        for q in [1, 2, 3, 4]:
+            quarter_info = player['quarters'].get(q, {'points': 0, 'fouls': 0, 'games': 0})
+            games = quarter_info.get('games', 0)
+            quarters_data.append({
+                'quarter': q,
+                'total_points': quarter_info.get('points', 0),
+                'total_fouls': quarter_info.get('fouls', 0),
+                'avg_points': round(quarter_info.get('points', 0) / games, 1) if games > 0 else 0,
+                'avg_fouls': round(quarter_info.get('fouls', 0) / games, 1) if games > 0 else 0
+            })
+        
+        quarter_by_quarter.append({
+            'name': player['name'],
+            'number': player['number'],
+            'quarters': quarters_data
+        })
+    
+    return {
+        'all_players': all_players,
+        'quarter_by_quarter': quarter_by_quarter,
+        'has_data': len(all_players) > 0
+    }
+
+
 def get_team_detail_stats(data, team_name):
     """
     Get comprehensive statistics for a specific team.
@@ -3222,10 +3401,14 @@ def get_team_detail_stats(data, team_name):
         game_dict['HotnessIcon'] = hotness_icon
         game_by_game.append(game_dict)
     
+    # Extract player statistics for this team
+    player_stats = _extract_team_player_stats(team_games, team_name)
+    
     return {
         'basic_stats': basic_stats,
         'game_by_game': game_by_game,
-        'performance_evolution': performance_evolution
+        'performance_evolution': performance_evolution,
+        'player_stats': player_stats
     }
 
 
