@@ -4020,7 +4020,13 @@ def get_team_hover_stats(data, team_name):
                 'TotalPoints': ['sum', 'mean'],
                 'GameId': 'count'
             })
-            player_totals.columns = ['TotalPoints', 'AvgPoints', 'GamesPlayed']
+            # Flatten MultiIndex columns for better readability
+            player_totals.columns = ['_'.join(col).strip() if isinstance(col, tuple) else col for col in player_totals.columns.values]
+            player_totals = player_totals.rename(columns={
+                'TotalPoints_sum': 'TotalPoints',
+                'TotalPoints_mean': 'AvgPoints',
+                'GameId_count': 'GamesPlayed'
+            })
             
             # Sort by total points descending and get top 5
             player_totals = player_totals.sort_values('TotalPoints', ascending=False).head(5)
