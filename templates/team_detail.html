@@ -273,6 +273,56 @@
             <p><em>Wins are highlighted in green, losses in red</em></p>
         </div>
         
+        <!-- Next 5 Games Schedule -->
+        {% if team_stats['next_games'] and team_stats['next_games']|length > 0 %}
+        <div class="stats-section">
+            <h2>📅 Upcoming Games Schedule</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Division</th>
+                        <th>Matchup</th>
+                        <th>Location</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for game in team_stats['next_games'] %}
+                    <tr>
+                        <td>{{ game['date'] if game['date'] else 'TBD' }}</td>
+                        <td>{{ game['division'] }}</td>
+                        <td>
+                            {% if game['game_url'] %}
+                            <div style="margin-bottom: 4px;">
+                                <a href="{{ game['game_url'] }}" target="_blank" style="font-size: 0.85em; color: #667eea;">View on FLBB ↗</a>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <strong style="color: #2c3e50;">{{ team_stats['basic_stats']['team_name'] }}</strong>
+                                vs
+                                {% set opponent_logo_url = get_team_logo_url(game['opponent']) %}
+                                {% if opponent_logo_url %}
+                                    <img src="{{ opponent_logo_url }}" alt="{{ game['opponent'] }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin: 0 4px;">
+                                {% endif %}
+                                <a href="/team-detail?team={{ game['opponent']|urlencode }}" 
+                                   class="team-link hoverable-item" 
+                                   data-type="team" 
+                                   data-id="{{ game['opponent'] }}">{{ game['opponent'] }}</a>
+                            </div>
+                        </td>
+                        <td>
+                            <span style="{% if game['is_home'] %}color: #27ae60; font-weight: bold;{% else %}color: #e67e22; font-weight: bold;{% endif %}">
+                                {{ '🏠 Home' if game['is_home'] else '✈️ Away' }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p><em>Showing next {{ team_stats['next_games']|length }} scheduled game(s)</em></p>
+        </div>
+        {% endif %}
+        
         <!-- Player Statistics Panels -->
         {% if team_stats.player_stats and team_stats.player_stats.has_data %}
         
