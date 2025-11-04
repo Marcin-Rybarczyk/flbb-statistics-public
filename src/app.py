@@ -1,7 +1,7 @@
 import os
 import re
 from urllib.parse import unquote
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 import pandas as pd
 from src.utils import (calculate_standings_by_division, get_highest_scoring_games, 
                    load_game_data, get_top_players_by_score, get_team_performance_stats,
@@ -21,6 +21,7 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
 from src.version import get_version_info
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
+app.secret_key = os.environ.get('SECRET_KEY', 'flbb-statistics-secret-key-2024')
 
 # Context processor to make season info available to all templates
 @app.context_processor
@@ -29,10 +30,18 @@ def inject_season_info():
     season_info = get_season_info()
     website_config = get_website_config()
     version_info = get_version_info()
+    
+    # Get user preferences from session
+    user_prefs = {
+        'division': session.get('preferred_division'),
+        'team': session.get('preferred_team')
+    }
+    
     return {
         'season_info': season_info,
         'website_config': website_config,
-        'version_info': version_info
+        'version_info': version_info,
+        'user_prefs': user_prefs
     }
 
 # Logo utility functions
@@ -99,7 +108,8 @@ def index():
 @app.route('/standings', methods=['GET', 'POST'])
 def standings():
     """Division standings page"""
-    selected_division = request.form.get('division')
+    # Get division from form, query params, or user preferences
+    selected_division = request.form.get('division') or request.args.get('division') or session.get('preferred_division')
     standings = None
 
     if selected_division and not data.empty:
@@ -121,8 +131,8 @@ def statistics():
                              divisions=divisions,
                              data_source_info=data_source_info)
     
-    # Get selected division from form or query parameter
-    selected_division = request.form.get('division') or request.args.get('division')
+    # Get selected division from form, query parameter, or user preferences
+    selected_division = request.form.get('division') or request.args.get('division') or session.get('preferred_division')
     
     # Get game statistics with optional division filter
     highest_games = get_highest_scoring_games(data, 10, division=selected_division)
@@ -147,8 +157,8 @@ def team_stats():
     if data.empty:
         return render_template('team_stats.html', error="No data available", data_source_info=data_source_info)
     
-    # Get selected division from form
-    selected_division = request.form.get('division')
+    # Get selected division from form or user preferences
+    selected_division = request.form.get('division') or session.get('preferred_division')
     
     # Get team performance stats
     team_performance = get_team_performance_stats(data)
@@ -176,8 +186,8 @@ def team_detail():
     away_teams = set(data['AwayTeamName'].unique())
     all_teams = sorted(home_teams.union(away_teams))
     
-    # Get selected team from query parameter
-    team_name = request.args.get('team')
+    # Get selected team from query parameter or user preferences
+    team_name = request.args.get('team') or session.get('preferred_team')
     team_stats_detail = None
     
     if team_name:
@@ -337,8 +347,8 @@ def deeper_analysis():
     if data.empty:
         return render_template('deeper_analysis.html', error="No data available", divisions=divisions, data_source_info=data_source_info)
     
-    # Get division filter from query parameters
-    division_filter = request.args.get('division')
+    # Get division filter from query parameters or user preferences
+    division_filter = request.args.get('division') or session.get('preferred_division')
     
     # Apply division filter if provided
     filtered_data = data.copy()
@@ -366,15 +376,21 @@ def fixtures():
     if data.empty:
         return render_template('fixtures.html', error="No data available", divisions=divisions, data_source_info=data_source_info)
     
-    # Get division filter from query parameters
-    # Default to "M-Division 1:" if no filter is provided (first time visit)
+    # Get division filter from query parameters or user preferences
+    # Default to "M-Division 1:" if no filter is provided (first time visit) and no preference set
     DEFAULT_DIVISION = "M-Division 1:"
     division_param = request.args.get('division')
+    preferred_division = session.get('preferred_division')
     
     if division_param is None:
-        # First time visit - default to "M-Division 1:"
-        division_filter = DEFAULT_DIVISION
-        selected_division_param = DEFAULT_DIVISION
+        # No explicit param - use preference or default
+        if preferred_division:
+            division_filter = preferred_division
+            selected_division_param = preferred_division
+        else:
+            # First time visit - default to "M-Division 1:"
+            division_filter = DEFAULT_DIVISION
+            selected_division_param = DEFAULT_DIVISION
     elif division_param == "ALL":
         # User explicitly selected "All Divisions" - show all
         division_filter = None
@@ -438,6 +454,35 @@ def game_details_search():
                          game_id=game_id,
                          game=game_details_data,
                          divisions=divisions,
+                         data_source_info=data_source_info)
+
+@app.route('/preferences', methods=['GET', 'POST'])
+def preferences():
+    """User preferences page for setting default filters"""
+    if request.method == 'POST':
+        # Save preferences to session
+        session['preferred_division'] = request.form.get('division') or None
+        session['preferred_team'] = request.form.get('team') or None
+        
+        # Redirect back to preferences page or to a specific page if requested
+        return_url = request.args.get('return_url', url_for('preferences'))
+        return redirect(return_url)
+    
+    # Get all unique teams for dropdown
+    home_teams = set(data['HomeTeamName'].unique()) if not data.empty else set()
+    away_teams = set(data['AwayTeamName'].unique()) if not data.empty else set()
+    all_teams = sorted(home_teams.union(away_teams))
+    
+    # Get current preferences from session
+    current_prefs = {
+        'division': session.get('preferred_division'),
+        'team': session.get('preferred_team')
+    }
+    
+    return render_template('preferences.html',
+                         divisions=divisions,
+                         all_teams=all_teams,
+                         current_prefs=current_prefs,
                          data_source_info=data_source_info)
 
 @app.route('/admin')
