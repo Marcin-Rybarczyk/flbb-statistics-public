@@ -250,7 +250,7 @@
                                 {% if opponent_logo_url %}
                                     <img src="{{ opponent_logo_url }}" alt="{{ game['Opponent'] }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin: 0 4px;">
                                 {% endif %}
-                                <a href="/team-detail?team={{ game['Opponent'] }}" 
+                                <a href="/team-detail?team={{ game['Opponent']|urlencode }}" 
                                    class="team-link hoverable-item" 
                                    data-type="team" 
                                    data-id="{{ game['Opponent'] }}">{{ game['Opponent'] }}</a>
@@ -300,7 +300,7 @@
                     <tr>
                         <td><strong>{{ player.number }}</strong></td>
                         <td>
-                            <a href="/player-detail?player={{ player.name }}" 
+                            <a href="/player-detail?player={{ player.name|urlencode }}" 
                                class="hoverable-item" 
                                data-type="player" 
                                data-id="{{ player.name }}"
@@ -356,7 +356,7 @@
                     <tr>
                         <td><strong>{{ player.number }}</strong></td>
                         <td>
-                            <a href="/player-detail?player={{ player.name }}" 
+                            <a href="/player-detail?player={{ player.name|urlencode }}" 
                                class="hoverable-item" 
                                data-type="player" 
                                data-id="{{ player.name }}"
