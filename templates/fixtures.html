@@ -172,6 +172,19 @@
             padding: 8px;
         }
 
+        .team-name a,
+        .matrix-table th.team-header a {
+            color: #2c3e50;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .team-name a:hover,
+        .matrix-table th.team-header a:hover {
+            color: #667eea;
+            text-decoration: underline;
+        }
+
         .matrix-table .empty-cell {
             background: #f8f9fa;
         }
@@ -355,11 +368,13 @@
                             <th class="team-header">Teams</th>
                             {% for away_team in matrix_data.teams %}
                                 <th class="team-header">
-                                    {% set away_logo_url = get_team_logo_url(away_team) %}
-                                    {% if away_logo_url %}
-                                        <img src="{{ away_logo_url }}" alt="{{ away_team }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin-right: 2px;">
-                                    {% endif %}
-                                    {{ away_team }}
+                                    <a href="/team-detail?team={{ away_team }}" title="View {{ away_team }} details">
+                                        {% set away_logo_url = get_team_logo_url(away_team) %}
+                                        {% if away_logo_url %}
+                                            <img src="{{ away_logo_url }}" alt="{{ away_team }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin-right: 2px;">
+                                        {% endif %}
+                                        {{ away_team }}
+                                    </a>
                                 </th>
                             {% endfor %}
                         </tr>
@@ -368,11 +383,13 @@
                         {% for home_team in matrix_data.teams %}
                         <tr>
                             <td class="team-name">
-                                {% set home_logo_url = get_team_logo_url(home_team) %}
-                                {% if home_logo_url %}
-                                    <img src="{{ home_logo_url }}" alt="{{ home_team }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin-right: 4px;">
-                                {% endif %}
-                                {{ home_team }}
+                                <a href="/team-detail?team={{ home_team }}" title="View {{ home_team }} details">
+                                    {% set home_logo_url = get_team_logo_url(home_team) %}
+                                    {% if home_logo_url %}
+                                        <img src="{{ home_logo_url }}" alt="{{ home_team }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin-right: 4px;">
+                                    {% endif %}
+                                    {{ home_team }}
+                                </a>
                             </td>
                             {% for away_team in matrix_data.teams %}
                                 {% set games = matrix_data.matrix[home_team][away_team] %}
