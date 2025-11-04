@@ -32,7 +32,7 @@
             margin-bottom: 30px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             text-align: center;
-            position: relative;
+            position: relative; /* Needed for absolute positioning of layout-switcher */
         }
 
         .layout-switcher {
@@ -222,7 +222,6 @@
             cursor: pointer;
             position: relative;
             user-select: none;
-            padding: 8px 12px;
         }
 
         th:hover {
@@ -1324,7 +1323,8 @@
             
             // Load saved theme or use default (with validation)
             let savedTheme = localStorage.getItem('tableTheme') || 'default';
-            if (!availableThemes.includes(savedTheme)) {
+            // Validate theme name format and existence
+            if (!/^[a-z0-9-]+$/i.test(savedTheme) || !availableThemes.includes(savedTheme)) {
                 savedTheme = 'default';
             }
             applyTheme(savedTheme);
