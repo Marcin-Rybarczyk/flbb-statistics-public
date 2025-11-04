@@ -17,7 +17,7 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
                    get_all_players_list, get_player_detail_stats, get_game_details, get_referee_detail_stats,
                    get_team_detail_stats, get_all_referees_list, get_all_games_list,
                    get_player_hover_stats, get_team_hover_stats, get_referee_hover_stats, get_game_hover_stats,
-                   calculate_referee_performance_index)
+                   calculate_referee_performance_index, get_closest_games_by_team)
 from src.version import get_version_info
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
@@ -433,12 +433,16 @@ def fixtures():
     if not fixtures_data.empty and 'DateTime' in fixtures_data.columns:
         fixtures_data = fixtures_data.sort_values('DateTime', ascending=False)
     
+    # Get closest games for each team
+    closest_games = get_closest_games_by_team(data, division_filter)
+    
     return render_template('fixtures.html',
                          fixtures=fixtures_data,
                          matrix_data=matrix_data,
                          divisions=divisions,
                          selected_division=selected_division_param,
-                         data_source_info=data_source_info)
+                         data_source_info=data_source_info,
+                         closest_games=closest_games)
 
 @app.route('/game-detail/<game_id>')
 def game_detail(game_id):

@@ -2526,28 +2526,145 @@ def get_top_scorer_by_game(data):
     
     return pd.DataFrame(fixtures)
 
+
+def load_future_games_from_gamesdb(gamesdb_path='data/gamesDB.json'):
+    """
+    Load future games from gamesDB.json file.
+    
+    Parameters:
+    gamesdb_path (str): Path to gamesDB.json file
+    
+    Returns:
+    list: List of future game dictionaries
+    """
+    if not os.path.exists(gamesdb_path):
+        return []
+    
+    try:
+        with open(gamesdb_path, 'r', encoding='utf-8-sig') as f:
+            games = json.load(f)
+        
+        # Filter for future games (not started yet)
+        future_games = [g for g in games if g.get('GameStatus') == 'NotStarted']
+        return future_games
+    except Exception as e:
+        print(f"Error loading future games from {gamesdb_path}: {e}")
+        return []
+
+
+def parse_team_names_from_url(game_url):
+    """
+    Extract home and away team names from the game URL.
+    URL pattern: https://www.luxembourg.basketball/match/{id}/{date}/{home-team}/{away-team}/{division}
+    
+    Parameters:
+    game_url (str): The game URL
+    
+    Returns:
+    tuple: (home_team, away_team) or (None, None) if parsing fails
+    """
+    try:
+        # Split URL by '/'
+        parts = game_url.split('/')
+        if len(parts) >= 7:
+            # Get home and away team slugs
+            home_slug = parts[-3]
+            away_slug = parts[-2]
+            
+            # Convert slugs to readable names (replace hyphens with spaces, title case)
+            home_team = ' '.join(word.title() for word in home_slug.split('-'))
+            away_team = ' '.join(word.title() for word in away_slug.split('-'))
+            
+            return home_team, away_team
+    except Exception as e:
+        print(f"Error parsing team names from URL {game_url}: {e}")
+    
+    return None, None
+
+
+def convert_future_game_to_dataframe_format(game):
+    """
+    Convert a future game from gamesDB.json format to DataFrame row format.
+    
+    Parameters:
+    game (dict): Future game from gamesDB.json
+    
+    Returns:
+    dict: Game data in DataFrame format
+    """
+    home_team, away_team = parse_team_names_from_url(game.get('GameUrl', ''))
+    
+    # Parse the date from ScheduledGameDate
+    game_date = None
+    if 'ScheduledGameDate' in game and isinstance(game['ScheduledGameDate'], dict):
+        game_date = game['ScheduledGameDate'].get('DateTime')
+    
+    return {
+        'GameId': game.get('GameId'),
+        'GameLocation': None,  # Not available for future games
+        'GameDivisionDisplay': game.get('GameDivisionName', '').replace('-', ' ').title(),
+        'GameTeamsShort': f"{home_team} vs {away_team}" if home_team and away_team else None,
+        'GameFinalScore': None,
+        'GameWinner': None,
+        'GameLoser': None,
+        'HomeTeamName': home_team,
+        'AwayTeamName': away_team,
+        'HomeTeamLeaguePoints': None,
+        'AwayTeamLeaguePoints': None,
+        'FinalHomeScore': None,
+        'FinalAwayScore': None,
+        'Referres': None,
+        'DateTime': game_date,
+        'Teams': None,
+        'GameEvents': None,
+        'IsFinished': False,
+        'GameStatus': game.get('GameStatus', 'NotStarted'),
+        'GameUrl': game.get('GameUrl'),
+        'IsFutureGame': True
+    }
+
+
 def get_all_fixtures_data(data, division_filter=None):
     """
     Get all fixtures data with enhanced information for display.
+    Includes both finished games from CSV and future games from gamesDB.json.
     
     Parameters:
     data (DataFrame): The game data
     division_filter (str): Optional filter by division
     
     Returns:
-    DataFrame: Enhanced fixtures data
+    DataFrame: Enhanced fixtures data (finished + future games)
     """
-    # Apply division filter if provided (check for None explicitly to handle empty strings)
+    # Get finished games with enhanced info
     filtered_data = data.copy()
     if division_filter is not None:
         filtered_data = filtered_data[filtered_data['GameDivisionDisplay'] == division_filter]
     
-    return get_top_scorer_by_game(filtered_data)
+    finished_games = get_top_scorer_by_game(filtered_data)
+    
+    # Load and add future games
+    future_games = load_future_games_from_gamesdb()
+    if future_games:
+        future_games_list = [convert_future_game_to_dataframe_format(g) for g in future_games]
+        future_games_df = pd.DataFrame(future_games_list)
+        
+        # Apply division filter to future games if provided
+        if division_filter is not None and not future_games_df.empty:
+            future_games_df = future_games_df[future_games_df['GameDivisionDisplay'] == division_filter]
+        
+        # Combine finished and future games
+        if not future_games_df.empty:
+            all_games = pd.concat([finished_games, future_games_df], ignore_index=True)
+            return all_games
+    
+    return finished_games
 
 
 def get_fixtures_matrix_data(data, division_filter=None):
     """
     Get fixtures data organized as a matrix (team vs team).
+    Includes both finished games and future games from gamesDB.json.
     
     Parameters:
     data (DataFrame): The game data
@@ -2564,13 +2681,32 @@ def get_fixtures_matrix_data(data, division_filter=None):
     if division_filter:
         filtered_data = filtered_data[filtered_data['GameDivisionDisplay'] == division_filter]
     
+    # Load and add future games
+    future_games = load_future_games_from_gamesdb()
+    if future_games:
+        future_games_list = [convert_future_game_to_dataframe_format(g) for g in future_games]
+        future_games_df = pd.DataFrame(future_games_list)
+        
+        # Apply division filter to future games if provided
+        if division_filter and not future_games_df.empty:
+            future_games_df = future_games_df[future_games_df['GameDivisionDisplay'] == division_filter]
+        
+        # Combine finished and future games
+        if not future_games_df.empty:
+            filtered_data = pd.concat([filtered_data, future_games_df], ignore_index=True)
+    
     # Get unique teams
     home_teams = set(filtered_data['HomeTeamName'].dropna())
     away_teams = set(filtered_data['AwayTeamName'].dropna())
     all_teams = sorted(home_teams.union(away_teams))
     
-    # Get unique divisions for the filter dropdown
-    all_divisions = sorted(data['GameDivisionDisplay'].dropna().unique())
+    # Get unique divisions for the filter dropdown (from both finished and future games)
+    all_divisions_finished = set(data['GameDivisionDisplay'].dropna().unique())
+    if future_games:
+        future_divisions = set(g.get('GameDivisionName', '').replace('-', ' ').title() for g in future_games)
+        all_divisions = sorted(all_divisions_finished.union(future_divisions))
+    else:
+        all_divisions = sorted(all_divisions_finished)
     
     # Initialize matrix
     matrix = {}
@@ -2591,7 +2727,9 @@ def get_fixtures_matrix_data(data, division_filter=None):
             # Calculate hotness for finished games
             hotness_score = 0
             hotness_icon = "❄️"
-            if pd.notna(game['FinalHomeScore']) and pd.notna(game['FinalAwayScore']):
+            is_finished = pd.notna(game.get('FinalHomeScore')) and pd.notna(game.get('FinalAwayScore'))
+            
+            if is_finished:
                 try:
                     import ast
                     events = ast.literal_eval(game['GameEvents']) if isinstance(game['GameEvents'], str) else game['GameEvents']
@@ -2607,15 +2745,16 @@ def get_fixtures_matrix_data(data, division_filter=None):
             game_info = {
                 'game_id': game['GameId'],
                 'date': game['DateTime'][:16] if pd.notna(game['DateTime']) else 'TBD',
-                'home_score': game['FinalHomeScore'] if pd.notna(game['FinalHomeScore']) else None,
-                'away_score': game['FinalAwayScore'] if pd.notna(game['FinalAwayScore']) else None,
+                'home_score': game.get('FinalHomeScore') if pd.notna(game.get('FinalHomeScore')) else None,
+                'away_score': game.get('FinalAwayScore') if pd.notna(game.get('FinalAwayScore')) else None,
                 'location': location_name,
                 'division': game['GameDivisionDisplay'],
-                'is_finished': pd.notna(game['FinalHomeScore']) and pd.notna(game['FinalAwayScore']),
-                'referees': parse_referees(game['Referres']),
-                'top_scorer': get_game_top_scorer(game),
+                'is_finished': is_finished,
+                'referees': parse_referees(game.get('Referres')) if is_finished else [],
+                'top_scorer': get_game_top_scorer(game) if is_finished else {'name': None, 'points': 0, 'team': None},
                 'hotness_score': hotness_score,
-                'hotness_icon': hotness_icon
+                'hotness_icon': hotness_icon,
+                'is_future': game.get('IsFutureGame', False)
             }
             
             matrix[home_team][away_team].append(game_info)
@@ -2626,6 +2765,65 @@ def get_fixtures_matrix_data(data, division_filter=None):
         'divisions': all_divisions,
         'current_division': division_filter or (all_divisions[0] if all_divisions else None)
     }
+
+
+def get_closest_games_by_team(data, division_filter=None):
+    """
+    Identify the closest upcoming game for each team.
+    
+    Parameters:
+    data (DataFrame): The game data
+    division_filter (str): Optional filter by division
+    
+    Returns:
+    dict: Dictionary mapping team names to their closest game_id
+    """
+    from datetime import datetime
+    
+    # Get all fixtures including future games
+    all_fixtures = get_all_fixtures_data(data, division_filter)
+    
+    # Check if IsFutureGame column exists
+    if 'IsFutureGame' not in all_fixtures.columns or all_fixtures.empty:
+        return {}
+    
+    # Filter for future games only
+    future_games = all_fixtures[
+        (all_fixtures['IsFutureGame']) & 
+        (all_fixtures['DateTime'].notna())
+    ].copy()
+    
+    if future_games.empty:
+        return {}
+    
+    # Convert DateTime to datetime objects for comparison
+    future_games['DateTimeParsed'] = pd.to_datetime(future_games['DateTime'], errors='coerce')
+    future_games = future_games[future_games['DateTimeParsed'].notna()]
+    
+    # Get current time
+    now = datetime.now()
+    
+    # Find closest game for each team
+    closest_games = {}
+    
+    for team in pd.concat([future_games['HomeTeamName'], future_games['AwayTeamName']]).unique():
+        if pd.isna(team):
+            continue
+        
+        # Get all future games for this team
+        team_games = future_games[
+            (future_games['HomeTeamName'] == team) | 
+            (future_games['AwayTeamName'] == team)
+        ].copy()
+        
+        if not team_games.empty:
+            # Find the game with the earliest date in the future
+            future_team_games = team_games[team_games['DateTimeParsed'] >= now]
+            if not future_team_games.empty:
+                closest_game = future_team_games.loc[future_team_games['DateTimeParsed'].idxmin()]
+                closest_games[team] = closest_game['GameId']
+    
+    return closest_games
 
 
 def parse_location_name(location_data):
