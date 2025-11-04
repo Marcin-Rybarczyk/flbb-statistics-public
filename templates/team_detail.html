@@ -640,7 +640,9 @@
             playerPerformanceContainer.style.display = 'block';
             
             // Prepare chart data
-            const last5Games = player.last_5_games.slice().reverse(); // Reverse to show chronologically
+            // last_5_games come from backend in reverse chronological order (newest first)
+            // We reverse to display in chronological order (oldest to newest) for the chart
+            const last5Games = player.last_5_games.slice().reverse();
             
             if (last5Games.length === 0) {
                 document.getElementById('playerGamesTable').innerHTML = '<p style="text-align: center; color: #7f8c8d;"><em>No recent game data available</em></p>';
@@ -758,6 +760,7 @@
             });
             
             // Build games table
+            const QUARTERS = [1, 2, 3, 4];
             let tableHTML = '<h3>Game-by-Game Breakdown</h3><table><thead><tr><th>Game</th><th>Date</th><th>Opponent</th><th>Points</th><th>Fouls</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th></tr></thead><tbody>';
             
             last5Games.forEach((game, idx) => {
@@ -769,10 +772,10 @@
                     <td>${game.fouls}</td>`;
                 
                 // Add quarter breakdown
-                for (let q = 1; q <= 4; q++) {
-                    const qData = game.quarters[q] || {points: 0, fouls: 0};
+                QUARTERS.forEach(quarter => {
+                    const qData = game.quarters[quarter] || {points: 0, fouls: 0};
                     tableHTML += `<td><span style="color: #667eea;">${qData.points}p</span> / <span style="color: #e74c3c;">${qData.fouls}f</span></td>`;
-                }
+                });
                 
                 tableHTML += '</tr>';
             });

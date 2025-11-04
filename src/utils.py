@@ -3206,8 +3206,8 @@ def _extract_team_player_stats(team_games, team_name):
                 }
                 player_totals[key]['last_5_games'].append(game_data)
                 
-        except Exception as e:
-            # Skip games with parsing errors
+        except (ValueError, KeyError, TypeError) as e:
+            # Skip games with parsing errors (malformed JSON, missing keys, type issues)
             continue
     
     # Convert to final format
