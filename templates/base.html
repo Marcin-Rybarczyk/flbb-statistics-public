@@ -1279,11 +1279,12 @@
     </script>
 
     <script>
-        // Table Theme Switcher - Load theme from user preferences
+        // Theme Loader - Apply theme from user preferences
         (function() {
             const body = document.body;
             
-            // Available themes (whitelist)
+            // Available themes (whitelist for client-side validation)
+            // Must match VALID_THEMES in src/app.py
             const availableThemes = ['default', 'ocean', 'sunset', 'forest', 'minimal', 'cherry'];
             
             // Get theme from server-side preference (higher priority) or localStorage
