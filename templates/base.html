@@ -228,15 +228,8 @@
             background: linear-gradient(135deg, #5568d3, #6a3d8f);
         }
 
-        /* Theme 1: Default Purple Gradient */
-        .theme-default th {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-        }
-
-        .theme-default th:hover {
-            background: linear-gradient(135deg, #5568d3, #6a3d8f);
-        }
-
+        /* Theme 1: Default Purple - inherits base th styles */
+        
         /* Theme 2: Ocean Blue */
         .theme-ocean th {
             background: linear-gradient(135deg, #2193b0, #6dd5ed);
@@ -1326,10 +1319,10 @@
             // Get themes dynamically from DOM (calculated once)
             const availableThemes = Array.from(themeOptions).map(opt => opt.dataset.theme);
             
-            // Load saved theme or use default (with validation)
+            // Load saved theme or use default (with strict whitelist validation)
             let savedTheme = localStorage.getItem('tableTheme') || 'default';
-            // Validate theme name format (alphanumeric only) and existence
-            if (!/^[a-z0-9]+$/i.test(savedTheme) || !availableThemes.includes(savedTheme)) {
+            // Validate against whitelist only
+            if (!availableThemes.includes(savedTheme)) {
                 savedTheme = 'default';
             }
             applyTheme(savedTheme);
@@ -1345,9 +1338,8 @@
             
             // Close menu when clicking outside
             document.addEventListener('click', function(e) {
-                const clickedElement = e.target;
-                const isClickInsideToggle = themeToggle.contains(clickedElement);
-                const isClickInsideMenu = themeMenu.contains(clickedElement);
+                const isClickInsideToggle = themeToggle.contains(e.target);
+                const isClickInsideMenu = themeMenu.contains(e.target);
                 
                 if (!isClickInsideToggle && !isClickInsideMenu && themeMenu.classList.contains('show')) {
                     themeMenu.classList.remove('show');
