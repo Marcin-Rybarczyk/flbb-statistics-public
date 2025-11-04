@@ -3879,7 +3879,9 @@ def get_team_player_stats_for_future_game(team_name, players_db_path='data/playe
         
         return players
     except Exception as e:
-        print(f"Error loading player stats for team {team_name}: {e}")
+        # Use logging for better error tracking
+        import logging
+        logging.warning(f"Error loading player stats for team {team_name}: {e}")
         return []
 
 
@@ -3988,7 +3990,9 @@ def get_future_game_details(game_id, game):
         total_fouls = sum(p.get('Total Fouls', 0) for p in players)
         
         # Calculate average points per game (team)
-        games_played = max(p.get('Games Played', 0) for p in players) if players else 0
+        # Use the median games_played to avoid outliers affecting the calculation
+        games_played_list = [p.get('Games Played', 0) for p in players if p.get('Games Played', 0) > 0]
+        games_played = max(games_played_list) if games_played_list else 0
         avg_points = total_points / games_played if games_played > 0 else 0
         
         return {
