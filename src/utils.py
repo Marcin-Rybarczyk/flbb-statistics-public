@@ -26,6 +26,7 @@ MAX_FOUL_BLOCKS_DISPLAY = 20  # Maximum number of visual blocks (■) to display
 # Configuration file paths
 CONFIG_FILEPATH = "data/config.json"
 DEFAULT_CONFIG_FILEPATH = "config.json"
+SCRIPTS_CONFIG_FILEPATH = "scripts/config.json"
 
 # Global variables to track data source and last update
 _data_source_info = {
@@ -49,7 +50,7 @@ def get_data_source_info():
 def load_config():
     """
     Load configuration from config.json file.
-    First tries data/config.json, then config.json, then returns defaults.
+    First tries data/config.json, then config.json, then scripts/config.json, then returns defaults.
     
     Returns:
     dict: Configuration dictionary
@@ -59,8 +60,8 @@ def load_config():
     if _cached_config is not None:
         return _cached_config
     
-    # Try data/config.json first
-    for config_path in [CONFIG_FILEPATH, DEFAULT_CONFIG_FILEPATH]:
+    # Try config files in order: data/config.json, config.json, scripts/config.json
+    for config_path in [CONFIG_FILEPATH, DEFAULT_CONFIG_FILEPATH, SCRIPTS_CONFIG_FILEPATH]:
         if os.path.exists(config_path):
             try:
                 with open(config_path, 'r', encoding='utf-8') as f:
