@@ -510,7 +510,7 @@ def create_players_database(data, output_filepath=None):
     
     return players_db
 
-def get_top_scorers(data, top_n=20, division=None):
+def get_top_scorers(data, top_n=20, division=None, team=None):
     """
     Get top N scorers across all games.
     
@@ -518,6 +518,7 @@ def get_top_scorers(data, top_n=20, division=None):
     data (DataFrame): The game data
     top_n (int): Number of top scorers to return
     division (str): Optional division filter
+    team (str): Optional team filter
     
     Returns:
     DataFrame: Top scorers with their statistics
@@ -530,6 +531,10 @@ def get_top_scorers(data, top_n=20, division=None):
     
     if player_stats.empty:
         return pd.DataFrame()
+    
+    # Filter by team if specified
+    if team:
+        player_stats = player_stats[player_stats['Team'] == team]
     
     # Group by player and calculate totals
     scorer_stats = player_stats.groupby(['PlayerName', 'Team']).agg({
@@ -546,7 +551,7 @@ def get_top_scorers(data, top_n=20, division=None):
     # Sort by total points and return top N
     return scorer_stats.sort_values('TotalPoints', ascending=False).head(top_n).reset_index(drop=True)
 
-def get_highest_single_game_score(data, top_n=10, division=None):
+def get_highest_single_game_score(data, top_n=10, division=None, team=None):
     """
     Get the highest single game scores by any player, with one entry per player (their best game).
     
@@ -554,6 +559,7 @@ def get_highest_single_game_score(data, top_n=10, division=None):
     data (DataFrame): The game data
     top_n (int): Number of top single game scores to return
     division (str): Optional division filter
+    team (str): Optional team filter
     
     Returns:
     DataFrame: Players with highest single game scores (unique players)
@@ -567,6 +573,10 @@ def get_highest_single_game_score(data, top_n=10, division=None):
     if player_stats.empty:
         return pd.DataFrame()
     
+    # Filter by team if specified
+    if team:
+        player_stats = player_stats[player_stats['Team'] == team]
+    
     # Get the highest score for each player (eliminate duplicates)
     # Group by player and get the row with max points for each player
     idx = player_stats.groupby('PlayerName')['TotalPoints'].idxmax()
@@ -574,7 +584,7 @@ def get_highest_single_game_score(data, top_n=10, division=None):
     
     return top_single_games
 
-def get_player_shooting_efficiency(data, top_n=20, division=None):
+def get_player_shooting_efficiency(data, top_n=20, division=None, team=None):
     """
     Get player free throw statistics (leaders by total free throws made).
     
@@ -586,6 +596,7 @@ def get_player_shooting_efficiency(data, top_n=20, division=None):
     data (DataFrame): The game data
     top_n (int): Number of top players to return
     division (str): Optional division filter
+    team (str): Optional team filter
     
     Returns:
     DataFrame: Players with free throw statistics
@@ -598,6 +609,10 @@ def get_player_shooting_efficiency(data, top_n=20, division=None):
     
     if player_stats.empty:
         return pd.DataFrame()
+    
+    # Filter by team if specified
+    if team:
+        player_stats = player_stats[player_stats['Team'] == team]
     
     # Group by player and calculate free throw stats
     ft_stats = player_stats.groupby(['PlayerName', 'Team']).agg({
@@ -625,13 +640,14 @@ def get_player_shooting_efficiency(data, top_n=20, division=None):
     
     return ft_stats.sort_values('TotalFreeThrowsMade', ascending=False).head(top_n).reset_index(drop=True)
 
-def get_starting_five_vs_bench_stats(data, division=None):
+def get_starting_five_vs_bench_stats(data, division=None, team=None):
     """
     Compare starting five players vs bench players statistics.
     
     Parameters:
     data (DataFrame): The game data
     division (str): Optional division filter
+    team (str): Optional team filter
     
     Returns:
     dict: Statistics comparing starters vs bench, including:
@@ -657,6 +673,10 @@ def get_starting_five_vs_bench_stats(data, division=None):
     
     if player_stats.empty:
         return {}
+    
+    # Filter by team if specified
+    if team:
+        player_stats = player_stats[player_stats['Team'] == team]
     
     # Separate starters and bench players
     starters = player_stats[player_stats['StartingFive'] == True]
@@ -728,7 +748,7 @@ def get_starting_five_vs_bench_stats(data, division=None):
     
     return result
 
-def get_double_digit_scorers(data, min_points=10, division=None):
+def get_double_digit_scorers(data, min_points=10, division=None, team=None):
     """
     Get players with double-digit scoring games.
     
@@ -736,6 +756,7 @@ def get_double_digit_scorers(data, min_points=10, division=None):
     data (DataFrame): The game data
     min_points (int): Minimum points for double-digit game
     division (str): Optional division filter
+    team (str): Optional team filter
     
     Returns:
     DataFrame: Players with double-digit scoring statistics
@@ -748,6 +769,10 @@ def get_double_digit_scorers(data, min_points=10, division=None):
     
     if player_stats.empty:
         return pd.DataFrame()
+    
+    # Filter by team if specified
+    if team:
+        player_stats = player_stats[player_stats['Team'] == team]
     
     # Filter games with double-digit scoring
     double_digit_games = player_stats[player_stats['TotalPoints'] >= min_points]
@@ -775,7 +800,7 @@ def get_double_digit_scorers(data, min_points=10, division=None):
     
     return double_digit_stats.sort_values('DoubleDigitGames', ascending=False).head(20).reset_index(drop=True)
 
-def get_consistent_scorers(data, min_games=5, division=None):
+def get_consistent_scorers(data, min_games=5, division=None, team=None):
     """
     Get players who consistently score well across multiple games.
     
@@ -783,6 +808,7 @@ def get_consistent_scorers(data, min_games=5, division=None):
     data (DataFrame): The game data
     min_games (int): Minimum games to be considered
     division (str): Optional division filter
+    team (str): Optional team filter
     
     Returns:
     DataFrame: Most consistent scorers
@@ -796,16 +822,20 @@ def get_consistent_scorers(data, min_games=5, division=None):
     if player_stats.empty:
         return pd.DataFrame()
     
+    # Filter by team if specified
+    if team:
+        player_stats = player_stats[player_stats['Team'] == team]
+    
     # Group by player and calculate consistency metrics
     player_groups = player_stats.groupby(['PlayerName', 'Team'])
     
     consistency_stats = []
-    for (player, team), group in player_groups:
+    for (player, team_name), group in player_groups:
         if len(group) >= min_games:
             points = group['TotalPoints']
             consistency_stats.append({
                 'PlayerName': player,
-                'Team': team,
+                'Team': team_name,
                 'GamesPlayed': len(group),
                 'AvgPoints': points.mean().round(1),
                 'StdDevPoints': points.std().round(1),
@@ -820,7 +850,7 @@ def get_consistent_scorers(data, min_games=5, division=None):
         
     return consistency_df.sort_values('ConsistencyScore', ascending=False).head(20).reset_index(drop=True)
 
-def get_top_three_pointers(data, top_n=10, division=None):
+def get_top_three_pointers(data, top_n=10, division=None, team=None):
     """
     Get top N three-point shooters.
     
@@ -828,6 +858,7 @@ def get_top_three_pointers(data, top_n=10, division=None):
     data (DataFrame): The game data  
     top_n (int): Number of top three-point shooters to return
     division (str): Optional division filter
+    team (str): Optional team filter
     
     Returns:
     DataFrame: Top three-point shooters with their statistics
@@ -840,6 +871,10 @@ def get_top_three_pointers(data, top_n=10, division=None):
     
     if player_stats.empty:
         return pd.DataFrame()
+    
+    # Filter by team if specified
+    if team:
+        player_stats = player_stats[player_stats['Team'] == team]
     
     # Group by player and calculate three-point totals
     three_point_stats = player_stats.groupby(['PlayerName', 'Team']).agg({
@@ -854,7 +889,7 @@ def get_top_three_pointers(data, top_n=10, division=None):
     # Sort by total three-pointers made and return top N
     return three_point_stats.sort_values('3PMadeShots', ascending=False).head(top_n).reset_index(drop=True)
 
-def get_top_foulers(data, top_n=10, division=None):
+def get_top_foulers(data, top_n=10, division=None, team=None):
     """
     Get players with the most fouls.
     
@@ -862,6 +897,7 @@ def get_top_foulers(data, top_n=10, division=None):
     data (DataFrame): The game data
     top_n (int): Number of top foulers to return
     division (str): Optional division filter
+    team (str): Optional team filter
     
     Returns:
     DataFrame: Top foulers with their statistics including:
@@ -878,6 +914,10 @@ def get_top_foulers(data, top_n=10, division=None):
     
     if player_stats.empty:
         return pd.DataFrame()
+    
+    # Filter by team if specified
+    if team:
+        player_stats = player_stats[player_stats['Team'] == team]
     
     # Group by player and calculate foul totals
     foul_stats = player_stats.groupby(['PlayerName', 'Team']).agg({

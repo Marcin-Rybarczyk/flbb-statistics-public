@@ -351,7 +351,9 @@
                                         {% elif game.is_finished and game.away_score > game.home_score %}
                                             {% set outcome_class = 'away-win' %}
                                         {% endif %}
-                                        <div class="game-info {{ outcome_class }}" 
+                                        <div class="game-info {{ outcome_class }} hoverable-item" 
+                                             data-type="game"
+                                             data-id="{{ game.game_id }}"
                                              onclick="window.location.href='/game-detail/{{ game.game_id }}'" 
                                              onkeydown="if(event.key==='Enter'||event.key===' '){window.location.href='/game-detail/{{ game.game_id }}';event.preventDefault();}" 
                                              tabindex="0" 
