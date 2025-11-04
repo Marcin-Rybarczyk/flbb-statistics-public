@@ -2816,10 +2816,15 @@ def get_fixtures_matrix_data(data, division_filter=None):
     division_filter (str): Optional filter by division
     
     Returns:
-    dict: Matrix data with teams as rows/columns and games as cell contents
+    dict: Matrix data with the following keys:
+        - teams (list): List of teams sorted by points (descending), then alphabetically
+        - matrix (dict): Nested dict with teams as keys and lists of games as values
+        - divisions (list): List of available divisions
+        - current_division (str): Currently selected division
+        - team_points (dict): Dictionary mapping team names to their total points
     """
     if data.empty:
-        return {'teams': [], 'matrix': {}, 'divisions': []}
+        return {'teams': [], 'matrix': {}, 'divisions': [], 'team_points': {}}
     
     # Apply division filter if provided
     filtered_data = data.copy()
