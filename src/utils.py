@@ -2433,8 +2433,8 @@ def get_top_scorer_by_game(data):
     
     for _, game in data.iterrows():
         game_id = game['GameId']
-        home_team = game['HomeTeamName']
-        away_team = game['AwayTeamName']
+        home_team = normalize_team_name_for_display(game['HomeTeamName'])
+        away_team = normalize_team_name_for_display(game['AwayTeamName'])
         home_score = game['FinalHomeScore']
         away_score = game['FinalAwayScore']
         date_time = game['DateTime']
@@ -2514,10 +2514,13 @@ def get_top_scorer_by_game(data):
             'GameId': game_id,
             'HomeTeam': home_team,
             'AwayTeam': away_team,
+            'HomeTeamName': home_team,  # Add for consistency with future games
+            'AwayTeamName': away_team,  # Add for consistency with future games
             'HomeScore': home_score,
             'AwayScore': away_score,
             'DateTime': date_time,
             'Division': division,
+            'GameDivisionDisplay': division,  # Add for consistency with future games
             'Location': parse_location_name(location),  # Use the same parsing function
             'TopScorerName': top_scorer_name if top_scorer_name else 'N/A',
             'TopScorerPoints': top_scorer_points,
@@ -2556,6 +2559,46 @@ def load_future_games_from_gamesdb(gamesdb_path='data/gamesDB.json'):
         return []
 
 
+def normalize_team_name_for_display(team_name):
+    """
+    Normalize team name for consistent display across finished and future games.
+    Handles common abbreviations like AB, BC, US that should be uppercase.
+    Also normalizes accents to prevent duplicates (e.g., Gréngewald -> Grengewald).
+    
+    Parameters:
+    team_name (str): The team name to normalize
+    
+    Returns:
+    str: Normalized team name
+    """
+    if not team_name:
+        return team_name
+    
+    # Remove accents/diacritics for consistency
+    import unicodedata
+    team_name = ''.join(
+        c for c in unicodedata.normalize('NFD', team_name)
+        if unicodedata.category(c) != 'Mn'
+    )
+    
+    # List of abbreviations that should be all uppercase
+    uppercase_abbreviations = ['AB', 'BC', 'US', 'AS']
+    
+    # Split the name into words
+    words = team_name.split()
+    normalized_words = []
+    
+    for word in words:
+        # Check if this word (uppercase version) is in our abbreviations list
+        if word.upper() in uppercase_abbreviations:
+            normalized_words.append(word.upper())
+        else:
+            # Keep the original capitalization for other words
+            normalized_words.append(word)
+    
+    return ' '.join(normalized_words)
+
+
 def parse_team_names_from_url(game_url):
     """
     Extract home and away team names from the game URL.
@@ -2578,6 +2621,10 @@ def parse_team_names_from_url(game_url):
             # Convert slugs to readable names (replace hyphens with spaces, title case)
             home_team = ' '.join(word.title() for word in home_slug.split('-'))
             away_team = ' '.join(word.title() for word in away_slug.split('-'))
+            
+            # Normalize team names to handle abbreviations
+            home_team = normalize_team_name_for_display(home_team)
+            away_team = normalize_team_name_for_display(away_team)
             
             return home_team, away_team
     except Exception as e:
@@ -2684,10 +2731,13 @@ def convert_future_game_to_dataframe_format(game):
         'GameId': game.get('GameId'),
         'GameLocation': None,  # Not available for future games
         'GameDivisionDisplay': division_display,
+        'Division': division_display,  # Add for consistency with finished games
         'GameTeamsShort': f"{home_team} vs {away_team}" if home_team and away_team else None,
         'GameFinalScore': None,
         'GameWinner': None,
         'GameLoser': None,
+        'HomeTeam': home_team,  # Add for consistency with finished games
+        'AwayTeam': away_team,  # Add for consistency with finished games
         'HomeTeamName': home_team,
         'AwayTeamName': away_team,
         'HomeTeamLeaguePoints': None,
@@ -2776,9 +2826,9 @@ def get_fixtures_matrix_data(data, division_filter=None):
         if not future_games_df.empty:
             filtered_data = pd.concat([filtered_data, future_games_df], ignore_index=True)
     
-    # Get unique teams
-    home_teams = set(filtered_data['HomeTeamName'].dropna())
-    away_teams = set(filtered_data['AwayTeamName'].dropna())
+    # Get unique teams with normalization
+    home_teams = set(normalize_team_name_for_display(name) for name in filtered_data['HomeTeamName'].dropna())
+    away_teams = set(normalize_team_name_for_display(name) for name in filtered_data['AwayTeamName'].dropna())
     all_teams = sorted(home_teams.union(away_teams))
     
     # Get unique divisions for the filter dropdown (from both finished and future games)
@@ -2798,10 +2848,12 @@ def get_fixtures_matrix_data(data, division_filter=None):
     
     # Populate matrix with games
     for _, game in filtered_data.iterrows():
-        home_team = game['HomeTeamName']
-        away_team = game['AwayTeamName']
+        raw_home = game['HomeTeamName']
+        raw_away = game['AwayTeamName']
         
-        if pd.notna(home_team) and pd.notna(away_team):
+        if pd.notna(raw_home) and pd.notna(raw_away):
+            home_team = normalize_team_name_for_display(raw_home)
+            away_team = normalize_team_name_for_display(raw_away)
             # Parse location to get just the name
             location_name = parse_location_name(game['GameLocation'])
             

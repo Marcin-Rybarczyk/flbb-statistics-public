@@ -429,9 +429,9 @@ def fixtures():
     # Also get traditional table data with filter applied
     fixtures_data = get_all_fixtures_data(data, division_filter)
     
-    # Sort by date (most recent first)
+    # Sort by date (oldest first)
     if not fixtures_data.empty and 'DateTime' in fixtures_data.columns:
-        fixtures_data = fixtures_data.sort_values('DateTime', ascending=False)
+        fixtures_data = fixtures_data.sort_values('DateTime', ascending=True)
     
     # Get closest games for each team
     closest_games = get_closest_games_by_team(data, division_filter)
