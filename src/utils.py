@@ -2924,11 +2924,39 @@ def get_fixtures_matrix_data(data, division_filter=None):
             
             matrix[home_team][away_team].append(game_info)
     
+    # Calculate team points (2 points for win, 1 point for loss)
+    team_points = {}
+    for team in all_teams:
+        team_points[team] = 0
+    
+    # Only calculate points from finished games
+    for _, game in filtered_data.iterrows():
+        raw_home = game['HomeTeamName']
+        raw_away = game['AwayTeamName']
+        is_finished = pd.notna(game.get('FinalHomeScore')) and pd.notna(game.get('FinalAwayScore'))
+        
+        if is_finished and pd.notna(raw_home) and pd.notna(raw_away):
+            home_team = normalize_team_name_for_display(raw_home)
+            away_team = normalize_team_name_for_display(raw_away)
+            home_score = game.get('FinalHomeScore')
+            away_score = game.get('FinalAwayScore')
+            
+            if home_score > away_score:  # Home team wins
+                team_points[home_team] = team_points.get(home_team, 0) + 2
+                team_points[away_team] = team_points.get(away_team, 0) + 1
+            else:  # Away team wins
+                team_points[home_team] = team_points.get(home_team, 0) + 1
+                team_points[away_team] = team_points.get(away_team, 0) + 2
+    
+    # Sort teams by points (descending), then alphabetically
+    sorted_teams = sorted(all_teams, key=lambda t: (-team_points.get(t, 0), t))
+    
     return {
-        'teams': all_teams,
+        'teams': sorted_teams,
         'matrix': matrix,
         'divisions': all_divisions,
-        'current_division': division_filter or (all_divisions[0] if all_divisions else None)
+        'current_division': division_filter or (all_divisions[0] if all_divisions else None),
+        'team_points': team_points
     }
 
 
