@@ -3,14 +3,14 @@
 {% block title %}User Preferences - FLBB Statistics{% endblock %}
 
 {% block page_title %}⚙️ User Preferences{% endblock %}
-{% block page_description %}Set your preferred division and team filters{% endblock %}
+{% block page_description %}Set your preferred division, team, and theme color{% endblock %}
 
 {% block content %}
 
 <div class="stats-section">
     <h2>Your Preferences</h2>
     <p style="text-align: center; color: #7f8c8d; margin-bottom: 30px;">
-        Set your preferred division and team to automatically filter pages when you visit them.
+        Set your preferred division, team, and theme color to customize your experience.
     </p>
 
     <form method="post" style="max-width: 600px; margin: 0 auto;">
@@ -48,12 +48,29 @@
             </small>
         </div>
 
+        <div style="margin-bottom: 25px;">
+            <label for="theme" style="display: block; font-weight: 600; margin-bottom: 10px; color: #2c3e50;">
+                Theme Color:
+            </label>
+            <select name="theme" id="theme" style="width: 100%;">
+                <option value="default" {% if current_prefs.theme == 'default' or not current_prefs.theme %}selected{% endif %}>Default Purple</option>
+                <option value="ocean" {% if current_prefs.theme == 'ocean' %}selected{% endif %}>Ocean Blue</option>
+                <option value="sunset" {% if current_prefs.theme == 'sunset' %}selected{% endif %}>Sunset Orange</option>
+                <option value="forest" {% if current_prefs.theme == 'forest' %}selected{% endif %}>Forest Green</option>
+                <option value="minimal" {% if current_prefs.theme == 'minimal' %}selected{% endif %}>Minimal Gray</option>
+                <option value="cherry" {% if current_prefs.theme == 'cherry' %}selected{% endif %}>Cherry Red</option>
+            </select>
+            <small style="display: block; margin-top: 8px; color: #7f8c8d;">
+                This will change the color scheme of tables throughout the site.
+            </small>
+        </div>
+
         <div style="text-align: center; margin-top: 30px;">
             <input type="submit" value="💾 Save Preferences" style="padding: 12px 30px; font-size: 16px; cursor: pointer;">
         </div>
     </form>
 
-    {% if current_prefs.division or current_prefs.team %}
+    {% if current_prefs.division or current_prefs.team or current_prefs.theme %}
     <div style="margin-top: 40px; padding: 20px; background: linear-gradient(135deg, #e8f5e9, #c8e6c9); border-radius: 10px; text-align: center;">
         <h3 style="color: #2e7d32; margin-bottom: 15px;">✓ Your Current Preferences</h3>
         <p style="color: #1b5e20;">
@@ -61,14 +78,17 @@
             <strong>Division:</strong> {{ current_prefs.division }}<br>
             {% endif %}
             {% if current_prefs.team %}
-            <strong>Team:</strong> {{ current_prefs.team }}
+            <strong>Team:</strong> {{ current_prefs.team }}<br>
+            {% endif %}
+            {% if current_prefs.theme %}
+            <strong>Theme:</strong> {{ current_prefs.theme|title }}<br>
             {% endif %}
         </p>
     </div>
     {% else %}
     <div style="margin-top: 40px; padding: 20px; background: linear-gradient(135deg, #fff3e0, #ffe0b2); border-radius: 10px; text-align: center;">
         <p style="color: #e65100;">
-            ℹ️ You haven't set any preferences yet. Pages will use their default filters.
+            ℹ️ You haven't set any preferences yet. Pages will use their default filters and theme.
         </p>
     </div>
     {% endif %}
