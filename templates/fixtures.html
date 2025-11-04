@@ -204,7 +204,7 @@
 
         .game-date {
             color: #7f8c8d;
-            font-size: 0.7em;
+            font-size: 0.9em;
         }
 
         .game-top-scorer {
@@ -406,7 +406,7 @@
                                                     <div style="font-size: 1.2em;" title="Hotness: {{ game.hotness_score }}/100">{{ game.hotness_icon }}</div>
                                                 {% endif %}
                                             {% else %}
-                                                <div class="game-score">vs{% if is_closest %}<span class="closest-game-badge">NEXT</span>{% endif %}</div>
+                                                <div class="game-score">{% if is_closest %}<span class="closest-game-badge">NEXT</span>{% endif %}</div>
                                             {% endif %}
                                             <div class="game-date">{{ game.date[:10] if game.date != 'TBD' else 'TBD' }}</div>
                                             {% if game.top_scorer.name %}
