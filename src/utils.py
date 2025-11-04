@@ -16,6 +16,10 @@ FORCE_TO_CREATE_CSV = True
 # Set to False to disable automatic generation (can still be called manually)
 AUTO_CREATE_PLAYER_DATABASE = False
 
+# Date format constants
+GAMESDB_DATE_FORMAT = '%A, %B %d, %Y %I:%M:%S %p'  # Format used in gamesDB.json
+ISO_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'  # Format used in CSV and for display
+
 # Foul visualization settings
 MAX_FOUL_BLOCKS_DISPLAY = 20  # Maximum number of visual blocks (■) to display for a single foul type
 
@@ -2613,12 +2617,16 @@ def convert_division_name(division_name):
     elif 'enovos-league' in division_name.lower():
         # ENOVOS LEAGUE: m-enovos-leaguetour-qualificatif -> M-ENOVOS LEAGUE:Tour qualificatif
         if 'tour' in division_name.lower():
-            # Split on 'tour' and handle the suffix
-            idx = division_name.lower().index('tour')
-            suffix = division_name[idx:].replace('-', ' ')
-            # Capitalize 'Tour'
-            suffix = 'T' + suffix[1:]
-            return f"M-ENOVOS LEAGUE:{suffix}"
+            try:
+                # Split on 'tour' and handle the suffix
+                idx = division_name.lower().index('tour')
+                suffix = division_name[idx:].replace('-', ' ')
+                # Capitalize 'Tour'
+                suffix = 'T' + suffix[1:]
+                return f"M-ENOVOS LEAGUE:{suffix}"
+            except ValueError:
+                # If 'tour' not found (shouldn't happen due to outer check), use fallback
+                pass
     
     elif 'nationale' in division_name.lower():
         # Nationale: m-nationale-2tour-qualificatif -> M-Nationale 2:Tour qualificatif
@@ -2626,12 +2634,16 @@ def convert_division_name(division_name):
         temp = division_name.replace('m-nationale-', '')
         # Find where 'tour' starts
         if 'tour' in temp.lower():
-            idx = temp.lower().index('tour')
-            num = temp[:idx]
-            suffix = temp[idx:].replace('-', ' ')
-            # Capitalize 'Tour'
-            suffix = 'T' + suffix[1:]
-            return f"M-Nationale {num}:{suffix}"
+            try:
+                idx = temp.lower().index('tour')
+                num = temp[:idx]
+                suffix = temp[idx:].replace('-', ' ')
+                # Capitalize 'Tour'
+                suffix = 'T' + suffix[1:]
+                return f"M-Nationale {num}:{suffix}"
+            except ValueError:
+                # If 'tour' not found (shouldn't happen due to outer check), use fallback
+                pass
     
     # Fallback: use title case with spaces
     return division_name.replace('-', ' ').title()
@@ -2658,10 +2670,10 @@ def convert_future_game_to_dataframe_format(game):
         if date_str:
             try:
                 # Parse the date string like "Saturday, November 8, 2025 12:00:00 AM"
-                dt = datetime.strptime(date_str, '%A, %B %d, %Y %I:%M:%S %p')
+                dt = datetime.strptime(date_str, GAMESDB_DATE_FORMAT)
                 # Convert to ISO format to match finished games: "YYYY-MM-DD HH:MM:SS"
-                game_date = dt.strftime('%Y-%m-%d %H:%M:%S')
-            except Exception as e:
+                game_date = dt.strftime(ISO_DATE_FORMAT)
+            except ValueError as e:
                 # If parsing fails, keep the original date string
                 game_date = date_str
     
@@ -4507,9 +4519,9 @@ def get_game_hover_stats(data, game_id):
                     if date_str != 'TBD':
                         try:
                             # Parse and convert to ISO format to match finished games
-                            dt = datetime.strptime(date_str, '%A, %B %d, %Y %I:%M:%S %p')
-                            game_date = dt.strftime('%Y-%m-%d %H:%M:%S')
-                        except:
+                            dt = datetime.strptime(date_str, GAMESDB_DATE_FORMAT)
+                            game_date = dt.strftime(ISO_DATE_FORMAT)
+                        except ValueError:
                             # If parsing fails, keep the original
                             game_date = date_str
                 
