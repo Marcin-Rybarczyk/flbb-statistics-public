@@ -214,7 +214,8 @@ function Get-GameTimeFromMatchNode($matchNode) {
         
         # Try to match time patterns (HH:mm, HHhmm, HH.mm)
         # Match patterns like: "20:30", "20h30", "20.30", "9:15"
-        if ($nodeText -match '\b(\d{1,2})[:h\.](\d{2})\b') {
+        # Validate hours (0-23) and minutes (0-59)
+        if ($nodeText -match '\b([0-1]?[0-9]|2[0-3])[:h\.]([0-5][0-9])\b') {
             $hours = $Matches[1].PadLeft(2, '0')
             $minutes = $Matches[2]
             Write-Debug "Found time in main text: ${hours}:${minutes}:00"
@@ -226,7 +227,8 @@ function Get-GameTimeFromMatchNode($matchNode) {
         $timeNode = $matchNode.SelectSingleNode(".//div[contains(@class, 'time')] | .//span[contains(@class, 'time')] | .//div[@class='col-2'] | .//div[@class='col-1']")
         if ($null -ne $timeNode) {
             $timeText = if ($timeNode.InnerText) { $timeNode.InnerText.Trim() } else { "" }
-            if ($timeText -match '(\d{1,2})[:h\.](\d{2})') {
+            # Use same validation pattern with word boundaries
+            if ($timeText -match '\b([0-1]?[0-9]|2[0-3])[:h\.]([0-5][0-9])\b') {
                 $hours = $Matches[1].PadLeft(2, '0')
                 $minutes = $Matches[2]
                 Write-Debug "Found time in child node: ${hours}:${minutes}:00"
@@ -276,8 +278,14 @@ function Get-GamesInDivision($appConfig, $gameSchedule) {
             # Extract time from HTML node
             $gameTime = Get-GameTimeFromMatchNode -matchNode $matchNode
             
-            # Combine date and time
-            $scheduledDateTime = Get-Date -Date "$gameDate $gameTime"
+            # Combine date and time with error handling
+            try {
+                $scheduledDateTime = Get-Date -Date "$gameDate $gameTime"
+            }
+            catch {
+                Write-Warning "Failed to parse date/time for game ID $($Matches[1]): $gameDate $gameTime. Using date only."
+                $scheduledDateTime = Get-Date -Date $gameDate
+            }
             
             $game = @{
                 "GameId"            = $Matches[1]
