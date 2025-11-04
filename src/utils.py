@@ -2513,7 +2513,7 @@ def get_top_scorer_by_game(data):
         # Convert scores to int to avoid float display issues
         home_score_int = int(home_score) if pd.notna(home_score) else None
         away_score_int = int(away_score) if pd.notna(away_score) else None
-        top_scorer_points_int = int(top_scorer_points) if top_scorer_points else 0
+        top_scorer_points_int = int(top_scorer_points) if top_scorer_points is not None else 0
         
         fixtures.append({
             'GameId': game_id,
