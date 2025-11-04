@@ -35,85 +35,31 @@
             position: relative; /* Needed for absolute positioning of layout-switcher */
         }
 
-        .layout-switcher {
+        .user-prefs-button-container {
             position: absolute;
             top: 20px;
             right: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
             z-index: 100;
         }
 
-        .layout-switcher-label {
-            font-size: 0.85em;
-            color: #6c757d;
-            font-weight: 500;
-        }
-
-        .layout-switcher-button {
+        .user-prefs-button {
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             border: none;
-            padding: 8px 16px;
+            padding: 10px 20px;
             border-radius: 8px;
             cursor: pointer;
             font-size: 0.9em;
             font-weight: 600;
             transition: all 0.3s ease;
             box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            text-decoration: none;
+            display: inline-block;
         }
 
-        .layout-switcher-button:hover {
+        .user-prefs-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-
-        .theme-menu {
-            position: absolute;
-            top: 50px;
-            right: 20px;
-            background: white;
-            border: 2px solid #667eea;
-            border-radius: 10px;
-            padding: 10px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-            display: none;
-            z-index: 1000;
-            min-width: 200px;
-        }
-
-        .theme-menu.show {
-            display: block;
-        }
-
-        .theme-option {
-            padding: 10px 15px;
-            margin: 5px 0;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9em;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .theme-option:hover {
-            transform: translateX(5px);
-        }
-
-        .theme-option.active {
-            background: rgba(102, 126, 234, 0.1);
-            border-left: 3px solid #667eea;
-        }
-
-        .theme-color-preview {
-            width: 30px;
-            height: 20px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
         }
 
         .header h1 {
@@ -426,16 +372,10 @@
                 font-size: 2em;
             }
             
-            .layout-switcher {
+            .user-prefs-button-container {
                 position: static;
-                justify-content: center;
+                text-align: center;
                 margin-bottom: 15px;
-            }
-
-            .theme-menu {
-                right: 10px;
-                left: 10px;
-                max-width: calc(100% - 20px);
             }
             
             .navigation {
@@ -708,40 +648,8 @@
                 <a href="/preferences" title="Set your preferences">⚙️ Set Preferences</a>
             </div>
             {% endif %}
-            <div class="layout-switcher">
-                <span class="layout-switcher-label">Table Style:</span>
-                <button class="layout-switcher-button" id="themeToggle" 
-                        aria-expanded="false" 
-                        aria-haspopup="true" 
-                        aria-controls="themeMenu">
-                    🎨 Change Theme
-                </button>
-            </div>
-            <div class="theme-menu" id="themeMenu" role="menu" aria-hidden="true">
-                <div class="theme-option" data-theme="default" role="menuitem" tabindex="0">
-                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #667eea, #764ba2);"></div>
-                    <span>Default Purple</span>
-                </div>
-                <div class="theme-option" data-theme="ocean" role="menuitem" tabindex="0">
-                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #2193b0, #6dd5ed);"></div>
-                    <span>Ocean Blue</span>
-                </div>
-                <div class="theme-option" data-theme="sunset" role="menuitem" tabindex="0">
-                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #f37335, #fdc830);"></div>
-                    <span>Sunset Orange</span>
-                </div>
-                <div class="theme-option" data-theme="forest" role="menuitem" tabindex="0">
-                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #134e5e, #71b280);"></div>
-                    <span>Forest Green</span>
-                </div>
-                <div class="theme-option" data-theme="minimal" role="menuitem" tabindex="0">
-                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #485563, #29323c);"></div>
-                    <span>Minimal Gray</span>
-                </div>
-                <div class="theme-option" data-theme="cherry" role="menuitem" tabindex="0">
-                    <div class="theme-color-preview" style="background: linear-gradient(135deg, #eb3349, #f45c43);"></div>
-                    <span>Cherry Red</span>
-                </div>
+            <div class="user-prefs-button-container">
+                <a href="/preferences" class="user-prefs-button">⚙️ User Preferences</a>
             </div>
             <h1>{% block page_title %}🏀 {{ website_config.title }}{% endblock %}</h1>
             <p>{% block page_description %}{{ website_config.description }}{% endblock %}</p>
@@ -1371,15 +1279,12 @@
     </script>
 
     <script>
-        // Table Theme Switcher
+        // Table Theme Switcher - Load theme from user preferences
         (function() {
-            const themeToggle = document.getElementById('themeToggle');
-            const themeMenu = document.getElementById('themeMenu');
-            const themeOptions = document.querySelectorAll('.theme-option');
             const body = document.body;
             
-            // Get themes dynamically from DOM (calculated once)
-            const availableThemes = Array.from(themeOptions).map(opt => opt.dataset.theme);
+            // Available themes (whitelist)
+            const availableThemes = ['default', 'ocean', 'sunset', 'forest', 'minimal', 'cherry'];
             
             // Get theme from server-side preference (higher priority) or localStorage
             let savedTheme = '{{ user_prefs.theme|default("default") }}';
@@ -1400,56 +1305,6 @@
             }
             applyTheme(savedTheme);
             
-            // Toggle theme menu
-            themeToggle.addEventListener('click', function(e) {
-                e.stopPropagation();
-                const isExpanded = themeMenu.classList.contains('show');
-                themeMenu.classList.toggle('show');
-                themeToggle.setAttribute('aria-expanded', !isExpanded);
-                themeMenu.setAttribute('aria-hidden', isExpanded);
-            });
-            
-            // Close menu when clicking outside
-            document.addEventListener('click', function(e) {
-                const isClickInsideToggle = themeToggle.contains(e.target);
-                const isClickInsideMenu = themeMenu.contains(e.target);
-                
-                if (!isClickInsideToggle && !isClickInsideMenu && themeMenu.classList.contains('show')) {
-                    themeMenu.classList.remove('show');
-                    themeToggle.setAttribute('aria-expanded', 'false');
-                    themeMenu.setAttribute('aria-hidden', 'true');
-                }
-            });
-            
-            // Handle theme selection
-            themeOptions.forEach(option => {
-                // Mouse/touch click handler
-                option.addEventListener('click', function() {
-                    selectTheme(this.dataset.theme);
-                });
-                
-                // Keyboard navigation handler
-                option.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        selectTheme(this.dataset.theme);
-                    } else if (e.key === 'Escape') {
-                        themeMenu.classList.remove('show');
-                        themeToggle.setAttribute('aria-expanded', 'false');
-                        themeMenu.setAttribute('aria-hidden', 'true');
-                        themeToggle.focus();
-                    }
-                });
-            });
-            
-            function selectTheme(theme) {
-                applyTheme(theme);
-                localStorage.setItem('tableTheme', theme);
-                themeMenu.classList.remove('show');
-                themeToggle.setAttribute('aria-expanded', 'false');
-                themeMenu.setAttribute('aria-hidden', 'true');
-            }
-            
             function applyTheme(theme) {
                 // Validate theme parameter
                 if (!availableThemes.includes(theme)) {
@@ -1461,14 +1316,6 @@
                 
                 // Add selected theme class
                 body.classList.add('theme-' + theme);
-                
-                // Update active option
-                themeOptions.forEach(opt => {
-                    opt.classList.remove('active');
-                    if (opt.dataset.theme === theme) {
-                        opt.classList.add('active');
-                    }
-                });
             }
         })();
     </script>
