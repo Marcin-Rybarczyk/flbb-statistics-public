@@ -1319,8 +1319,14 @@
             const themeOptions = document.querySelectorAll('.theme-option');
             const body = document.body;
             
-            // Load saved theme or use default
-            const savedTheme = localStorage.getItem('tableTheme') || 'default';
+            // Get themes dynamically from DOM (calculated once)
+            const availableThemes = Array.from(themeOptions).map(opt => opt.dataset.theme);
+            
+            // Load saved theme or use default (with validation)
+            let savedTheme = localStorage.getItem('tableTheme') || 'default';
+            if (!availableThemes.includes(savedTheme)) {
+                savedTheme = 'default';
+            }
             applyTheme(savedTheme);
             
             // Toggle theme menu
@@ -1331,7 +1337,11 @@
             
             // Close menu when clicking outside
             document.addEventListener('click', function(e) {
-                if (!themeMenu.contains(e.target) && e.target !== themeToggle) {
+                const clickedElement = e.target;
+                const isClickInsideToggle = themeToggle.contains(clickedElement);
+                const isClickInsideMenu = themeMenu.contains(clickedElement);
+                
+                if (!isClickInsideToggle && !isClickInsideMenu) {
                     themeMenu.classList.remove('show');
                 }
             });
@@ -1348,8 +1358,7 @@
             
             function applyTheme(theme) {
                 // Remove all theme classes
-                body.classList.remove('theme-default', 'theme-ocean', 'theme-sunset', 
-                                      'theme-forest', 'theme-minimal', 'theme-cherry');
+                availableThemes.forEach(t => body.classList.remove('theme-' + t));
                 
                 // Add selected theme class
                 body.classList.add('theme-' + theme);
