@@ -42,7 +42,8 @@ def inject_season_info():
     # Get user preferences from session
     user_prefs = {
         'division': session.get('preferred_division'),
-        'team': session.get('preferred_team')
+        'team': session.get('preferred_team'),
+        'theme': session.get('preferred_theme', 'default')
     }
     
     return {
@@ -467,10 +468,20 @@ def game_details_search():
 @app.route('/preferences', methods=['GET', 'POST'])
 def preferences():
     """User preferences page for setting default filters"""
+    # List of valid themes for validation
+    valid_themes = ['default', 'ocean', 'sunset', 'forest', 'minimal', 'cherry']
+    
     if request.method == 'POST':
         # Save preferences to session
         session['preferred_division'] = request.form.get('division') or None
         session['preferred_team'] = request.form.get('team') or None
+        
+        # Validate and save theme preference
+        theme = request.form.get('theme', 'default')
+        if theme in valid_themes:
+            session['preferred_theme'] = theme
+        else:
+            session['preferred_theme'] = 'default'
         
         # Always redirect to preferences page (don't use user-provided URL)
         return redirect(url_for('preferences'))
@@ -483,7 +494,8 @@ def preferences():
     # Get current preferences from session
     current_prefs = {
         'division': session.get('preferred_division'),
-        'team': session.get('preferred_team')
+        'team': session.get('preferred_team'),
+        'theme': session.get('preferred_theme', 'default')
     }
     
     return render_template('preferences.html',

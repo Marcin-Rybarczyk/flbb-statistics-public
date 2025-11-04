@@ -708,7 +708,6 @@
                 <a href="/preferences" title="Set your preferences">⚙️ Set Preferences</a>
             </div>
             {% endif %}
-        <div class="header">
             <div class="layout-switcher">
                 <span class="layout-switcher-label">Table Style:</span>
                 <button class="layout-switcher-button" id="themeToggle" 
@@ -766,7 +765,8 @@
             <a href="/referee-stats" {% if request and request.endpoint == 'referee_stats' %}class="active"{% endif %}>👨‍⚖️ Referee Stats</a>
             <a href="/referee-detail" {% if request and request.endpoint == 'referee_detail' %}class="active"{% endif %}>🔍 Referee Detail</a>
             <a href="/deeper-analysis" {% if request and request.endpoint == 'deeper_analysis' %}class="active"{% endif %}>🔍 Deep Analysis</a>
-            <a href="/admin" {% if request and request.endpoint == 'admin' %}class="active"{% endif %}>⚙️ Admin</a>
+            <a href="/preferences" {% if request and request.endpoint == 'preferences' %}class="active"{% endif %}>⚙️ Preferences</a>
+            <a href="/admin" {% if request and request.endpoint == 'admin' %}class="active"{% endif %}>🔧 Admin</a>
         </div>
 
         {% if error %}
@@ -1381,8 +1381,14 @@
             // Get themes dynamically from DOM (calculated once)
             const availableThemes = Array.from(themeOptions).map(opt => opt.dataset.theme);
             
-            // Load saved theme or use default (with strict whitelist validation)
-            let savedTheme = localStorage.getItem('tableTheme') || 'default';
+            // Get theme from server-side preference (higher priority) or localStorage
+            let savedTheme = '{{ user_prefs.theme|default("default") }}';
+            
+            // Fall back to localStorage if no server preference
+            if (!savedTheme || savedTheme === 'None' || savedTheme === '') {
+                savedTheme = localStorage.getItem('tableTheme') || 'default';
+            }
+            
             // Validate against whitelist only
             if (!availableThemes.includes(savedTheme)) {
                 savedTheme = 'default';
