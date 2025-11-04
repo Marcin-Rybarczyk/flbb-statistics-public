@@ -35,7 +35,7 @@ jobs:
             git clone git@github.com:Marcin-Rybarczyk/flbb-statistics-public.git .
           else
             echo "📦 Pulling latest changes..."
-            git pull origin ${{ branch
+            git pull origin development
           fi
           devil www restart ${{ secrets.MYDEVIL_TEST_DOMAIN_NAME }}
           EOF
