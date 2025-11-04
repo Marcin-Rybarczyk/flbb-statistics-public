@@ -2647,12 +2647,23 @@ def convert_future_game_to_dataframe_format(game):
     Returns:
     dict: Game data in DataFrame format
     """
+    from datetime import datetime
+    
     home_team, away_team = parse_team_names_from_url(game.get('GameUrl', ''))
     
-    # Parse the date from ScheduledGameDate
+    # Parse the date from ScheduledGameDate and convert to ISO format
     game_date = None
     if 'ScheduledGameDate' in game and isinstance(game['ScheduledGameDate'], dict):
-        game_date = game['ScheduledGameDate'].get('DateTime')
+        date_str = game['ScheduledGameDate'].get('DateTime')
+        if date_str:
+            try:
+                # Parse the date string like "Saturday, November 8, 2025 12:00:00 AM"
+                dt = datetime.strptime(date_str, '%A, %B %d, %Y %I:%M:%S %p')
+                # Convert to ISO format to match finished games: "YYYY-MM-DD HH:MM:SS"
+                game_date = dt.strftime('%Y-%m-%d %H:%M:%S')
+            except Exception as e:
+                # If parsing fails, keep the original date string
+                game_date = date_str
     
     # Convert division name to match CSV format
     division_display = convert_division_name(game.get('GameDivisionName', ''))
@@ -4485,12 +4496,22 @@ def get_game_hover_stats(data, game_id):
         for game in future_games:
             if str(game.get('GameId')) == game_id:
                 # Found in future games
+                from datetime import datetime
+                
                 home_team, away_team = parse_team_names_from_url(game.get('GameUrl', ''))
                 
-                # Parse the date from ScheduledGameDate
+                # Parse the date from ScheduledGameDate and convert to ISO format
                 game_date = 'TBD'
                 if 'ScheduledGameDate' in game and isinstance(game['ScheduledGameDate'], dict):
-                    game_date = game['ScheduledGameDate'].get('DateTime', 'TBD')
+                    date_str = game['ScheduledGameDate'].get('DateTime', 'TBD')
+                    if date_str != 'TBD':
+                        try:
+                            # Parse and convert to ISO format to match finished games
+                            dt = datetime.strptime(date_str, '%A, %B %d, %Y %I:%M:%S %p')
+                            game_date = dt.strftime('%Y-%m-%d %H:%M:%S')
+                        except:
+                            # If parsing fails, keep the original
+                            game_date = date_str
                 
                 # Get division name
                 division = convert_division_name(game.get('GameDivisionName', ''))
