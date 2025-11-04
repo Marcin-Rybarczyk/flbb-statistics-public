@@ -19,6 +19,13 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 
+data_root = Path(__file__).parent.parent / "data"
+print(f"Data root directory: {data_root}")
+
+archive_root = Path(__file__).parent.parent / "archives"
+if not os.path.exists(archive_root):
+    os.makedirs(archive_root)
+
 # Check for required dependencies first
 def check_dependencies():
     """Check if all required Python packages are installed."""
@@ -70,10 +77,13 @@ def load_config(config_file="config.json"):
 def generate_csv_from_json(config):
     """Generate full-game-stats.csv from JSON files."""
     print("Starting CSV generation from JSON files...")
-    
-    # Get directories from config
-    output_dir = config.get("directories", {}).get("fullGameStatsOutput", "full-game-stats-output")
-    csv_filepath = config.get("files", {}).get("outputCsv", "full-game-stats.csv")
+
+    # display current directory
+    print(f"Current directory: {os.getcwd()}")
+
+    # Create output directory if it doesn't exist
+    output_dir = data_root / config.get("directories", {}).get("fullGameStatsOutput", "full-game-stats-output")
+    csv_filepath = data_root / config.get("files", {}).get("outputCsv", "full-game-stats.csv")
     
     if not os.path.exists(output_dir):
         print(f"Error: Output directory {output_dir} not found")
@@ -87,18 +97,18 @@ def create_archive(config):
     print("Creating archive with raw data...")
     
     # Get directories from config
-    game_schedule_dir = config.get("directories", {}).get("gameScheduleRaw", "game-schedule-raw")
-    full_game_stats_dir = config.get("directories", {}).get("fullGameStatsRaw", "full-game-stats-raw")
-    
+    game_schedule_dir = data_root / config.get("directories", {}).get("gameScheduleRaw", "game-schedule-raw")
+    full_game_stats_dir = data_root / config.get("directories", {}).get("fullGameStatsRaw", "full-game-stats-raw")
+
     # Create season-aware filename with timestamp
     season_id = config.get("seasonId", "unknown")
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
     
     if season_id != "unknown":
-        zip_filepath = f"raw-data-{season_id}-{timestamp}.zip"
+        zip_filepath = archive_root / f"raw-data-{season_id}-{timestamp}.zip"
     else:
-        zip_filepath = f"raw-data-{timestamp}.zip"
-    
+        zip_filepath = archive_root / f"raw-data-{timestamp}.zip"
+
     print(f"Creating archive: {zip_filepath}")
     
     try:
@@ -126,18 +136,18 @@ def create_archive(config):
                 print(f"Warning: Directory {full_game_stats_dir} not found")
             
             # Add CSV file if it exists
-            csv_filepath = config.get("files", {}).get("outputCsv", "full-game-stats.csv")
+            csv_filepath = data_root / config.get("files", {}).get("outputCsv", "full-game-stats.csv")
             if os.path.exists(csv_filepath):
                 print(f"Adding {csv_filepath}...")
                 zipf.write(csv_filepath)
             
             # Add database files if they exist
-            games_db = config.get("files", {}).get("gamesDb", "gamesDB.json")
+            games_db = data_root    /    config.get("files", {}).get("gamesDb", "gamesDB.json")
             if os.path.exists(games_db):
                 print(f"Adding {games_db}...")
                 zipf.write(games_db)
             
-            schedule_db = config.get("files", {}).get("gameScheduleDb", "gameScheduleDB.json")
+            schedule_db = data_root / config.get("files", {}).get("gameScheduleDb", "gameScheduleDB.json")
             if os.path.exists(schedule_db):
                 print(f"Adding {schedule_db}...")
                 zipf.write(schedule_db)

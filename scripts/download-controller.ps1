@@ -1,5 +1,5 @@
 $ROOT = $PSScriptRoot
-
+$DATA_ROOT = "$ROOT\..\data"
 Add-Type -Path "$ROOT\Net40\HtmlAgilityPack.dll"
 
 # Load configuration from config.json
@@ -16,10 +16,10 @@ if (Test-Path $CONFIG_FILEPATH) {
 if ($configData) {
     $PLAYER_MAP_FILEPATH = "$ROOT/$($configData.files.playerMap)"
     $EVENT_ACTION_PATTERNS_FILEPATH = "$ROOT/$($configData.files.eventActionPatterns)"
-    $GAMES_DB_FILEPATH = "$ROOT/$($configData.files.gamesDb)"
-    $GAME_SCHEDULE_DB_FILEPATH = "$ROOT/$($configData.files.gameScheduleDb)"
-    $GAME_SCHEDULE_RAW_DIRECTORY = "$ROOT/$($configData.directories.gameScheduleRaw)"
-    $FULL_GAME_STATS_RAW_DIRECTORY = "$ROOT/$($configData.directories.fullGameStatsRaw)"
+    $GAMES_DB_FILEPATH = "$DATA_ROOT/$($configData.files.gamesDb)"
+    $GAME_SCHEDULE_DB_FILEPATH = "$DATA_ROOT/$($configData.files.gameScheduleDb)"
+    $GAME_SCHEDULE_RAW_DIRECTORY = "$DATA_ROOT/$($configData.directories.gameScheduleRaw)"
+    $FULL_GAME_STATS_RAW_DIRECTORY = "$DATA_ROOT/$($configData.directories.fullGameStatsRaw)"
     $NUMBER_OF_PARALLEL_DOWNLOADS = $configData.processing.parallelDownloads
     $SEASON_ID = $configData.seasonId
     $FLBB_ALL_COMPTETION_URL = $configData.dataSource.allCompetitionsUrl
@@ -33,9 +33,9 @@ if ($configData) {
     $GAME_SCHEDULE_RAW_DIRECTORY = "$ROOT/game-schedule-raw"
     $FULL_GAME_STATS_RAW_DIRECTORY = "$ROOT/full-game-stats-raw"
     $NUMBER_OF_PARALLEL_DOWNLOADS = 10
-    $SEASON_ID = "2024-2025"
+    $SEASON_ID = "2099-2100"
     $FLBB_ALL_COMPTETION_URL = "https://www.luxembourg.basketball/c/categorie/all"
-    $DIVISIONS_INCLUDED = @("division 1 hommes", "division 2 hommes", "division 3 hommes", "division 4 hommes")
+    $DIVISIONS_INCLUDED = @("division 1 hommes")
 }
 
 $PATTERN_SCHEDULE_URL = "https://www.luxembourg.basketball/c/calendrier-resultat/(\d+)/(.+)"
