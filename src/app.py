@@ -22,6 +22,9 @@ from src.version import get_version_info
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
 
+# Valid theme options for the application
+VALID_THEMES = ['default', 'ocean', 'sunset', 'forest', 'minimal', 'cherry']
+
 # Set secret key for session management
 # In production, SECRET_KEY should be set via environment variable
 # For development, generate a random key if not set
@@ -42,7 +45,8 @@ def inject_season_info():
     # Get user preferences from session
     user_prefs = {
         'division': session.get('preferred_division'),
-        'team': session.get('preferred_team')
+        'team': session.get('preferred_team'),
+        'theme': session.get('preferred_theme', 'default')
     }
     
     return {
@@ -472,6 +476,13 @@ def preferences():
         session['preferred_division'] = request.form.get('division') or None
         session['preferred_team'] = request.form.get('team') or None
         
+        # Validate and save theme preference
+        theme = request.form.get('theme', 'default')
+        if theme in VALID_THEMES:
+            session['preferred_theme'] = theme
+        else:
+            session['preferred_theme'] = 'default'
+        
         # Always redirect to preferences page (don't use user-provided URL)
         return redirect(url_for('preferences'))
     
@@ -483,7 +494,8 @@ def preferences():
     # Get current preferences from session
     current_prefs = {
         'division': session.get('preferred_division'),
-        'team': session.get('preferred_team')
+        'team': session.get('preferred_team'),
+        'theme': session.get('preferred_theme', 'default')
     }
     
     return render_template('preferences.html',
