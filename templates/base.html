@@ -464,6 +464,45 @@
             th {
                 font-size: 0.7em;
             }
+            
+            .preferences-indicator {
+                position: static !important;
+                margin-top: 10px;
+            }
+        }
+
+        /* User Preferences Indicator */
+        .preferences-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 15px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            font-size: 0.9em;
+            color: #2c3e50;
+        }
+        
+        .preferences-indicator a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+        
+        .preferences-indicator a:hover {
+            color: #764ba2;
+        }
+        
+        .pref-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            margin-left: 5px;
         }
 
         .data-source-footer {
@@ -653,6 +692,22 @@
 </head>
 <body>
     <div class="container">
+        <div class="header" style="position: relative;">
+            {% if user_prefs and (user_prefs.division or user_prefs.team) %}
+            <div class="preferences-indicator">
+                <a href="/preferences" title="Manage your preferences">⚙️ Preferences</a><br>
+                {% if user_prefs.division %}
+                <small>📊 <strong>Division:</strong> <span class="pref-badge">{{ user_prefs.division }}</span></small><br>
+                {% endif %}
+                {% if user_prefs.team %}
+                <small>🏀 <strong>Team:</strong> <span class="pref-badge">{{ user_prefs.team }}</span></small>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="preferences-indicator">
+                <a href="/preferences" title="Set your preferences">⚙️ Set Preferences</a>
+            </div>
+            {% endif %}
         <div class="header">
             <div class="layout-switcher">
                 <span class="layout-switcher-label">Table Style:</span>

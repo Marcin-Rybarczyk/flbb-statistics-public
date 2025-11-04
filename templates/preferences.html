@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}User Preferences - FLBB Statistics{% endblock %}
+
+{% block page_title %}⚙️ User Preferences{% endblock %}
+{% block page_description %}Set your preferred division and team filters{% endblock %}
+
+{% block content %}
+
+<div class="stats-section">
+    <h2>Your Preferences</h2>
+    <p style="text-align: center; color: #7f8c8d; margin-bottom: 30px;">
+        Set your preferred division and team to automatically filter pages when you visit them.
+    </p>
+
+    <form method="post" style="max-width: 600px; margin: 0 auto;">
+        <div style="margin-bottom: 25px;">
+            <label for="division" style="display: block; font-weight: 600; margin-bottom: 10px; color: #2c3e50;">
+                Preferred Division:
+            </label>
+            <select name="division" id="division" style="width: 100%;">
+                <option value="">-- No preference --</option>
+                {% for division in divisions %}
+                <option value="{{ division }}" {% if current_prefs.division == division %}selected{% endif %}>
+                    {{ division }}
+                </option>
+                {% endfor %}
+            </select>
+            <small style="display: block; margin-top: 8px; color: #7f8c8d;">
+                This will be used as default filter for: Standings, Fixtures, Game Stats, Team Stats, and Deep Analysis pages.
+            </small>
+        </div>
+
+        <div style="margin-bottom: 25px;">
+            <label for="team" style="display: block; font-weight: 600; margin-bottom: 10px; color: #2c3e50;">
+                Preferred Team:
+            </label>
+            <select name="team" id="team" style="width: 100%;">
+                <option value="">-- No preference --</option>
+                {% for team in all_teams %}
+                <option value="{{ team }}" {% if current_prefs.team == team %}selected{% endif %}>
+                    {{ team }}
+                </option>
+                {% endfor %}
+            </select>
+            <small style="display: block; margin-top: 8px; color: #7f8c8d;">
+                This will be used as default for: Team Detail page.
+            </small>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <input type="submit" value="💾 Save Preferences" style="padding: 12px 30px; font-size: 16px; cursor: pointer;">
+        </div>
+    </form>
+
+    {% if current_prefs.division or current_prefs.team %}
+    <div style="margin-top: 40px; padding: 20px; background: linear-gradient(135deg, #e8f5e9, #c8e6c9); border-radius: 10px; text-align: center;">
+        <h3 style="color: #2e7d32; margin-bottom: 15px;">✓ Your Current Preferences</h3>
+        <p style="color: #1b5e20;">
+            {% if current_prefs.division %}
+            <strong>Division:</strong> {{ current_prefs.division }}<br>
+            {% endif %}
+            {% if current_prefs.team %}
+            <strong>Team:</strong> {{ current_prefs.team }}
+            {% endif %}
+        </p>
+    </div>
+    {% else %}
+    <div style="margin-top: 40px; padding: 20px; background: linear-gradient(135deg, #fff3e0, #ffe0b2); border-radius: 10px; text-align: center;">
+        <p style="color: #e65100;">
+            ℹ️ You haven't set any preferences yet. Pages will use their default filters.
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
