@@ -250,7 +250,10 @@
                                 {% if opponent_logo_url %}
                                     <img src="{{ opponent_logo_url }}" alt="{{ game['Opponent'] }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin: 0 4px;">
                                 {% endif %}
-                                <a href="/team-detail?team={{ game['Opponent'] }}" class="team-link">{{ game['Opponent'] }}</a>
+                                <a href="/team-detail?team={{ game['Opponent']|urlencode }}" 
+                                   class="team-link hoverable-item" 
+                                   data-type="team" 
+                                   data-id="{{ game['Opponent'] }}">{{ game['Opponent'] }}</a>
                             </div>
                         </td>
                         <td><strong>{{ game['TeamScore'] }} - {{ game['OpponentScore'] }}</strong></td>
@@ -296,7 +299,15 @@
                     {% for player in team_stats.player_stats.all_players %}
                     <tr>
                         <td><strong>{{ player.number }}</strong></td>
-                        <td><strong>{{ player.name }}</strong></td>
+                        <td>
+                            <a href="/player-detail?player={{ player.name|urlencode }}" 
+                               class="hoverable-item" 
+                               data-type="player" 
+                               data-id="{{ player.name }}"
+                               style="text-decoration: none; color: inherit; font-weight: bold;">
+                                {{ player.name }}
+                            </a>
+                        </td>
                         <td>{{ player.games_played }}</td>
                         <td><strong>{{ player.total_points }}</strong></td>
                         <td>{{ player.avg_points }}</td>
@@ -344,7 +355,15 @@
                     {% for player in team_stats.player_stats.quarter_by_quarter %}
                     <tr>
                         <td><strong>{{ player.number }}</strong></td>
-                        <td><strong>{{ player.name }}</strong></td>
+                        <td>
+                            <a href="/player-detail?player={{ player.name|urlencode }}" 
+                               class="hoverable-item" 
+                               data-type="player" 
+                               data-id="{{ player.name }}"
+                               style="text-decoration: none; color: inherit; font-weight: bold;">
+                                {{ player.name }}
+                            </a>
+                        </td>
                         {% for quarter_data in player.quarters %}
                         <td>{{ quarter_data.avg_points }}</td>
                         <td>{{ quarter_data.avg_fouls }}</td>
