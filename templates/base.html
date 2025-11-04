@@ -1378,6 +1378,11 @@
             }
             
             function applyTheme(theme) {
+                // Validate theme parameter
+                if (!availableThemes.includes(theme)) {
+                    return;
+                }
+                
                 // Remove all theme classes
                 availableThemes.forEach(t => body.classList.remove('theme-' + t));
                 
