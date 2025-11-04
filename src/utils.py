@@ -2582,6 +2582,61 @@ def parse_team_names_from_url(game_url):
     return None, None
 
 
+def convert_division_name(division_name):
+    """
+    Convert division name from gamesDB.json format to CSV format.
+    
+    This ensures future games use the same division naming convention as finished games.
+    
+    Examples:
+    - "m-division-1" -> "M-Division 1:"
+    - "m-enovos-leaguetour-qualificatif" -> "M-ENOVOS LEAGUE:Tour qualificatif"
+    - "m-nationale-2tour-qualificatif" -> "M-Nationale 2:Tour qualificatif"
+    
+    Parameters:
+    division_name (str): Division name from gamesDB.json
+    
+    Returns:
+    str: Standardized division name matching CSV format
+    """
+    if not division_name:
+        return division_name
+    
+    # Handle different patterns
+    if division_name.startswith('m-division-'):
+        # Simple division: m-division-1 -> M-Division 1:
+        parts = division_name.split('-')
+        if len(parts) >= 3:
+            division_num = parts[2]
+            return f"M-Division {division_num}:"
+    
+    elif 'enovos-league' in division_name.lower():
+        # ENOVOS LEAGUE: m-enovos-leaguetour-qualificatif -> M-ENOVOS LEAGUE:Tour qualificatif
+        if 'tour' in division_name.lower():
+            # Split on 'tour' and handle the suffix
+            idx = division_name.lower().index('tour')
+            suffix = division_name[idx:].replace('-', ' ')
+            # Capitalize 'Tour'
+            suffix = 'T' + suffix[1:]
+            return f"M-ENOVOS LEAGUE:{suffix}"
+    
+    elif 'nationale' in division_name.lower():
+        # Nationale: m-nationale-2tour-qualificatif -> M-Nationale 2:Tour qualificatif
+        # Extract number and tour part
+        temp = division_name.replace('m-nationale-', '')
+        # Find where 'tour' starts
+        if 'tour' in temp.lower():
+            idx = temp.lower().index('tour')
+            num = temp[:idx]
+            suffix = temp[idx:].replace('-', ' ')
+            # Capitalize 'Tour'
+            suffix = 'T' + suffix[1:]
+            return f"M-Nationale {num}:{suffix}"
+    
+    # Fallback: use title case with spaces
+    return division_name.replace('-', ' ').title()
+
+
 def convert_future_game_to_dataframe_format(game):
     """
     Convert a future game from gamesDB.json format to DataFrame row format.
@@ -2599,10 +2654,13 @@ def convert_future_game_to_dataframe_format(game):
     if 'ScheduledGameDate' in game and isinstance(game['ScheduledGameDate'], dict):
         game_date = game['ScheduledGameDate'].get('DateTime')
     
+    # Convert division name to match CSV format
+    division_display = convert_division_name(game.get('GameDivisionName', ''))
+    
     return {
         'GameId': game.get('GameId'),
         'GameLocation': None,  # Not available for future games
-        'GameDivisionDisplay': game.get('GameDivisionName', '').replace('-', ' ').title(),
+        'GameDivisionDisplay': division_display,
         'GameTeamsShort': f"{home_team} vs {away_team}" if home_team and away_team else None,
         'GameFinalScore': None,
         'GameWinner': None,
@@ -2703,7 +2761,7 @@ def get_fixtures_matrix_data(data, division_filter=None):
     # Get unique divisions for the filter dropdown (from both finished and future games)
     all_divisions_finished = set(data['GameDivisionDisplay'].dropna().unique())
     if future_games:
-        future_divisions = set(g.get('GameDivisionName', '').replace('-', ' ').title() for g in future_games)
+        future_divisions = set(convert_division_name(g.get('GameDivisionName', '')) for g in future_games)
         all_divisions = sorted(all_divisions_finished.union(future_divisions))
     else:
         all_divisions = sorted(all_divisions_finished)
@@ -4355,6 +4413,7 @@ def get_referee_hover_stats(data, referee_name):
 def get_game_hover_stats(data, game_id):
     """
     Get basic statistics for a game to display in hover tooltip.
+    Supports both finished games and future games from gamesDB.json.
     
     Parameters:
     data (DataFrame): The game data
@@ -4362,59 +4421,91 @@ def get_game_hover_stats(data, game_id):
     
     Returns:
     dict: Dictionary containing:
-        - result: Final score string
-        - referees: List of referee names
+        - result: Final score string or team names for future games
+        - referees: List of referee names (empty for future games)
         - date_time: Game date and time
-        - lead_changes: Number of lead changes
-        - ties: Number of times score was tied
+        - lead_changes: Number of lead changes (0 for future games)
+        - ties: Number of times score was tied (0 for future games)
+        - is_future: Boolean indicating if this is a future game
     """
     import ast
     
     # Convert game_id to string for comparison
     game_id = str(game_id)
     
-    # Find the game
+    # First, try to find the game in finished games
     game_row = data[data['GameId'].astype(str) == game_id]
     
-    if game_row.empty:
-        return None
+    if not game_row.empty:
+        # Found in finished games - process normally
+        game = game_row.iloc[0]
+        
+        # Parse referees
+        try:
+            referees = ast.literal_eval(game['Referres']) if isinstance(game['Referres'], str) else game['Referres']
+            # Check for both key formats
+            referee_names = [
+                ref.get('RefereeName') or ref.get('Referee Name', 'Unknown') 
+                for ref in referees
+            ] if referees else []
+        except:
+            referee_names = []
+        
+        # Parse events for lead changes and ties
+        try:
+            events = ast.literal_eval(game['GameEvents']) if isinstance(game['GameEvents'], str) else game['GameEvents']
+            teams = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
+            score_evolution = _calculate_score_evolution(events, game['HomeTeamName'], game['AwayTeamName'], teams)
+            game_stats = _calculate_game_statistics(score_evolution)
+            lead_changes = game_stats.get('lead_changes', 0)
+            ties = game_stats.get('tied_scores', 0)
+            close_game_ratio = game_stats.get('close_game_ratio')
+            hotness_score = calculate_hotness_score(lead_changes, ties, close_game_ratio)
+            hotness_icon = get_hotness_icon(hotness_score)
+        except:
+            lead_changes = 0
+            ties = 0
+            hotness_score = 0
+            hotness_icon = "❄️"
+        
+        return {
+            'result': f"{game['HomeTeamName']} {int(game['FinalHomeScore'])} - {int(game['FinalAwayScore'])} {game['AwayTeamName']}",
+            'referees': referee_names,
+            'date_time': game.get('DateTime', 'N/A'),
+            'lead_changes': lead_changes,
+            'ties': ties,
+            'hotness_score': hotness_score,
+            'hotness_icon': hotness_icon,
+            'is_future': False
+        }
     
-    game = game_row.iloc[0]
+    # Not found in finished games - check future games
+    future_games = load_future_games_from_gamesdb()
+    if future_games:
+        for game in future_games:
+            if str(game.get('GameId')) == game_id:
+                # Found in future games
+                home_team, away_team = parse_team_names_from_url(game.get('GameUrl', ''))
+                
+                # Parse the date from ScheduledGameDate
+                game_date = 'TBD'
+                if 'ScheduledGameDate' in game and isinstance(game['ScheduledGameDate'], dict):
+                    game_date = game['ScheduledGameDate'].get('DateTime', 'TBD')
+                
+                # Get division name
+                division = convert_division_name(game.get('GameDivisionName', ''))
+                
+                return {
+                    'result': f"{home_team} vs {away_team}",
+                    'referees': [],
+                    'date_time': game_date,
+                    'lead_changes': 0,
+                    'ties': 0,
+                    'hotness_score': 0,
+                    'hotness_icon': "📅",
+                    'is_future': True,
+                    'division': division
+                }
     
-    # Parse referees
-    try:
-        referees = ast.literal_eval(game['Referres']) if isinstance(game['Referres'], str) else game['Referres']
-        # Check for both key formats
-        referee_names = [
-            ref.get('RefereeName') or ref.get('Referee Name', 'Unknown') 
-            for ref in referees
-        ] if referees else []
-    except:
-        referee_names = []
-    
-    # Parse events for lead changes and ties
-    try:
-        events = ast.literal_eval(game['GameEvents']) if isinstance(game['GameEvents'], str) else game['GameEvents']
-        teams = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
-        score_evolution = _calculate_score_evolution(events, game['HomeTeamName'], game['AwayTeamName'], teams)
-        game_stats = _calculate_game_statistics(score_evolution)
-        lead_changes = game_stats.get('lead_changes', 0)
-        ties = game_stats.get('tied_scores', 0)
-        close_game_ratio = game_stats.get('close_game_ratio')
-        hotness_score = calculate_hotness_score(lead_changes, ties, close_game_ratio)
-        hotness_icon = get_hotness_icon(hotness_score)
-    except:
-        lead_changes = 0
-        ties = 0
-        hotness_score = 0
-        hotness_icon = "❄️"
-    
-    return {
-        'result': f"{game['HomeTeamName']} {int(game['FinalHomeScore'])} - {int(game['FinalAwayScore'])} {game['AwayTeamName']}",
-        'referees': referee_names,
-        'date_time': game.get('DateTime', 'N/A'),
-        'lead_changes': lead_changes,
-        'ties': ties,
-        'hotness_score': hotness_score,
-        'hotness_icon': hotness_icon
-    }
+    # Game not found in either finished or future games
+    return None
