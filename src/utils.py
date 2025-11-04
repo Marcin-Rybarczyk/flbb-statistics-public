@@ -3824,9 +3824,231 @@ def get_team_detail_stats(data, team_name):
     }
 
 
+def get_team_player_stats_for_future_game(team_name, players_db_path='data/players-database.csv'):
+    """
+    Get player statistics for a team from the players database.
+    Used for future games to show historical player performance.
+    
+    Parameters:
+    team_name (str): Team name to get players for
+    players_db_path (str): Path to the players database CSV
+    
+    Returns:
+    list: List of player dictionaries with statistics
+    """
+    if not os.path.exists(players_db_path):
+        return []
+    
+    try:
+        # Load players database
+        players_df = pd.read_csv(players_db_path, encoding='utf-8-sig')
+        
+        # Normalize team name for matching
+        team_name_normalized = normalize_team_name_for_display(team_name)
+        
+        # Filter players for this team
+        team_players = players_df[players_df['Team'].apply(normalize_team_name_for_display) == team_name_normalized].copy()
+        
+        if team_players.empty:
+            return []
+        
+        # Sort by StartingPercentage (descending) and TotalPoints (descending)
+        team_players = team_players.sort_values(
+            by=['StartingPercentage', 'TotalPoints'], 
+            ascending=[False, False]
+        )
+        
+        # Convert to list of dictionaries
+        players = []
+        for _, player in team_players.iterrows():
+            player_dict = {
+                'Player Name': player['PlayerName'],
+                'Player Number': int(player['PlayerNumber']) if pd.notna(player['PlayerNumber']) else 0,
+                'Total Points': int(player['TotalPoints']) if pd.notna(player['TotalPoints']) else 0,
+                '1P Made Shots': int(player['1PMadeShots']) if pd.notna(player['1PMadeShots']) else 0,
+                '2P Made Shots': int(player['2PMadeShots']) if pd.notna(player['2PMadeShots']) else 0,
+                '3P Made Shots': int(player['3PMadeShots']) if pd.notna(player['3PMadeShots']) else 0,
+                'Total Fouls': int(player['TotalFouls']) if pd.notna(player['TotalFouls']) else 0,
+                'Games Played': int(player['GamesPlayed']) if pd.notna(player['GamesPlayed']) else 0,
+                'Games Started': int(player['GamesStarted']) if pd.notna(player['GamesStarted']) else 0,
+                'Starting Percentage': float(player['StartingPercentage']) if pd.notna(player['StartingPercentage']) else 0.0,
+                'Avg Points Per Game': float(player['AvgPointsPerGame']) if pd.notna(player['AvgPointsPerGame']) else 0.0,
+                'Starting Five': 'false'  # Will be set by predict_starting_five
+            }
+            players.append(player_dict)
+        
+        return players
+    except Exception as e:
+        # Use logging for better error tracking
+        import logging
+        logging.warning(f"Error loading player stats for team {team_name}: {e}")
+        return []
+
+
+def predict_starting_five(players):
+    """
+    Predict the starting five players based on their historical starting percentage.
+    
+    Parameters:
+    players (list): List of player dictionaries with statistics
+    
+    Returns:
+    list: List of player dictionaries with 'Starting Five' field updated
+    """
+    if not players:
+        return players
+    
+    # Sort players by Starting Percentage (descending), then by Avg Points Per Game
+    sorted_players = sorted(
+        players,
+        key=lambda p: (p.get('Starting Percentage', 0), p.get('Avg Points Per Game', 0)),
+        reverse=True
+    )
+    
+    # Mark top 5 as starting five
+    for i, player in enumerate(sorted_players):
+        if i < 5:
+            player['Starting Five'] = 'true'
+        else:
+            player['Starting Five'] = 'false'
+    
+    return players
+
+
+def get_future_game_details(game_id, game):
+    """
+    Get comprehensive details for a future game.
+    
+    Parameters:
+    game_id (str): The game ID
+    game (dict): Future game data from gamesDB.json
+    
+    Returns:
+    dict: Dictionary containing future game details with predicted starting lineups
+    """
+    from datetime import datetime
+    
+    home_team, away_team = parse_team_names_from_url(game.get('GameUrl', ''))
+    
+    # Parse the date from ScheduledGameDate
+    game_date = 'TBD'
+    if 'ScheduledGameDate' in game and isinstance(game['ScheduledGameDate'], dict):
+        date_str = game['ScheduledGameDate'].get('DateTime', 'TBD')
+        if date_str != 'TBD':
+            try:
+                dt = datetime.strptime(date_str, GAMESDB_DATE_FORMAT)
+                game_date = dt.strftime(ISO_DATE_FORMAT)
+            except ValueError:
+                game_date = date_str
+    
+    # Convert division name
+    division = convert_division_name(game.get('GameDivisionName', ''))
+    
+    # Build basic info
+    basic_info = {
+        'game_id': game_id,
+        'location': None,  # Not available for future games
+        'division': division,
+        'date_time': game_date,
+        'home_team': home_team,
+        'away_team': away_team,
+        'final_score': 'Upcoming',
+        'home_score': None,
+        'away_score': None,
+        'winner': None,
+        'loser': None,
+        'is_future': True,
+        'game_url': game.get('GameUrl'),
+        'season_id': game.get('SeasonId')
+    }
+    
+    # Get player statistics for both teams
+    home_players = get_team_player_stats_for_future_game(home_team)
+    away_players = get_team_player_stats_for_future_game(away_team)
+    
+    # Predict starting five for each team
+    home_players = predict_starting_five(home_players)
+    away_players = predict_starting_five(away_players)
+    
+    # Calculate team totals (historical averages)
+    def calculate_team_totals(players):
+        if not players:
+            return {
+                'points': 0,
+                '1p': 0,
+                '2p': 0,
+                '3p': 0,
+                'fouls': 0,
+                'avg_points': 0
+            }
+        
+        # Calculate total season stats
+        total_points = sum(p.get('Total Points', 0) for p in players)
+        total_1p = sum(p.get('1P Made Shots', 0) for p in players)
+        total_2p = sum(p.get('2P Made Shots', 0) for p in players)
+        total_3p = sum(p.get('3P Made Shots', 0) for p in players)
+        total_fouls = sum(p.get('Total Fouls', 0) for p in players)
+        
+        # Calculate average points per game (team)
+        # Use the median games_played to avoid outliers affecting the calculation
+        games_played_list = [p.get('Games Played', 0) for p in players if p.get('Games Played', 0) > 0]
+        games_played = max(games_played_list) if games_played_list else 0
+        avg_points = total_points / games_played if games_played > 0 else 0
+        
+        return {
+            'points': total_points,
+            '1p': total_1p,
+            '2p': total_2p,
+            '3p': total_3p,
+            'fouls': total_fouls,
+            'avg_points': round(avg_points, 1),
+            'games_played': games_played
+        }
+    
+    # Build teams data
+    teams_data = [
+        {
+            'name': home_team,
+            'name_short': home_team,
+            'role': 'Home',
+            'result': None,
+            'league_points': None,
+            'total_won_points': None,
+            'total_lost_points': None,
+            'players': home_players,
+            'coach': 'N/A',
+            'timeouts_used': 0,
+            'totals': calculate_team_totals(home_players)
+        },
+        {
+            'name': away_team,
+            'name_short': away_team,
+            'role': 'Away',
+            'result': None,
+            'league_points': None,
+            'total_won_points': None,
+            'total_lost_points': None,
+            'players': away_players,
+            'coach': 'N/A',
+            'timeouts_used': 0,
+            'totals': calculate_team_totals(away_players)
+        }
+    ]
+    
+    return {
+        'basic_info': basic_info,
+        'teams': teams_data,
+        'events': [],
+        'score_evolution': [],
+        'game_stats': None,
+        'referees': []
+    }
+
+
 def get_game_details(data, game_id):
     """
     Get comprehensive details for a specific game.
+    Handles both finished games and future games.
     
     Parameters:
     data (DataFrame): The game data
@@ -3845,7 +4067,15 @@ def get_game_details(data, game_id):
     # Convert game_id to string for comparison
     game_id = str(game_id)
     
-    # Find the game
+    # First check if it's a future game
+    future_games = load_future_games_from_gamesdb()
+    if future_games:
+        for game in future_games:
+            if str(game.get('GameId')) == game_id:
+                # Found a future game - use the future game details function
+                return get_future_game_details(game_id, game)
+    
+    # Find the game in finished games
     game_row = data[data['GameId'].astype(str) == game_id]
     
     if game_row.empty:

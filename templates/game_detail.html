@@ -272,9 +272,14 @@
         <div class="game-header">
             <h2>{{ game.basic_info.home_team }} vs {{ game.basic_info.away_team }}</h2>
             <div class="final-score">{{ game.basic_info.final_score }}</div>
+            {% if game.basic_info.is_future %}
+            <p style="background: rgba(255, 193, 7, 0.3); padding: 10px; border-radius: 10px; display: inline-block; margin-top: 10px;">
+                📅 Upcoming Game
+            </p>
+            {% endif %}
             <p>{{ game.basic_info.division }}</p>
             <p style="margin-top: 15px; font-size: 1.1em;">
-                📅 {{ game.basic_info.date_time }} | 📍 {{ game.basic_info.location.Name if game.basic_info.location else 'N/A' }}
+                📅 {{ game.basic_info.date_time }} | 📍 {{ game.basic_info.location.Name if game.basic_info.location else 'TBD' }}
             </p>
             {% if game.referees and game.referees|length > 0 %}
             <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.3);">
@@ -337,11 +342,57 @@
 
         <!-- Player Statistics -->
         <div class="section">
+            {% if game.basic_info.is_future %}
+            <h2>👥 Predicted Starting Lineups & Player Statistics (Season Averages)</h2>
+            {% else %}
             <h2>👥 Player Statistics</h2>
+            {% endif %}
             <div class="teams-grid">
                 {% for team in game.teams %}
                 <div class="team-section">
                     <h3>{{ team.name }}</h3>
+                    {% if game.basic_info.is_future %}
+                    <!-- Future game: show season statistics -->
+                    <table class="player-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Player</th>
+                                <th>GP</th>
+                                <th>Avg PTS</th>
+                                <th>Total PTS</th>
+                                <th>Start %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for player in team.players %}
+                            <tr class="{% if player['Starting Five'] == 'true' %}starting-five{% endif %}">
+                                <td>{{ player['Player Number'] }}</td>
+                                <td><a href="/player-detail?player={{ player['Player Name']|urlencode }}" class="player-link">{{ player['Player Name'] }}</a></td>
+                                <td>{{ player['Games Played'] }}</td>
+                                <td><strong>{{ "%.1f"|format(player['Avg Points Per Game']) }}</strong></td>
+                                <td>{{ player['Total Points'] }}</td>
+                                <td>{{ "%.0f"|format(player['Starting Percentage']) }}%</td>
+                            </tr>
+                            {% endfor %}
+                            <!-- Team Season Average -->
+                            {% if team.totals.games_played > 0 %}
+                            <tr style="background: #f0f0f0; font-weight: bold; border-top: 2px solid #667eea;">
+                                <td></td>
+                                <td>SEASON AVG</td>
+                                <td>{{ team.totals.games_played }}</td>
+                                <td colspan="3"><strong>{{ team.totals.avg_points }} pts/game</strong></td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                    <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                        <span style="background: #e8f5e9; padding: 2px 8px; border-radius: 3px;">
+                            ■ Predicted Starting Five (based on season starting %)
+                        </span>
+                    </p>
+                    {% else %}
+                    <!-- Finished game: show game statistics -->
                     <table class="player-table">
                         <thead>
                             <tr>
@@ -383,6 +434,7 @@
                             ■ Starting Five
                         </span>
                     </p>
+                    {% endif %}
                     {% if team.coach or team.timeouts_used %}
                     <p style="margin-top: 12px; text-align: center; color: #555; font-size: 0.95em; padding: 10px; background: #f8f9fa; border-radius: 5px;">
                         {% if team.coach and team.coach != 'N/A' %}
