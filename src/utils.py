@@ -2856,14 +2856,16 @@ def get_fixtures_matrix_data(data, division_filter=None):
     else:
         all_divisions = sorted(all_divisions_finished)
     
-    # Initialize matrix
+    # Initialize matrix and team points
     matrix = {}
+    team_points = {}
     for home_team in all_teams:
         matrix[home_team] = {}
+        team_points[home_team] = 0
         for away_team in all_teams:
             matrix[home_team][away_team] = []
     
-    # Populate matrix with games
+    # Populate matrix with games and calculate team points
     for _, game in filtered_data.iterrows():
         raw_home = game['HomeTeamName']
         raw_away = game['AwayTeamName']
@@ -2923,33 +2925,19 @@ def get_fixtures_matrix_data(data, division_filter=None):
             }
             
             matrix[home_team][away_team].append(game_info)
-    
-    # Calculate team points (2 points for win, 1 point for loss)
-    team_points = {}
-    for team in all_teams:
-        team_points[team] = 0
-    
-    # Only calculate points from finished games
-    for _, game in filtered_data.iterrows():
-        raw_home = game['HomeTeamName']
-        raw_away = game['AwayTeamName']
-        is_finished = pd.notna(game.get('FinalHomeScore')) and pd.notna(game.get('FinalAwayScore'))
-        
-        if is_finished and pd.notna(raw_home) and pd.notna(raw_away):
-            home_team = normalize_team_name_for_display(raw_home)
-            away_team = normalize_team_name_for_display(raw_away)
-            home_score = game.get('FinalHomeScore')
-            away_score = game.get('FinalAwayScore')
             
-            if home_score > away_score:  # Home team wins
-                team_points[home_team] = team_points.get(home_team, 0) + 2
-                team_points[away_team] = team_points.get(away_team, 0) + 1
-            else:  # Away team wins
-                team_points[home_team] = team_points.get(home_team, 0) + 1
-                team_points[away_team] = team_points.get(away_team, 0) + 2
+            # Calculate team points for finished games (2 points for win, 1 point for loss)
+            if is_finished and home_score_int is not None and away_score_int is not None:
+                if home_score_int > away_score_int:  # Home team wins
+                    team_points[home_team] += 2
+                    team_points[away_team] += 1
+                elif away_score_int > home_score_int:  # Away team wins
+                    team_points[home_team] += 1
+                    team_points[away_team] += 2
+                # Note: Tied games (rare in basketball) are not awarded points
     
     # Sort teams by points (descending), then alphabetically
-    sorted_teams = sorted(all_teams, key=lambda t: (-team_points.get(t, 0), t))
+    sorted_teams = sorted(all_teams, key=lambda t: (-team_points[t], t))
     
     return {
         'teams': sorted_teams,
