@@ -21,7 +21,15 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
 from src.version import get_version_info
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
-app.secret_key = os.environ.get('SECRET_KEY', 'flbb-statistics-secret-key-2024')
+
+# Set secret key for session management
+# In production, SECRET_KEY should be set via environment variable
+# For development, generate a random key if not set
+if not os.environ.get('SECRET_KEY'):
+    import secrets
+    app.secret_key = secrets.token_hex(32)
+else:
+    app.secret_key = os.environ.get('SECRET_KEY')
 
 # Context processor to make season info available to all templates
 @app.context_processor
@@ -464,9 +472,8 @@ def preferences():
         session['preferred_division'] = request.form.get('division') or None
         session['preferred_team'] = request.form.get('team') or None
         
-        # Redirect back to preferences page or to a specific page if requested
-        return_url = request.args.get('return_url', url_for('preferences'))
-        return redirect(return_url)
+        # Always redirect to preferences page (don't use user-provided URL)
+        return redirect(url_for('preferences'))
     
     # Get all unique teams for dropdown
     home_teams = set(data['HomeTeamName'].unique()) if not data.empty else set()
