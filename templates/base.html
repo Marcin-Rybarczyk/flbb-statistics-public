@@ -766,7 +766,7 @@
             <a href="/referee-detail" {% if request and request.endpoint == 'referee_detail' %}class="active"{% endif %}>🔍 Referee Detail</a>
             <a href="/deeper-analysis" {% if request and request.endpoint == 'deeper_analysis' %}class="active"{% endif %}>🔍 Deep Analysis</a>
             <a href="/preferences" {% if request and request.endpoint == 'preferences' %}class="active"{% endif %}>⚙️ Preferences</a>
-            <a href="/admin" {% if request and request.endpoint == 'admin' %}class="active"{% endif %}>🔧 Admin</a>
+            <a href="/admin" {% if request and request.endpoint == 'admin' %}class="active"{% endif %}>🔐 Admin</a>
         </div>
 
         {% if error %}
@@ -1384,9 +1384,14 @@
             // Get theme from server-side preference (higher priority) or localStorage
             let savedTheme = '{{ user_prefs.theme|default("default") }}';
             
-            // Fall back to localStorage if no server preference
-            if (!savedTheme || savedTheme === 'None' || savedTheme === '') {
-                savedTheme = localStorage.getItem('tableTheme') || 'default';
+            // Fall back to localStorage if no server preference or if it's None/empty
+            if (!savedTheme || savedTheme === 'None' || savedTheme === '' || savedTheme === 'default') {
+                const localTheme = localStorage.getItem('tableTheme');
+                if (localTheme && availableThemes.includes(localTheme)) {
+                    savedTheme = localTheme;
+                } else {
+                    savedTheme = 'default';
+                }
             }
             
             // Validate against whitelist only

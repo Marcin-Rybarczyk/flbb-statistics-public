@@ -22,6 +22,9 @@ from src.version import get_version_info
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
 
+# Valid theme options for the application
+VALID_THEMES = ['default', 'ocean', 'sunset', 'forest', 'minimal', 'cherry']
+
 # Set secret key for session management
 # In production, SECRET_KEY should be set via environment variable
 # For development, generate a random key if not set
@@ -468,9 +471,6 @@ def game_details_search():
 @app.route('/preferences', methods=['GET', 'POST'])
 def preferences():
     """User preferences page for setting default filters"""
-    # List of valid themes for validation
-    valid_themes = ['default', 'ocean', 'sunset', 'forest', 'minimal', 'cherry']
-    
     if request.method == 'POST':
         # Save preferences to session
         session['preferred_division'] = request.form.get('division') or None
@@ -478,7 +478,7 @@ def preferences():
         
         # Validate and save theme preference
         theme = request.form.get('theme', 'default')
-        if theme in valid_themes:
+        if theme in VALID_THEMES:
             session['preferred_theme'] = theme
         else:
             session['preferred_theme'] = 'default'
