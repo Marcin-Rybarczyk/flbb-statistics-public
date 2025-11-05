@@ -5078,7 +5078,7 @@ def get_game_hover_stats(data, game_id):
                 # Get referees if available (currently not in gamesDB.json for future games)
                 referees = []
                 if 'Referees' in game and game['Referees']:
-    try:
+                    try:
                         referee_names = [
                             ref.get('RefereeName') or ref.get('Referee Name', 'TBD') 
                             for ref in game['Referees']
