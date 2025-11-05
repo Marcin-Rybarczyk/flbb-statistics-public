@@ -25,6 +25,55 @@ app = Flask(__name__, template_folder='../templates', static_folder='../logos', 
 # Valid theme options for the application
 VALID_THEMES = ['default', 'ocean', 'sunset', 'forest', 'minimal', 'cherry']
 
+def validate_tracking_code(code):
+    """
+    Validate tracking code from environment variable for basic security.
+    
+    This function performs basic validation to ensure the tracking code:
+    - Is not excessively long (prevents DoS)
+    - Contains script tags (expected format)
+    - Doesn't contain obvious malicious patterns
+    
+    Note: This is not a comprehensive XSS prevention mechanism. The tracking code
+    should only be set from trusted sources (e.g., MyDevil panel). Never allow
+    user input to set this value.
+    
+    Args:
+        code (str): The tracking code to validate
+        
+    Returns:
+        str: The validated code, or empty string if invalid
+    """
+    if not code or not isinstance(code, str):
+        return ''
+    
+    # Check length (tracking codes shouldn't be huge)
+    if len(code) > 10000:  # 10KB max
+        print("⚠️  Warning: MYDEVIL_STATS_CODE exceeds maximum length, ignoring")
+        return ''
+    
+    # Basic validation: should contain script tags
+    if '<script' not in code.lower():
+        print("⚠️  Warning: MYDEVIL_STATS_CODE doesn't contain <script> tag, ignoring")
+        return ''
+    
+    # Check for obvious malicious patterns (basic check only)
+    dangerous_patterns = [
+        'javascript:',
+        'onerror=',
+        'onload=',
+        '<iframe',
+        'document.cookie',
+        'eval(',
+    ]
+    code_lower = code.lower()
+    for pattern in dangerous_patterns:
+        if pattern in code_lower:
+            print(f"⚠️  Warning: MYDEVIL_STATS_CODE contains potentially dangerous pattern '{pattern}', ignoring")
+            return ''
+    
+    return code
+
 # Set secret key for session management
 # In production, SECRET_KEY should be set via environment variable
 # For development, generate a random key if not set
@@ -49,8 +98,8 @@ def inject_season_info():
         'theme': session.get('preferred_theme', 'default')
     }
     
-    # Get MyDevil statistics tracking code from environment variable
-    mydevil_stats_code = os.environ.get('MYDEVIL_STATS_CODE', '')
+    # Get MyDevil statistics tracking code from environment variable and validate it
+    mydevil_stats_code = validate_tracking_code(os.environ.get('MYDEVIL_STATS_CODE', ''))
     
     return {
         'season_info': season_info,

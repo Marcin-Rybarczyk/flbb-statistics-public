@@ -111,6 +111,11 @@ To verify that the tracking code is working:
 
 - **Check Flask logs** for any errors related to template rendering
 
+- **Validation warnings** - The application validates tracking code for basic security. If you see warnings like:
+  - "MYDEVIL_STATS_CODE exceeds maximum length" - Your code is too long (max 10KB)
+  - "MYDEVIL_STATS_CODE doesn't contain <script> tag" - Code should be wrapped in `<script>` tags
+  - "Contains potentially dangerous pattern" - Code contains patterns that are blocked for security
+
 ### Statistics not updating in panel
 
 - **Wait 24-48 hours** - Statistics may take time to appear
@@ -148,10 +153,15 @@ To disable statistics tracking:
 
 ## Security Notes
 
-- The tracking code is inserted using Flask's `safe` filter, which allows HTML/JavaScript to be rendered
-- Only set `MYDEVIL_STATS_CODE` from trusted sources (your MyDevil panel)
-- Never commit `.env` files with sensitive data to version control
-- The `.env.example` file is provided as a template - copy and customize it
+- **Validation:** The application validates tracking code for basic security before inserting it
+  - Maximum length: 10KB
+  - Must contain `<script>` tags
+  - Blocks known dangerous patterns (e.g., `eval()`, `document.cookie`, `<iframe>`)
+- **Trusted Sources Only:** Only set `MYDEVIL_STATS_CODE` from trusted sources (your MyDevil panel)
+- **No User Input:** Never allow user input to control this environment variable
+- **Environment Variables:** Never commit `.env` files with sensitive data to version control
+- **Template Safety:** The tracking code is inserted using Flask's `safe` filter after validation
+- **Use .env.example:** The `.env.example` file is provided as a template - copy and customize it
 
 ## Alternative: Manual Integration
 
