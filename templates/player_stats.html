@@ -213,7 +213,7 @@
         <div id="scorers" class="tab-content active">
             <div class="stats-section">
                 <h2>Top 50 Scorers - Overall League Statistics</h2>
-                <table>
+                <div class="table-container"><table>
                     <thead>
                         <tr>
                             <th>Rank</th>
@@ -241,7 +241,7 @@
                         </tr>
                         {% endfor %}
                     </tbody>
-                </table>
+                </table></div>
             </div>
         </div>
 
@@ -249,7 +249,7 @@
         <div id="three-pointers" class="tab-content">
             <div class="stats-section">
                 <h2>Top 3-Point Shooters</h2>
-                <table>
+                <div class="table-container"><table>
                     <thead>
                         <tr>
                             <th>Rank</th>
@@ -277,7 +277,7 @@
                         </tr>
                         {% endfor %}
                     </tbody>
-                </table>
+                </table></div>
             </div>
         </div>
 
@@ -285,7 +285,7 @@
         <div id="fouls" class="tab-content">
             <div class="stats-section">
                 <h2>Players with Most Fouls</h2>
-                <table>
+                <div class="table-container"><table>
                     <thead>
                         <tr>
                             <th>Rank</th>
@@ -317,7 +317,7 @@
                         </tr>
                         {% endfor %}
                     </tbody>
-                </table>
+                </table></div>
             </div>
         </div>
 
@@ -325,7 +325,7 @@
         <div id="single-game" class="tab-content">
             <div class="stats-section">
                 <h2>Top 30 Single Game Scoring Records</h2>
-                <table>
+                <div class="table-container"><table>
                     <thead>
                         <tr>
                             <th>Rank</th>
@@ -361,7 +361,7 @@
                         {% endfor %}
                         {% endif %}
                     </tbody>
-                </table>
+                </table></div>
             </div>
         </div>
 
@@ -370,7 +370,7 @@
             <div class="stats-section">
                 <h2>Free Throw Leaders</h2>
                 <p><em>Players ranked by total free throws made (minimum 5 games and 5 free throws)</em></p>
-                <table>
+                <div class="table-container"><table>
                     <thead>
                         <tr>
                             <th>Rank</th>
@@ -402,7 +402,7 @@
                         <p><em>No free throw data available.</em></p>
                         {% endif %}
                     </tbody>
-                </table>
+                </table></div>
             </div>
         </div>
 
@@ -410,7 +410,7 @@
         <div id="double-digit" class="tab-content">
             <div class="stats-section">
                 <h2>Double-Digit Scoring Games</h2>
-                <table>
+                <div class="table-container"><table>
                     <thead>
                         <tr>
                             <th>Rank</th>
@@ -440,7 +440,7 @@
                         {% endfor %}
                         {% endif %}
                     </tbody>
-                </table>
+                </table></div>
             </div>
         </div>
 
@@ -453,7 +453,7 @@
                     It's calculated as <strong>Average Points ÷ (Standard Deviation + 0.1)</strong>. 
                     A higher score indicates more predictable performance - players who consistently deliver similar scoring output rather than having extreme highs and lows.
                 </p>
-                <table>
+                <div class="table-container"><table>
                     <thead>
                         <tr>
                             <th>Rank</th>
@@ -483,7 +483,7 @@
                         {% endfor %}
                         {% endif %}
                     </tbody>
-                </table>
+                </table></div>
             </div>
         </div>
 
@@ -509,7 +509,7 @@
                 
                 {% if starter_bench_stats.get('starters') is not none %}
                 <h3>Top Starting Five Performance</h3>
-                <table>
+                <div class="table-container"><table>
                     <thead>
                         <tr>
                             <th>Rank</th>
@@ -537,12 +537,12 @@
                         </tr>
                         {% endfor %}
                     </tbody>
-                </table>
+                </table></div>
                 {% endif %}
 
                 {% if starter_bench_stats.get('bench') is not none %}
                 <h3>Top Bench Performance</h3>
-                <table>
+                <div class="table-container"><table>
                     <thead>
                         <tr>
                             <th>Rank</th>
@@ -570,7 +570,7 @@
                         </tr>
                         {% endfor %}
                     </tbody>
-                </table>
+                </table></div>
                 {% endif %}
                 {% endif %}
             </div>
@@ -697,7 +697,7 @@
         <div id="scorers" class="tab-content active">
             <div class="stats-section">
                 <h2>Top 50 Scorers - Overall League Statistics</h2>
-                <table>
+                <div class="table-container"><table>
                     <thead>
                         <tr>
                             <th>Rank</th>
@@ -720,7 +720,7 @@
                         </tr>
                         {% endfor %}
                     </tbody>
-                </table>
+                </table></div>
                 <p><em>Top 3 performers are highlighted in green</em></p>
             </div>
         </div>
@@ -730,7 +730,7 @@
             <div class="stats-section">
                 <h2>Top 3-Point Shooters</h2>
                 {% if top_three_pointers is not none and not top_three_pointers.empty %}
-                <table>
+                <div class="table-container"><table>
                     <thead>
                         <tr>
                             <th>Rank</th>
@@ -753,7 +753,7 @@
                         </tr>
                         {% endfor %}
                     </tbody>
-                </table>
+                </table></div>
                 {% else %}
                 <p><em>No 3-point shooting data available.</em></p>
                 {% endif %}
@@ -765,7 +765,7 @@
             <div class="stats-section">
                 <h2>Players with Most Fouls</h2>
                 {% if top_foulers is not none and not top_foulers.empty %}
-                <table>
+                <div class="table-container"><table>
                     <thead>
                         <tr>
                             <th>Rank</th>
@@ -788,7 +788,7 @@
                         </tr>
                         {% endfor %}
                     </tbody>
-                </table>
+                </table></div>
                 {% else %}
                 <p><em>No foul data available.</em></p>
                 {% endif %}
@@ -800,7 +800,7 @@
             <div class="stats-section">
                 <h2>Top 10 Single Game Scoring Performances</h2>
                 {% if highest_single_scores is not none and not highest_single_scores.empty %}
-                <table>
+                <div class="table-container"><table>
                     <thead>
                         <tr>
                             <th>Rank</th>
@@ -823,7 +823,7 @@
                         </tr>
                         {% endfor %}
                     </tbody>
-                </table>
+                </table></div>
                 {% else %}
                 <p><em>No single game scoring data available.</em></p>
                 {% endif %}
@@ -836,7 +836,7 @@
                 <h2>Free Throw Leaders</h2>
                 <p><em>Players ranked by total free throws made (minimum 5 games and 5 free throws)</em></p>
                 {% if shooting_efficiency is not none and not shooting_efficiency.empty %}
-                <table>
+                <div class="table-container"><table>
                     <thead>
                         <tr>
                             <th>Rank</th>
@@ -859,7 +859,7 @@
                         </tr>
                         {% endfor %}
                     </tbody>
-                </table>
+                </table></div>
                 {% else %}
                 <p><em>No free throw data available.</em></p>
                 {% endif %}
@@ -871,7 +871,7 @@
             <div class="stats-section">
                 <h2>Top Double-Digit Scorers (10+ Points)</h2>
                 {% if double_digit_scorers is not none and not double_digit_scorers.empty %}
-                <table>
+                <div class="table-container"><table>
                     <thead>
                         <tr>
                             <th>Rank</th>
@@ -898,7 +898,7 @@
                         </tr>
                         {% endfor %}
                     </tbody>
-                </table>
+                </table></div>
                 {% else %}
                 <p><em>No double-digit scoring data available.</em></p>
                 {% endif %}
@@ -911,7 +911,7 @@
                 <h2>Most Consistent Scorers</h2>
                 <p><em>Players with at least 5 games played. Higher consistency score = more reliable scoring</em></p>
                 {% if consistent_scorers is not none and not consistent_scorers.empty %}
-                <table>
+                <div class="table-container"><table>
                     <thead>
                         <tr>
                             <th>Rank</th>
@@ -940,7 +940,7 @@
                         </tr>
                         {% endfor %}
                     </tbody>
-                </table>
+                </table></div>
                 {% else %}
                 <p><em>No consistency data available.</em></p>
                 {% endif %}
@@ -955,7 +955,7 @@
                 <div style="display: flex; gap: 40px; flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 300px;">
                         <h3>Starting Five</h3>
-                        <table>
+                        <div class="table-container"><table>
                             <tbody>
                                 <tr><td><strong>Total Players:</strong></td><td>{{ starter_bench_stats.get('starters_total_players', 'N/A') }}</td></tr>
                                 <tr><td><strong>Total Game Appearances:</strong></td><td>{{ starter_bench_stats.get('starters_total_games', 'N/A') }}</td></tr>
@@ -965,11 +965,11 @@
                                 <tr><td><strong>Total Shots Made:</strong></td><td>{{ starter_bench_stats.get('starters_total_shots', 'N/A') }}</td></tr>
                                 <tr><td><strong>Average Shots per Game:</strong></td><td>{{ starter_bench_stats.get('starters_avg_shots_per_game', 'N/A') }}</td></tr>
                             </tbody>
-                        </table>
+                        </table></div>
                     </div>
                     <div style="flex: 1; min-width: 300px;">
                         <h3>Bench Players</h3>
-                        <table>
+                        <div class="table-container"><table>
                             <tbody>
                                 <tr><td><strong>Total Players:</strong></td><td>{{ starter_bench_stats.get('bench_total_players', 'N/A') }}</td></tr>
                                 <tr><td><strong>Total Game Appearances:</strong></td><td>{{ starter_bench_stats.get('bench_total_games', 'N/A') }}</td></tr>
@@ -979,7 +979,7 @@
                                 <tr><td><strong>Total Shots Made:</strong></td><td>{{ starter_bench_stats.get('bench_total_shots', 'N/A') }}</td></tr>
                                 <tr><td><strong>Average Shots per Game:</strong></td><td>{{ starter_bench_stats.get('bench_avg_shots_per_game', 'N/A') }}</td></tr>
                             </tbody>
-                        </table>
+                        </table></div>
                     </div>
                 </div>
                 {% else %}

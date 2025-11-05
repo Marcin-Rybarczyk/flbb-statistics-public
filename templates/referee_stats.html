@@ -135,7 +135,7 @@
             
             <h3>All Referees - Games Arbitrated</h3>
             {% if referee_stats is defined and not referee_stats.empty %}
-            <table>
+            <div class="table-container"><table>
                 <thead>
                     <tr>
                         <th>Rank</th>
@@ -160,7 +160,7 @@
                     </tr>
                     {% endfor %}
                 </tbody>
-            </table>
+            </table></div>
             {% else %}
                 <p class="error">No referee statistics available.</p>
             {% endif %}
@@ -172,7 +172,7 @@
             
             <h3>Referees by Most Fouls Called Per Game</h3>
             {% if referee_fouls is defined and not referee_fouls.empty %}
-            <table>
+            <div class="table-container"><table>
                 <thead>
                     <tr>
                         <th>Rank</th>
@@ -193,14 +193,14 @@
                     </tr>
                     {% endfor %}
                 </tbody>
-            </table>
+            </table></div>
             {% else %}
                 <p class="error">No referee foul statistics available.</p>
             {% endif %}
 
             <h3>Referees with Least Fouls Per Game (Min 2 Games)</h3>
             {% if referee_least_fouls is defined and not referee_least_fouls.empty %}
-            <table>
+            <div class="table-container"><table>
                 <thead>
                     <tr>
                         <th>Rank</th>
@@ -221,7 +221,7 @@
                     </tr>
                     {% endfor %}
                 </tbody>
-            </table>
+            </table></div>
             {% else %}
                 <p class="error">No referee least foul statistics available.</p>
             {% endif %}
@@ -239,7 +239,7 @@
                 </p>
                 
                 {% if 'referee_summary' in referee_impact %}
-                <table>
+                <div class="table-container"><table>
                     <thead>
                         <tr>
                             <th>Referee Name</th>
@@ -262,7 +262,7 @@
                         </tr>
                         {% endfor %}
                     </tbody>
-                </table>
+                </table></div>
                 {% else %}
                     <p>Detailed impact analysis data not available.</p>
                 {% endif %}
