@@ -44,10 +44,27 @@
 
         .home-team {
             color: #2980b9;
+            transition: all 0.2s ease;
+        }
+
+        .home-team:hover {
+            color: #1a5c8a;
+            text-decoration: underline;
         }
 
         .away-team {
             color: #e67e22;
+            transition: all 0.2s ease;
+        }
+
+        .away-team:hover {
+            color: #c0611a;
+            text-decoration: underline;
+        }
+
+        .team-link {
+            text-decoration: none;
+            color: inherit;
         }
 
         .vs {
@@ -559,21 +576,21 @@
                         <td class="teams">
                             {% set home_team = row.get('HomeTeamName', row.get('HomeTeam')) %}
                             {% set away_team = row.get('AwayTeamName', row.get('AwayTeam')) %}
-                            <span class="home-team">
+                            <a href="/team-detail?team={{ home_team | urlencode }}" class="team-link home-team hoverable-item" data-type="team" data-id="{{ home_team }}">
                                 {% set home_logo_url = get_team_logo_url(home_team) %}
                                 {% if home_logo_url %}
                                     <img src="{{ home_logo_url }}" alt="{{ home_team }} logo" class="team-logo" style="width: 18px; height: 18px; object-fit: contain; vertical-align: middle; margin-right: 4px;">
                                 {% endif %}
                                 {{ home_team }}
-                            </span>
+                            </a>
                             <span class="vs">vs</span>
-                            <span class="away-team">
+                            <a href="/team-detail?team={{ away_team | urlencode }}" class="team-link away-team hoverable-item" data-type="team" data-id="{{ away_team }}">
                                 {% set away_logo_url = get_team_logo_url(away_team) %}
                                 {% if away_logo_url %}
                                     <img src="{{ away_logo_url }}" alt="{{ away_team }} logo" class="team-logo" style="width: 18px; height: 18px; object-fit: contain; vertical-align: middle; margin-right: 4px;">
                                 {% endif %}
                                 {{ away_team }}
-                            </span>
+                            </a>
                         </td>
                         <td>
                             {% if row.get('IsFinished') and row.get('HomeScore') is not none and row.get('AwayScore') is not none %}
