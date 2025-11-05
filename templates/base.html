@@ -1331,7 +1331,7 @@
                             `;
                         } else {
                             // Finished game - show original information
-                            const refereesHtml = data.referees.join(', ') || 'N/A';
+                            const refereesHtml = data.referees && data.referees.length > 0 ? data.referees.join(', ') : 'N/A';
                             content = `
                                 <h4>🏀 Game ${id}</h4>
                                 <div class="stat-row">

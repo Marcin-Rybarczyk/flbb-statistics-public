@@ -4966,7 +4966,7 @@ def _get_team_position_and_streak(data, team_name, division):
             total_teams = int(len(standings))
             team_row = standings[standings['Team Name'] == team_name]
             if not team_row.empty:
-                # Get position (index starts at 1 in standings)
+                # Get position (standings index starts at 1)
                 position = int(team_row.index[0])
     
     return {
