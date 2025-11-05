@@ -3,12 +3,14 @@ name: Deploy to Test server
 on:
   push:
     branches:
-      - development
+      - main
   workflow_dispatch:  # allow manual trigger too
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+  
+    if: github.event_name == 'workflow_dispatch'
 
     steps:
       - name: 🧾 Checkout code
@@ -27,15 +29,15 @@ jobs:
           set -e
           ssh ${{ secrets.MYDEVIL_USER }}@${{ secrets.MYDEVIL_HOST }} -p 443 << 'EOF'
           set -e
-          cd ~/domains/${{ secrets.MYDEVIL_TEST_DOMAIN_NAME }}/public_python
+          cd ~/domains/${{ secrets.MYDEVIL_PROD_DOMAIN_NAME }}/public_python
           if [ ! -d .git ]; then
             echo "🔧 First-time setup: cloning repository..."
             git clone git@github.com:Marcin-Rybarczyk/flbb-statistics-public.git .
           else
             echo "📦 Pulling latest changes..."
-            git pull origin development
+            git pull origin main
           fi
-          devil www restart ${{ secrets.MYDEVIL_TEST_DOMAIN_NAME }}
+          devil www restart ${{ secrets.MYDEVIL_PROD_DOMAIN_NAME }}
           EOF
 
       - name: 🧾 Deployment Summary
