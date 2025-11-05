@@ -311,7 +311,7 @@
     }
 
     .compact-stats-single-column {
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        grid-template-columns: 1fr;
     }
 
     @media (max-width: 768px) {
@@ -423,7 +423,7 @@
         <div class="section">
             <h2>🏀 Games Arbitrated ({{ referee_stats.games|length }})</h2>
             <p style="color: #555; margin-bottom: 15px;">
-                Complete list of games officiated - click on game ID or matchup to view full game details
+                Complete list of games officiated - click on game ID to view full game details, or click on team names to view team information
             </p>
             
             {% if referee_stats.games %}
@@ -437,17 +437,17 @@
                             <th>Matchup</th>
                             <th>Final Score</th>
                             <th>Winner</th>
-                            <th>Total Fouls</th>
-                            <th>P</th>
-                            <th>P1</th>
-                            <th>P2</th>
-                            <th>P3</th>
-                            <th>T1</th>
-                            <th>U1</th>
-                            <th>U2</th>
-                            <th>C1</th>
-                            <th>B1</th>
-                            <th>D2</th>
+                            <th title="Total Fouls Called">Total Fouls</th>
+                            <th title="Personal Foul">P</th>
+                            <th title="Personal Foul with 1 Free Throw">P1</th>
+                            <th title="Personal Foul with 2 Free Throws">P2</th>
+                            <th title="Personal Foul with 3 Free Throws">P3</th>
+                            <th title="Technical Foul">T1</th>
+                            <th title="Unsportsmanlike Foul with 1 Free Throw">U1</th>
+                            <th title="Unsportsmanlike Foul with 2 Free Throws">U2</th>
+                            <th title="Coach Technical Foul">C1</th>
+                            <th title="Bench Technical Foul">B1</th>
+                            <th title="Disqualifying Foul with 2 Free Throws">D2</th>
                         </tr>
                     </thead>
                     <tbody>
