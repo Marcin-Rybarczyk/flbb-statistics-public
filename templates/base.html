@@ -1660,5 +1660,12 @@
     </script>
 
     {% block scripts %}{% endblock %}
+
+    <!-- MyDevil.net statistics tracking code -->
+    <!-- Note: This code is pre-validated for security before insertion -->
+    <!-- See validate_tracking_code() in app.py for validation details -->
+    {% if mydevil_stats_code %}
+    {{ mydevil_stats_code|safe }}
+    {% endif %}
 </body>
 </html>

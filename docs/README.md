@@ -106,6 +106,7 @@ flbb-statistics/
 ├── 📂 docs/                         # Documentation
 │   ├── README.md                    # This file
 │   ├── README_DEPLOYMENT.md         # Deployment guide
+│   ├── MYDEVIL_STATISTICS.md        # MyDevil statistics setup
 │   ├── GOOGLE_DRIVE_SECRETS_SETUP.md
 │   ├── GITHUB_ACTIONS_USAGE.md
 │   ├── CSV_GENERATION_WORKFLOW.md
@@ -176,6 +177,7 @@ python3 deployment/deploy_flask.py github      # Generate static site for GitHub
 - **[Railway.app](README_DEPLOYMENT.md#railway-app)** - Modern platform with generous free tier
 - **[GitHub Pages](README_DEPLOYMENT.md#github-pages)** - Static version hosting
 - **[MyDevil.net](README_DEPLOYMENT.md#mydevil-net)** - Polish hosting with Python support
+  - **[Enable WWW Statistics](MYDEVIL_STATISTICS.md)** - Visitor statistics tracking setup
 
 ## 📖 Documentation
 
@@ -183,6 +185,7 @@ Comprehensive documentation is available in this directory:
 
 ### Core Documentation
 - **[Deployment Guide](README_DEPLOYMENT.md)** - Complete deployment instructions for all platforms
+- **[MyDevil Statistics Setup](MYDEVIL_STATISTICS.md)** - Enable visitor statistics for MyDevil.net hosting
 - **[User Features Guide](USER_FEATURES.md)** - Themes, preferences, and personalization
 
 ### Technical Documentation
