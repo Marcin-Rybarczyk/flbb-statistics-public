@@ -635,6 +635,9 @@
             text-decoration: none;
             font-weight: bold;
             transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .player-link:hover, .team-link:hover, .game-link:hover, .referee-link:hover {
@@ -643,6 +646,40 @@
             text-decoration: none;
             padding: 2px 4px;
             border-radius: 3px;
+        }
+
+        /* Icons for clickable entity links */
+        .player-link::before {
+            content: "👤";
+            font-size: 0.9em;
+            display: inline-block;
+        }
+
+        .game-link::before {
+            content: "🏀";
+            font-size: 0.9em;
+            display: inline-block;
+        }
+
+        .referee-link::before {
+            content: "👨‍⚖️";
+            font-size: 0.9em;
+            display: inline-block;
+        }
+
+        /* Team link with optional logo */
+        .team-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .team-logo-icon {
+            width: 20px;
+            height: 20px;
+            object-fit: contain;
+            border-radius: 3px;
+            vertical-align: middle;
         }
 
         /* For team buttons styled as links */
