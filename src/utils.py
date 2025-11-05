@@ -6,6 +6,7 @@ import zipfile
 import tempfile
 from datetime import datetime
 import html
+import unicodedata
 
 
 FULL_GAME_STATS_OUTPUT_DIR = "full-game-stats-output"
@@ -2589,7 +2590,6 @@ def normalize_team_name_for_matching(team_name):
         return team_name
     
     # Remove accents/diacritics for consistency
-    import unicodedata
     normalized = ''.join(
         c for c in unicodedata.normalize('NFD', str(team_name))
         if unicodedata.category(c) != 'Mn'
@@ -2613,7 +2613,6 @@ def normalize_team_name_for_display(team_name):
         return team_name
     
     # Remove accents/diacritics for consistency
-    import unicodedata
     team_name = ''.join(
         c for c in unicodedata.normalize('NFD', team_name)
         if unicodedata.category(c) != 'Mn'

@@ -19,22 +19,35 @@ from src.utils import (
 )
 
 
+# Test data constants
+NORMALIZE_TEST_CASES = [
+    ("Gréngewald Hueschtert B", "Grengewald Hueschtert B"),
+    ("BBC Käldall", "BBC Kaldall"),
+    ("Résidence Walferdange", "Residence Walferdange"),
+    ("Rebound Préizerdaul", "Rebound Preizerdaul"),
+    ("Racing Luxembourg", "Racing Luxembourg"),  # No accents
+]
+
+TEAM_DETAIL_TEST_TEAMS = [
+    ("Gréngewald Hueschtert B", "Grengewald Hueschtert B"),
+    ("Résidence Walferdange", "Residence Walferdange"),
+    ("BBC Käldall", "BBC Kaldall"),
+]
+
+TEAM_HOVER_TEST_TEAMS = [
+    ("Gréngewald Hueschtert B", "Grengewald Hueschtert B"),
+    ("Rebound Préizerdaul", "Rebound Preizerdaul"),
+]
+
+
 def test_normalize_function():
     """Test the normalize_team_name_for_matching function"""
     print("\n" + "="*70)
     print("Testing normalize_team_name_for_matching function")
     print("="*70)
     
-    test_cases = [
-        ("Gréngewald Hueschtert B", "Grengewald Hueschtert B"),
-        ("BBC Käldall", "BBC Kaldall"),
-        ("Résidence Walferdange", "Residence Walferdange"),
-        ("Rebound Préizerdaul", "Rebound Preizerdaul"),
-        ("Racing Luxembourg", "Racing Luxembourg"),  # No accents
-    ]
-    
     all_passed = True
-    for original, expected in test_cases:
+    for original, expected in NORMALIZE_TEST_CASES:
         result = normalize_team_name_for_matching(original)
         passed = result == expected
         status = "✅" if passed else "❌"
@@ -55,14 +68,8 @@ def test_team_detail_stats():
     # Load data
     data = load_game_data()
     
-    test_teams = [
-        ("Gréngewald Hueschtert B", "Grengewald Hueschtert B"),
-        ("Résidence Walferdange", "Residence Walferdange"),
-        ("BBC Käldall", "BBC Kaldall"),
-    ]
-    
     all_passed = True
-    for accented, non_accented in test_teams:
+    for accented, non_accented in TEAM_DETAIL_TEST_TEAMS:
         print(f"\n🔍 Testing: {accented}")
         
         # Test with accented name
@@ -106,13 +113,8 @@ def test_team_hover_stats():
     # Load data
     data = load_game_data()
     
-    test_teams = [
-        ("Gréngewald Hueschtert B", "Grengewald Hueschtert B"),
-        ("Rebound Préizerdaul", "Rebound Preizerdaul"),
-    ]
-    
     all_passed = True
-    for accented, non_accented in test_teams:
+    for accented, non_accented in TEAM_HOVER_TEST_TEAMS:
         print(f"\n🔍 Testing: {accented}")
         
         # Test with accented name
