@@ -1660,5 +1660,10 @@
     </script>
 
     {% block scripts %}{% endblock %}
+
+    <!-- MyDevil.net statistics tracking code -->
+    {% if mydevil_stats_code %}
+    {{ mydevil_stats_code|safe }}
+    {% endif %}
 </body>
 </html>

@@ -172,12 +172,25 @@ This will:
    SECRET_KEY=your-secret-key-here
    ```
 
-8. **Restart the application:**
+8. **Enable website statistics tracking (optional):**
+   To enable visitor statistics in MyDevil panel:
+   - Log in to your MyDevil.net control panel
+   - Go to **WWW → Statistics** section
+   - Enable statistics for your website
+   - Copy the provided tracking code snippet
+   - Set the `MYDEVIL_STATS_CODE` environment variable with the complete HTML/JavaScript code:
+     ```bash
+     # In .env file:
+     MYDEVIL_STATS_CODE='<script>/* your tracking code here */</script>'
+     ```
+   - The tracking code will be automatically inserted before the closing `</body>` tag
+
+9. **Restart the application:**
    ```bash
    touch ~/domains/myflaskapp.YOURUSERNAME.mydevil.net/tmp/restart.txt
    ```
 
-9. **Access your application:**
+10. **Access your application:**
    Visit `https://myflaskapp.YOURUSERNAME.mydevil.net`
 
 **Important Files for MyDevil:**

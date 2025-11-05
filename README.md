@@ -171,6 +171,7 @@ python3 deployment/deploy_flask.py github      # Generate static site for GitHub
 - **[Railway.app](docs/README_DEPLOYMENT.md#railway-app)** - Modern platform with generous free tier
 - **[GitHub Pages](docs/README_DEPLOYMENT.md#github-pages)** - Static version hosting
 - **[MyDevil.net](docs/README_DEPLOYMENT.md#mydevil-net)** - Polish hosting with Python support
+  - **[Enable WWW Statistics](docs/MYDEVIL_STATISTICS.md)** - Guide for enabling visitor statistics in MyDevil panel
 
 ## 📖 Documentation
 
@@ -179,6 +180,7 @@ Comprehensive documentation is available in the `docs/` directory:
 ### Core Documentation
 - **[Documentation Overview](docs/README.md)** - Complete documentation index
 - **[Deployment Guide](docs/README_DEPLOYMENT.md)** - Complete deployment instructions for multiple platforms
+- **[MyDevil Statistics Setup](docs/MYDEVIL_STATISTICS.md)** - Enable visitor statistics for MyDevil.net hosting
 - **[User Features Guide](docs/USER_FEATURES.md)** - Themes, preferences, and personalization
 
 ### Technical Documentation

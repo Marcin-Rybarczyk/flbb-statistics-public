@@ -49,11 +49,15 @@ def inject_season_info():
         'theme': session.get('preferred_theme', 'default')
     }
     
+    # Get MyDevil statistics tracking code from environment variable
+    mydevil_stats_code = os.environ.get('MYDEVIL_STATS_CODE', '')
+    
     return {
         'season_info': season_info,
         'website_config': website_config,
         'version_info': version_info,
-        'user_prefs': user_prefs
+        'user_prefs': user_prefs,
+        'mydevil_stats_code': mydevil_stats_code
     }
 
 # Logo utility functions
