@@ -227,12 +227,60 @@ GET /api/hover/game/12345
 
 Currently, all API endpoints are **publicly accessible** and do not require authentication.
 
-### Future Considerations
+⚠️ **Security Consideration:** Public API endpoints without authentication can be subject to abuse. For production deployments, consider implementing:
 
-For future versions, authentication may be added:
-- API key authentication
-- Rate limiting
-- OAuth2 integration
+### Recommended Security Measures
+
+**For Production Environments:**
+
+1. **Rate Limiting**
+   - Limit requests per IP address (e.g., 100 requests per minute)
+   - Implement exponential backoff for repeated requests
+   - Use tools like Flask-Limiter or nginx rate limiting
+
+   ```python
+   from flask_limiter import Limiter
+   from flask_limiter.util import get_remote_address
+   
+   limiter = Limiter(
+       app,
+       key_func=get_remote_address,
+       default_limits=["100 per minute"]
+   )
+   
+   @app.route('/api/hover/player/<player_name>')
+   @limiter.limit("50 per minute")
+   def api_player_hover(player_name):
+       # endpoint code
+   ```
+
+2. **API Key Authentication**
+   - Require API keys for external access
+   - Implement key rotation and expiration
+   - Track usage per API key
+
+3. **CORS Configuration**
+   - Restrict origins that can access the API
+   - Configure allowed methods and headers
+   - Use Flask-CORS for proper CORS handling
+
+4. **Request Validation**
+   - Validate all input parameters
+   - Sanitize user input to prevent injection attacks
+   - Implement request size limits
+
+5. **Monitoring and Logging**
+   - Log all API requests with timestamps and IPs
+   - Monitor for unusual patterns or abuse
+   - Set up alerts for suspicious activity
+
+### Future Authentication Plans
+
+For future versions, these authentication methods may be added:
+- **API Key Authentication** - Simple key-based access control
+- **OAuth2 Integration** - Industry-standard authentication
+- **JWT Tokens** - Stateless authentication for scalability
+- **IP Whitelisting** - Restrict access to known IPs
 
 ## 📝 Request Guidelines
 

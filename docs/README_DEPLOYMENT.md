@@ -122,11 +122,15 @@ This will:
    python3 prepare_mydevil_setup.py
    ```
    
+   **Note:** The `prepare_mydevil_setup.py` script is located in the root directory of the repository.
+   
    This script will:
    - Ensure all `__init__.py` files exist in `src/` directory
    - Fix relative imports to use absolute paths (e.g., `from src.utils import ...`)
    - Create/verify `wsgi.py` and `passenger_wsgi.py` entry points
    - Check `requirements.txt` for Flask and gunicorn
+   
+   For more details about this script, see the [`prepare_mydevil_setup.py`](#prepare_mydevil_setuppy) section below.
 
 2. **SSH into your MyDevil account:**
    ```bash
@@ -220,15 +224,47 @@ python3 deployment/deploy_flask.py local             # Local production test
 ```
 
 ### `prepare_mydevil_setup.py`
-MyDevil.net deployment preparation script:
+MyDevil.net deployment preparation script (located in project root):
 
-- **Ensures proper project structure:** Creates `__init__.py` files in all directories
-- **Fixes imports:** Converts relative imports to absolute imports for MyDevil compatibility
-- **Creates WSGI files:** Sets up `passenger_wsgi.py` for Passenger WSGI
-- **Validates requirements:** Checks for Flask and gunicorn in `requirements.txt`
+**Purpose:** Prepares the Flask application for deployment on MyDevil.net hosting platform.
 
+**What it does:**
+- **Ensures proper project structure:** Creates `__init__.py` files in all directories under `src/`
+- **Fixes imports:** Converts relative imports (e.g., `from .utils import X`) to absolute imports (e.g., `from src.utils import X`) for MyDevil compatibility
+- **Creates WSGI files:** Sets up `passenger_wsgi.py` for Passenger WSGI server
+- **Validates requirements:** Checks for Flask and gunicorn in `requirements.txt` and adds them if missing
+- **Provides deployment instructions:** Prints step-by-step SSH and setup commands
+
+**Usage:**
 ```bash
 python3 prepare_mydevil_setup.py
+```
+
+**Output Example:**
+```
+🚀 Preparing Flask app for MyDevil.net deployment...
+
+✅ Added src/__init__.py
+✅ Added src/utils/__init__.py
+🔧 Fixed relative imports in src/app.py
+✅ Created passenger_wsgi.py
+✅ requirements.txt already contains Flask & gunicorn
+
+🎉 Done! Your project is ready for MyDevil deployment.
+
+👉 Next steps on MyDevil:
+1. SSH into your account: ssh yourlogin@server.mydevil.net
+2. Create virtual environment
+3. Upload your project
+4. Install requirements
+5. Add webapp in panel
+```
+
+**Important Notes:**
+- Run this script before uploading to MyDevil.net
+- The script modifies import statements for compatibility
+- All changes are safe and reversible
+- Passenger WSGI is specific to MyDevil's hosting environment
 ```
 
 ## 📁 Project Structure
