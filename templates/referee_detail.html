@@ -302,6 +302,18 @@
         margin: 10px 0;
     }
 
+    .stat-row-compact-no-border {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: none;
+    }
+
+    .compact-stats-single-column {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+
     @media (max-width: 768px) {
         .stats-overview {
             grid-template-columns: 1fr;
@@ -361,11 +373,11 @@
             </p>
             
             {% if referee_stats.foul_types %}
-            <div class="compact-stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+            <div class="compact-stats-grid compact-stats-single-column">
                 <div class="compact-stat-box">
                     <h3>⚠️ Foul Summary</h3>
                     <div class="highlight-stat">
-                        <div class="stat-row-compact" style="border-bottom: none;">
+                        <div class="stat-row-compact-no-border">
                             <span class="stat-label-compact"><strong>Total Fouls</strong></span>
                             <span class="stat-value-compact"><strong>{{ referee_stats.total_fouls }}</strong> <small>({{ "%.1f"|format(referee_stats.avg_fouls_per_game) }}/game)</small></span>
                         </div>
