@@ -4899,6 +4899,8 @@ def get_team_hover_stats(data, team_name):
             }
     except Exception as e:
         # If there's any error getting next game info, just skip it
+        # This ensures the hover box still displays other information even if next game lookup fails
+        # (e.g., if gamesDB.json is missing or opponent team name doesn't match standings)
         pass
     
     return {
