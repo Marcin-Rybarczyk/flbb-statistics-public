@@ -5,6 +5,51 @@
 {% block page_title %}🏆 Division Standings{% endblock %}
 {% block page_description %}View team standings by division{% endblock %}
 
+{% block extra_styles %}
+<style>
+    .last-five-cell {
+        text-align: center;
+        white-space: nowrap;
+    }
+    
+    .game-result-badge {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        line-height: 24px;
+        text-align: center;
+        border-radius: 4px;
+        margin: 0 2px;
+        font-weight: 600;
+        font-size: 0.85em;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .win-badge {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+        box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+    }
+    
+    .win-badge:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
+    }
+    
+    .loss-badge {
+        background: linear-gradient(135deg, #dc3545, #e74c3c);
+        color: white;
+        box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+    }
+    
+    .loss-badge:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(220, 53, 69, 0.4);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 
         <form method="post">
@@ -33,6 +78,7 @@
                             <th>Points Against</th>
                             <th>Points Diff</th>
                             <th>League Points</th>
+                            <th>Last 5</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -53,6 +99,17 @@
                             <td>{{ row['A'] }}</td>
                             <td>{{ row['Points Diff'] }}</td>
                             <td>{{ row['Points'] }}</td>
+                            <td class="last-five-cell">
+                                {% if row['Last 5 Games'] %}
+                                    {% for game in row['Last 5 Games'] %}
+                                        <span class="game-result-badge hoverable-item {{ 'win-badge' if game['result'] == 'W' else 'loss-badge' }}" 
+                                              data-type="game" 
+                                              data-id="{{ game['game_id'] }}">{{ game['result'] }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span style="color: #999;">-</span>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>

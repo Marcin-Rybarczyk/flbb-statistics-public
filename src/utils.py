@@ -242,12 +242,19 @@ def calculate_standings(df):
     standings = defaultdict(lambda: {
         'Games': 0, 'W': 0, 'L': 0, 'F': 0, 'A': 0, 'Points': 0
     })
+    
+    # Track game results for last 5 games calculation
+    team_games = defaultdict(list)
 
-    for _, row in df.iterrows():
+    # Sort by DateTime to ensure games are processed in chronological order
+    df_sorted = df.sort_values('DateTime') if 'DateTime' in df.columns else df
+
+    for _, row in df_sorted.iterrows():
         home_team = row['HomeTeamName']
         away_team = row['AwayTeamName']
         home_score = row['FinalHomeScore']
         away_score = row['FinalAwayScore']
+        game_id = row.get('GameId', '')
 
         standings[home_team]['Games'] += 1
         standings[away_team]['Games'] += 1
@@ -263,16 +270,29 @@ def calculate_standings(df):
             standings[away_team]['L'] += 1
             standings[home_team]['Points'] += 2
             standings[away_team]['Points'] += 1
+            # Track game result for last 5 games
+            team_games[home_team].append({'result': 'W', 'game_id': game_id})
+            team_games[away_team].append({'result': 'L', 'game_id': game_id})
         else:  # Away team wins
             standings[home_team]['L'] += 1
             standings[away_team]['W'] += 1
             standings[home_team]['Points'] += 1
             standings[away_team]['Points'] += 2
+            # Track game result for last 5 games
+            team_games[home_team].append({'result': 'L', 'game_id': game_id})
+            team_games[away_team].append({'result': 'W', 'game_id': game_id})
 
     # Convert to a DataFrame
     standings_df = pd.DataFrame.from_dict(standings, orient='index').reset_index()
     standings_df.rename(columns={'index': 'Team Name'}, inplace=True)
     standings_df['Points Diff'] = standings_df['F'] - standings_df['A']
+    
+    # Add Last 5 Games column
+    last_five_games = []
+    for team_name in standings_df['Team Name']:
+        games = team_games[team_name][-5:]  # Get last 5 games
+        last_five_games.append(games)
+    standings_df['Last 5 Games'] = last_five_games
 
     # Sort by Points, then Points Diff
     standings_df.sort_values(by=['Points', 'Points Diff'], ascending=[False, False], inplace=True)
