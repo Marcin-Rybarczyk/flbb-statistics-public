@@ -8,62 +8,120 @@ This project provides in-depth analysis and visualization of basketball statisti
 
 **Live Demo**: [Visit the deployed application](https://marcin-rybarczyk.github.io/flbb-statistics-public)
 
+## ✨ Key Features
+
+### 🎨 User Experience
+- **6 Custom Themes** - Choose from default, ocean, sunset, forest, minimal, and cherry themes
+- **User Preferences** - Save your preferred division, team, and theme settings
+- **Responsive Design** - Optimized for desktop, tablet, and mobile devices
+- **Interactive Hover Tooltips** - Quick stats preview via API endpoints
+- **Team Logos** - Professional branding with 90+ team logos
+
+### 📊 Analytics & Insights
+- **21+ Page Routes** - Comprehensive coverage of teams, players, referees, and games
+- **48+ Statistical Functions** - Advanced analytics and data processing
+- **Detailed Player Profiles** - Individual performance tracking with quarter analysis
+- **Team Detail Pages** - Complete team history, rosters, and upcoming fixtures
+- **Referee Performance Index** - Comprehensive referee evaluation metrics
+- **Game Hotness Rating** - Excitement factor calculation for every game
+- **Starting Five Predictions** - AI-powered lineup predictions for upcoming games
+
+### 🤖 Automation & Integration
+- **Automated Data Collection** - Daily scraping from FLBB website via PowerShell
+- **Google Drive Integration** - Automatic backup and file management
+- **GitHub Actions Workflows** - 5+ automated workflows for deployment and data processing
+- **Season Archive System** - Import and manage historical season data
+- **Version Tracking** - Automated version management with Git integration
+
+### 🚀 Deployment Ready
+- **Multi-Platform Support** - Deploy to Render.com, Railway.app, GitHub Pages, or MyDevil.net
+- **Production WSGI** - Ready for production with Gunicorn
+- **Environment Configuration** - Flexible configuration via environment variables
+- **Static Site Generation** - Create static versions for GitHub Pages deployment
+
 ## 📁 Project Structure
 
 ```
 flbb-statistics/
 ├── 📂 src/                          # Main application source code
-│   ├── app.py                       # Flask web application
-│   ├── utils.py                     # Data processing and statistics utilities  
+│   ├── app.py                       # Flask web application with 21+ routes
+│   ├── utils.py                     # Data processing and statistics utilities (48+ functions)
 │   ├── wsgi.py                      # Production WSGI configuration
+│   ├── version.py                   # Version tracking and management
 │   └── google_drive_helper.py       # Google Drive integration
 ├── 📂 scripts/                      # Data collection and processing scripts
 │   ├── download-controller.ps1      # Main data collection script (PowerShell)
 │   ├── extract-game.ps1             # Data extraction and JSON conversion (PowerShell)
 │   ├── post_process.py              # Post-processing automation (Python)
-│   └── check_version_api.py         # API version checking utility
+│   ├── check_version_api.py         # API version checking utility
+│   ├── create_team_logos.py         # Team logo creation utility
+│   ├── download_team_logos.py       # Team logo download automation
+│   ├── logo_utils.py                # Logo processing utilities
+│   ├── config.json                  # Main configuration file
+│   ├── player-map.json              # Player mapping data
+│   └── event-action-patterns.json   # Game event patterns
 ├── 📂 deployment/                   # Deployment tools and configuration
 │   ├── deploy_flask.py              # Multi-platform deployment assistant
 │   ├── generate_static.py           # Static site generator for GitHub Pages
 │   ├── generate_racing_c_static.py  # Racing C team specific static generator
-│   ├── requirements.txt             # Python dependencies
-│   ├── render_deploy.txt            # Render.com deployment notes
-│   └── railway_deploy.txt           # Railway.app deployment notes
+│   └── requirements.txt             # Python dependencies for deployment
 ├── 📂 data/                         # Data files and configuration
 │   ├── full-game-stats.csv          # Main statistics data source
-│   ├── config.json                  # Application configuration
-│   ├── player-map.json              # Player mapping data
-│   ├── event-action-patterns.json   # Game event patterns
-│   └── Net40/                       # .NET dependencies for PowerShell scripts
+│   ├── gamesDB.json                 # Game database with fixtures
+│   ├── players-database.csv         # Comprehensive player database
+│   └── config.json                  # Application configuration (legacy)
 ├── 📂 docs/                         # Comprehensive documentation
-│   ├── README.md                    # This file
+│   ├── README.md                    # Documentation overview
 │   ├── README_DEPLOYMENT.md         # Complete deployment instructions
 │   ├── GOOGLE_DRIVE_SECRETS_SETUP.md # Google Drive API setup guide
 │   ├── GITHUB_ACTIONS_USAGE.md      # Automation workflows documentation
 │   ├── CSV_GENERATION_WORKFLOW.md   # Data processing pipeline guide
-│   └── IMPLEMENTATION_SUMMARY.md    # Technical implementation details
+│   ├── IMPLEMENTATION_SUMMARY.md    # Technical implementation details
+│   ├── TEAM_LOGOS.md                # Team logo management guide
+│   ├── PLAYER_DATABASE.md           # Player database documentation
+│   ├── LOGO_ENHANCEMENT.md          # Logo enhancement techniques
+│   └── RACING_C_README.md           # Racing C team specific documentation
 ├── 📂 tests/                        # Testing and validation
 │   ├── test_local_flask.py          # Local development and testing script
 │   ├── test_google_drive.py         # Google Drive integration tests
-│   └── test-multiple-downloads.ps1  # PowerShell testing script
+│   ├── test_player_database.py      # Player database tests
+│   ├── test_team_detail_scores.py   # Team detail score validation
+│   ├── test_hotness.py              # Game hotness calculation tests
+│   └── analyze_hotness.py           # Hotness analysis utilities
 ├── 📂 templates/                    # HTML templates for web interface
-│   ├── base.html                    # Base template layout
+│   ├── base.html                    # Base template layout (62KB)
 │   ├── index.html                   # Home page template
+│   ├── standings.html               # Standings page
 │   ├── statistics.html              # Main statistics overview
-│   ├── team_stats.html              # Team analysis page
-│   ├── player_stats.html            # Player statistics page
+│   ├── team_stats.html              # Team statistics page
+│   ├── team_detail.html             # Team detail page (32KB)
+│   ├── player_stats.html            # Player statistics page (47KB)
+│   ├── player_detail.html           # Player detail page (31KB)
+│   ├── referee_stats.html           # Referee statistics page
+│   ├── referee_detail.html          # Referee detail page
+│   ├── referee_performance_index.html # Referee performance index
 │   ├── deeper_analysis.html         # Advanced analytics page
-│   ├── fixtures.html                # Fixtures and schedule page
-│   └── admin.html                   # Administrative interface
+│   ├── fixtures.html                # Fixtures and schedule page (27KB)
+│   ├── game_detail.html             # Game detail page (29KB)
+│   ├── game_details.html            # Game search page
+│   ├── preferences.html             # User preferences page
+│   └── admin.html                   # Administrative interface (15KB)
 ├── 📂 static_site/                  # Generated static files for GitHub Pages
-├── 📂 logos/                        # Team logos and branding assets
-├── 📂 .github/workflows/            # GitHub Actions automation
-│   ├── google-drive-upload.yml      # Automated Google Drive uploads
-│   ├── google-drive-list.yml        # Drive file listing workflow
-│   ├── upload-to-gdrive.yml         # Legacy upload workflow
-│   └── deploy-website.yml           # Website deployment automation
+├── 📂 logos/                        # Team logos and branding assets (90+ team logos)
+├── 📂 .github/                      # GitHub configuration and workflows
+│   ├── copilot-instructions.md      # GitHub Copilot instructions
+│   └── workflows/                   # GitHub Actions automation
+│       ├── google-drive-upload.yml  # Automated Google Drive uploads
+│       ├── google-drive-list.yml    # Drive file listing workflow
+│       ├── upload-to-gdrive.yml     # Legacy upload workflow
+│       ├── deploy-to-prod.yml       # Production deployment
+│       └── deploy-to-test.yml       # Test deployment
 ├── wsgi.py                          # Root-level WSGI entry point for deployment
-├── requirements.txt                 # Python dependencies (copy for easy access)
+├── passenger_wsgi.py                # MyDevil.net WSGI configuration
+├── prepare_mydevil_setup.py         # MyDevil.net deployment preparation script
+├── structure.py                     # Project structure visualization utility
+├── requirements.txt                 # Python dependencies (main)
+├── .env.example                     # Environment variables template
 ├── .gitignore                       # Git ignore configuration
 └── _config.yml                      # Jekyll configuration for GitHub Pages
 ```
@@ -112,23 +170,79 @@ python3 deployment/deploy_flask.py github      # Generate static site for GitHub
 - **[Render.com](docs/README_DEPLOYMENT.md#render-com)** - Recommended for full Flask deployment
 - **[Railway.app](docs/README_DEPLOYMENT.md#railway-app)** - Modern platform with generous free tier
 - **[GitHub Pages](docs/README_DEPLOYMENT.md#github-pages)** - Static version hosting
+- **[MyDevil.net](docs/README_DEPLOYMENT.md#mydevil-net)** - Polish hosting with Python support
 
 ## 📖 Documentation
 
 Comprehensive documentation is available in the `docs/` directory:
-- **[Deployment Guide](docs/README_DEPLOYMENT.md)** - Complete deployment instructions
+- **[Deployment Guide](docs/README_DEPLOYMENT.md)** - Complete deployment instructions for multiple platforms
 - **[Google Drive Setup](docs/GOOGLE_DRIVE_SECRETS_SETUP.md)** - API configuration guide
 - **[GitHub Actions Usage](docs/GITHUB_ACTIONS_USAGE.md)** - Automation workflows
 - **[CSV Generation Workflow](docs/CSV_GENERATION_WORKFLOW.md)** - Data processing pipeline
+- **[Implementation Summary](docs/IMPLEMENTATION_SUMMARY.md)** - Technical implementation details
+- **[Team Logos Guide](docs/TEAM_LOGOS.md)** - Team logo management and integration
+- **[Player Database](docs/PLAYER_DATABASE.md)** - Player data structure and usage
+- **[Logo Enhancement](docs/LOGO_ENHANCEMENT.md)** - Logo enhancement techniques
 
 ## 🚦 Usage
 
 ### Web Interface
-The Flask application provides several analytical views:
-- **Home Page** - Division standings with filtering options
-- **Team Stats** - Detailed team performance metrics
-- **Player Analysis** - Individual player statistics and rankings
-- **Game Insights** - Notable games and statistical highlights
+The Flask application provides comprehensive analytical views:
+
+#### Main Pages
+- **Home Page (/)** - Division standings with filtering options and season overview
+- **Standings (/standings)** - Dedicated standings page with advanced filtering
+- **Statistics (/statistics)** - Comprehensive statistics overview page
+- **Team Stats (/team-stats)** - Team performance comparison and metrics
+- **Team Detail (/team-detail)** - In-depth individual team analysis with:
+  - Complete game history and results
+  - Player roster with statistics
+  - Upcoming fixtures with predictions
+  - Team performance trends
+- **Player Stats (/player-stats)** - Player rankings and performance analysis
+- **Player Detail (/player-detail)** - Individual player profiles with:
+  - Game-by-game performance history
+  - Season statistics and averages
+  - Quarter-by-quarter analysis
+  - Team contribution metrics
+
+#### Advanced Analytics
+- **Deeper Analysis (/deeper-analysis)** - Advanced game insights including:
+  - Biggest wins and leads
+  - Most tie scores and lead changes
+  - Game "hotness" ratings
+  - Player impact analysis
+- **Referee Stats (/referee-stats)** - Referee statistics and analysis
+- **Referee Detail (/referee-detail)** - Individual referee profiles
+- **Referee Performance Index (/referee-performance-index)** - Comprehensive referee performance metrics
+- **Fixtures (/fixtures)** - Complete fixture schedule with:
+  - Upcoming games matrix
+  - Team matchup predictions
+  - Historical head-to-head records
+
+#### Game Details
+- **Game Detail (/game-detail/<game_id>)** - Individual game analysis with:
+  - Play-by-play timeline
+  - Score evolution charts
+  - Player performance breakdown
+  - Game statistics and highlights
+- **Game Details Search (/game-details)** - Search and filter games
+
+#### User Features
+- **Preferences (/preferences)** - Personalize your experience with:
+  - Theme selection (6 themes: default, ocean, sunset, forest, minimal, cherry)
+  - Preferred division and team settings
+  - Custom dashboard configuration
+- **Admin (/admin)** - Administrative tools for:
+  - Season data import
+  - Archive management
+  - System configuration
+
+#### API Endpoints
+- **/api/hover/player/<player_name>** - Get player hover statistics
+- **/api/hover/team/<team_name>** - Get team hover statistics
+- **/api/hover/referee/<referee_name>** - Get referee hover statistics
+- **/api/hover/game/<game_id>** - Get game hover statistics
 
 ### Data Processing
 The application automatically processes basketball data through:
@@ -139,11 +253,42 @@ The application automatically processes basketball data through:
 
 ## 🔧 Configuration
 
+### Application Configuration (`scripts/config.json`)
+```json
+{
+  "eventName": "FLBB Basketball Season 2025-2026",
+  "seasonId": "2025-2026",
+  "dataSource": {
+    "baseUrl": "https://www.luxembourg.basketball"
+  },
+  "processing": {
+    "divisionsIncluded": ["Division 1 Hommes", "Division 2 Hommes", ...],
+    "parallelDownloads": 10
+  },
+  "website": {
+    "title": "FLBB Basketball Statistics",
+    "features": {
+      "showStandings": true,
+      "showTopPlayers": true,
+      "showPlayerStatistics": true
+    }
+  }
+}
+```
+
 ### Environment Variables (Production)
-- `SECRET_KEY` - Flask secret key for sessions
+- `SECRET_KEY` - Flask secret key for sessions (auto-generated in development)
 - `FLASK_ENV` - Set to `production` for production deployments
+- `DEBUG` - Set to `False` for production
 - `GOOGLE_DRIVE_CREDENTIALS` - Google API service account JSON
 - `GOOGLE_DRIVE_FOLDER_ID` - Target folder for file uploads
+
+### Version Configuration (`src/version.py`)
+The application tracks version information automatically:
+- `__version__` - Current version (e.g., "1.0.0")
+- `__release_date__` - Release date
+- `__build_number__` - Build number
+- Automatic Git integration for last modification date
 
 ### GitHub Secrets (for automation)
 - `GOOGLE_DRIVE_CREDENTIALS` - Service account credentials for API access
@@ -161,26 +306,86 @@ The application automatically processes basketball data through:
 ## 📊 Data Sources
 
 Data is collected from the [Luxembourg Basketball Federation](https://www.luxembourg.basketball/) website:
-- Game results and schedules
-- Player statistics and performance metrics
-- Division standings and team information  
-- Referee assignments and foul statistics
+- **Game Results** - Complete game results with play-by-play data
+- **Player Statistics** - Individual player performance metrics across all games
+- **Division Standings** - Team rankings and records for all divisions
+- **Referee Assignments** - Referee assignments and foul statistics
+- **Game Schedules** - Upcoming fixtures and game schedules
+- **Team Rosters** - Player rosters and team compositions
+
+The data is processed through a multi-stage pipeline:
+1. **Scraping** - PowerShell scripts download HTML data from FLBB website
+2. **Extraction** - Game data extracted from HTML and stored as JSON
+3. **Processing** - Python utilities calculate statistics and generate CSV
+4. **Storage** - Data stored locally and backed up to Google Drive
+5. **Visualization** - Flask application renders interactive web interface
+
+## 🛠️ Technologies
+
+### Backend
+- **Python 3.11+** - Core application language
+- **Flask 3.1+** - Web framework
+- **Pandas** - Data processing and analysis
+- **Gunicorn** - WSGI HTTP server for production
+
+### Data Collection
+- **PowerShell** - Web scraping scripts
+- **HTML Parsing** - Data extraction from FLBB website
+- **JSON** - Structured data storage
+
+### Frontend
+- **Jinja2** - HTML templating
+- **CSS** - Custom styling with 6 theme options
+- **JavaScript** - Interactive elements and hover tooltips
+
+### Integration & Deployment
+- **Google Drive API** - File backup and storage
+- **GitHub Actions** - CI/CD automation
+- **Git** - Version control and tracking
+- **Multiple Hosting Platforms** - Render, Railway, GitHub Pages, MyDevil
+
+### Testing
+- **Custom Test Suite** - Flask application testing
+- **Validation Scripts** - Data integrity checks
+- **Hot-reload Development** - Rapid development workflow
 
 ## 🛡️ Security
 
-- Service account credentials are securely handled through GitHub Secrets
-- No sensitive data is committed to the repository
-- Automated cleanup of temporary credential files
-- Production deployments use environment-based configuration
+- **Environment Variables** - Sensitive configuration via environment variables
+- **Service Account Credentials** - Securely handled through GitHub Secrets
+- **No Hardcoded Secrets** - No sensitive data committed to repository
+- **Automated Cleanup** - Temporary credential files automatically removed
+- **Production-Ready** - Separate development and production configurations
+- **Session Management** - Secure Flask sessions with secret key
+- **Input Validation** - Data validation and sanitization
 
 ## 🎯 Roadmap
 
-- [ ] Enhanced mobile responsive design
-- [ ] Advanced player comparison tools
-- [ ] Historical trend analysis
-- [ ] Real-time game tracking
-- [ ] API endpoints for data access
-- [ ] Enhanced visualizations and charts
+### Completed Features ✅
+- [x] Team detail pages with comprehensive analytics
+- [x] Player detail pages with game-by-game performance
+- [x] Referee performance index and detailed statistics
+- [x] Game detail pages with play-by-play timeline
+- [x] User preferences and theme customization (6 themes)
+- [x] Admin interface for season data management
+- [x] API endpoints for hover statistics
+- [x] Starting five predictions for upcoming games
+- [x] Game hotness rating system
+- [x] Automated Google Drive backups
+- [x] Multi-platform deployment support
+- [x] Version tracking system
+
+### Planned Enhancements 🚧
+- [ ] Advanced player comparison tools with side-by-side stats
+- [ ] Historical trend analysis across multiple seasons
+- [ ] Real-time game tracking during live games
+- [ ] RESTful API endpoints for external data access
+- [ ] Enhanced data visualizations with interactive charts
+- [ ] Mobile app for iOS and Android
+- [ ] Email notifications for favorite teams
+- [ ] Fantasy basketball league integration
+- [ ] Social sharing features
+- [ ] Export reports as PDF
 
 ## 📞 Support
 
