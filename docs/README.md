@@ -165,10 +165,10 @@ The application automatically processes basketball data through:
 ### Quick Deployment
 Use the built-in deployment assistant:
 ```bash
-python3 deploy_flask.py              # Interactive guided deployment
-python3 deploy_flask.py render      # Deploy to Render.com
-python3 deploy_flask.py railway     # Deploy to Railway.app
-python3 deploy_flask.py github      # Generate static site for GitHub Pages
+python3 deployment/deploy_flask.py              # Interactive guided deployment
+python3 deployment/deploy_flask.py render      # Deploy to Render.com
+python3 deployment/deploy_flask.py railway     # Deploy to Railway.app
+python3 deployment/deploy_flask.py github      # Generate static site for GitHub Pages
 ```
 
 ### Platform-Specific Instructions
@@ -180,14 +180,27 @@ python3 deploy_flask.py github      # Generate static site for GitHub Pages
 ## 📖 Documentation
 
 Comprehensive documentation is available in this directory:
+
+### Core Documentation
 - **[Deployment Guide](README_DEPLOYMENT.md)** - Complete deployment instructions for all platforms
-- **[Google Drive Setup](GOOGLE_DRIVE_SECRETS_SETUP.md)** - API configuration guide
-- **[GitHub Actions Usage](GITHUB_ACTIONS_USAGE.md)** - Automation workflows
+- **[User Features Guide](USER_FEATURES.md)** - Themes, preferences, and personalization
+
+### Technical Documentation
+- **[API Endpoints](API_ENDPOINTS.md)** - REST API documentation for hover stats
+- **[Version Tracking](VERSION_TRACKING.md)** - Version management system
 - **[CSV Generation Workflow](CSV_GENERATION_WORKFLOW.md)** - Data processing pipeline
 - **[Implementation Summary](IMPLEMENTATION_SUMMARY.md)** - Technical implementation details
+
+### Integration & Setup
+- **[Google Drive Setup](GOOGLE_DRIVE_SECRETS_SETUP.md)** - API configuration guide
+- **[GitHub Actions Usage](GITHUB_ACTIONS_USAGE.md)** - Automation workflows
+
+### Asset Management
 - **[Team Logos Guide](TEAM_LOGOS.md)** - Team logo management
 - **[Player Database](PLAYER_DATABASE.md)** - Player data structure
 - **[Logo Enhancement](LOGO_ENHANCEMENT.md)** - Logo enhancement techniques
+
+### Team-Specific
 - **[Racing C Documentation](RACING_C_README.md)** - Team-specific documentation
 
 ## 🔧 Configuration

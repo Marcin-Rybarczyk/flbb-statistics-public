@@ -18,16 +18,16 @@ This guide provides comprehensive instructions for deploying the FLBB Statistics
 
 2. **Test the application:**
    ```bash
-   python3 test_local_flask.py --test-only
+   python3 tests/test_local_flask.py --test-only
    ```
 
 3. **Run locally:**
    ```bash
    # Development server (with debugging)
-   python3 test_local_flask.py
+   python3 tests/test_local_flask.py
    
    # Production-like testing
-   python3 test_local_flask.py --production
+   python3 tests/test_local_flask.py --production
    ```
 
    The application will be available at `http://localhost:5000`
@@ -286,16 +286,16 @@ Production-ready WSGI configuration with:
    ```
 
 2. **No data available error**
-   - Ensure `full-game-stats.csv` exists in the project root
-   - Check data format with: `python3 test_local_flask.py --test-only`
+   - Ensure `data/full-game-stats.csv` exists in the project
+   - Check data format with: `python3 tests/test_local_flask.py --test-only`
 
 3. **Port already in use**
    ```bash
-   python3 test_local_flask.py --port 8080  # Use different port
+   python3 tests/test_local_flask.py --port 8080  # Use different port
    ```
 
 4. **Deployment fails**
-   - Run requirements check: `python3 deploy_flask.py local`
+   - Run requirements check: `python3 deployment/deploy_flask.py local`
    - Check logs in hosting platform dashboard
    - Ensure environment variables are set correctly
 
@@ -303,7 +303,7 @@ Production-ready WSGI configuration with:
 
 1. **Test locally first:**
    ```bash
-   python3 test_local_flask.py --test-only
+   python3 tests/test_local_flask.py --test-only
    ```
 
 2. **Check deployment requirements:**

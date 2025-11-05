@@ -175,14 +175,29 @@ python3 deployment/deploy_flask.py github      # Generate static site for GitHub
 ## 📖 Documentation
 
 Comprehensive documentation is available in the `docs/` directory:
+
+### Core Documentation
+- **[Documentation Overview](docs/README.md)** - Complete documentation index
 - **[Deployment Guide](docs/README_DEPLOYMENT.md)** - Complete deployment instructions for multiple platforms
-- **[Google Drive Setup](docs/GOOGLE_DRIVE_SECRETS_SETUP.md)** - API configuration guide
-- **[GitHub Actions Usage](docs/GITHUB_ACTIONS_USAGE.md)** - Automation workflows
+- **[User Features Guide](docs/USER_FEATURES.md)** - Themes, preferences, and personalization
+
+### Technical Documentation
+- **[API Endpoints](docs/API_ENDPOINTS.md)** - REST API documentation for hover stats
+- **[Version Tracking](docs/VERSION_TRACKING.md)** - Version management system
 - **[CSV Generation Workflow](docs/CSV_GENERATION_WORKFLOW.md)** - Data processing pipeline
 - **[Implementation Summary](docs/IMPLEMENTATION_SUMMARY.md)** - Technical implementation details
+
+### Integration & Setup
+- **[Google Drive Setup](docs/GOOGLE_DRIVE_SECRETS_SETUP.md)** - API configuration guide
+- **[GitHub Actions Usage](docs/GITHUB_ACTIONS_USAGE.md)** - Automation workflows
+
+### Asset Management
 - **[Team Logos Guide](docs/TEAM_LOGOS.md)** - Team logo management and integration
 - **[Player Database](docs/PLAYER_DATABASE.md)** - Player data structure and usage
 - **[Logo Enhancement](docs/LOGO_ENHANCEMENT.md)** - Logo enhancement techniques
+
+### Team-Specific
+- **[Racing C Documentation](docs/RACING_C_README.md)** - Racing C team specific documentation
 
 ## 🚦 Usage
 
