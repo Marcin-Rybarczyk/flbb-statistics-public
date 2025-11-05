@@ -155,13 +155,19 @@ To disable statistics tracking:
 
 - **Validation:** The application validates tracking code for basic security before inserting it
   - Maximum length: 10KB
-  - Must contain `<script>` tags
-  - Blocks known dangerous patterns (e.g., `eval()`, `document.cookie`, `<iframe>`)
+  - Must contain properly closed `<script>` tags
+  - Blocks dangerous patterns including:
+    - Protocol handlers: `javascript:`, `data:`, `vbscript:`
+    - Event handlers: `onclick=`, `onload=`, `onerror=`, `onmouseover=`, `onfocus=`, `onblur=`, `onchange=`, `onsubmit=`
+    - Dangerous elements: `<iframe>`
+    - Dangerous functions: `eval()`, `expression()`
+    - Cookie access: `document.cookie`
 - **Trusted Sources Only:** Only set `MYDEVIL_STATS_CODE` from trusted sources (your MyDevil panel)
 - **No User Input:** Never allow user input to control this environment variable
 - **Environment Variables:** Never commit `.env` files with sensitive data to version control
 - **Template Safety:** The tracking code is inserted using Flask's `safe` filter after validation
 - **Use .env.example:** The `.env.example` file is provided as a template - copy and customize it
+- **Logging:** Validation failures are logged with warning level for monitoring
 
 ## Alternative: Manual Integration
 

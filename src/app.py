@@ -1,5 +1,6 @@
 import os
 import re
+import logging
 from urllib.parse import unquote
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 import pandas as pd
@@ -25,13 +26,16 @@ app = Flask(__name__, template_folder='../templates', static_folder='../logos', 
 # Valid theme options for the application
 VALID_THEMES = ['default', 'ocean', 'sunset', 'forest', 'minimal', 'cherry']
 
+# Configure logging for tracking code validation
+logger = logging.getLogger(__name__)
+
 def validate_tracking_code(code):
     """
     Validate tracking code from environment variable for basic security.
     
     This function performs basic validation to ensure the tracking code:
     - Is not excessively long (prevents DoS)
-    - Contains script tags (expected format)
+    - Contains properly formatted script tags
     - Doesn't contain obvious malicious patterns
     
     Note: This is not a comprehensive XSS prevention mechanism. The tracking code
@@ -49,27 +53,43 @@ def validate_tracking_code(code):
     
     # Check length (tracking codes shouldn't be huge)
     if len(code) > 10000:  # 10KB max
-        print("⚠️  Warning: MYDEVIL_STATS_CODE exceeds maximum length, ignoring")
+        logger.warning("MYDEVIL_STATS_CODE exceeds maximum length (10KB), ignoring")
         return ''
     
-    # Basic validation: should contain script tags
+    # Validate script tag format - should have both opening and closing tags
     if '<script' not in code.lower():
-        print("⚠️  Warning: MYDEVIL_STATS_CODE doesn't contain <script> tag, ignoring")
+        logger.warning("MYDEVIL_STATS_CODE doesn't contain <script> tag, ignoring")
         return ''
     
-    # Check for obvious malicious patterns (basic check only)
+    if '</script>' not in code.lower():
+        logger.warning("MYDEVIL_STATS_CODE doesn't contain closing </script> tag, ignoring")
+        return ''
+    
+    # Check for dangerous patterns that could indicate XSS attempts
+    # Note: This is a basic blocklist, not a comprehensive security mechanism
     dangerous_patterns = [
-        'javascript:',
-        'onerror=',
+        'javascript:',      # javascript: protocol
+        'data:',            # data: protocol
+        'vbscript:',        # vbscript: protocol
+        'onerror=',         # event handlers
         'onload=',
-        '<iframe',
-        'document.cookie',
-        'eval(',
+        'onclick=',
+        'onmouseover=',
+        'onfocus=',
+        'onblur=',
+        'onchange=',
+        'onsubmit=',
+        '<iframe',          # iframe injection
+        'document.cookie',  # cookie theft
+        'eval(',            # code execution
+        'expression(',      # IE CSS expressions
     ]
     code_lower = code.lower()
     for pattern in dangerous_patterns:
         if pattern in code_lower:
-            print(f"⚠️  Warning: MYDEVIL_STATS_CODE contains potentially dangerous pattern '{pattern}', ignoring")
+            logger.warning(
+                f"MYDEVIL_STATS_CODE contains potentially dangerous pattern '{pattern}', ignoring"
+            )
             return ''
     
     return code
