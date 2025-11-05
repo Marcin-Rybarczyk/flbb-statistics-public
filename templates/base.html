@@ -1206,6 +1206,43 @@
                             `<span class="streak ${result === 'W' ? 'win' : 'loss'}">${result}</span>`
                         ).join('');
                         
+                        // Format next game
+                        let nextGameHtml = '';
+                        if (data.next_game && data.next_game.opponent) {
+                            const nextGame = data.next_game;
+                            let opponentText = nextGame.opponent;
+                            
+                            // Add opponent position if available
+                            if (nextGame.opponent_position && nextGame.opponent_total_teams) {
+                                opponentText += ` (${nextGame.opponent_position}/${nextGame.opponent_total_teams})`;
+                            }
+                            
+                            // Format date and time
+                            let dateTimeText = '';
+                            if (nextGame.date) {
+                                dateTimeText = nextGame.date;
+                                if (nextGame.time) {
+                                    dateTimeText += ` at ${nextGame.time}`;
+                                }
+                            }
+                            
+                            // Add home/away indicator
+                            const locationIcon = nextGame.is_home ? '🏠' : '✈️';
+                            const locationText = nextGame.is_home ? 'vs' : 'at';
+                            
+                            nextGameHtml = '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1);">';
+                            nextGameHtml += '<div style="font-weight: 600; color: #667eea; margin-bottom: 6px;">Next Game:</div>';
+                            nextGameHtml += `<div style="font-size: 0.85em; padding: 2px 0;">
+                                <span>${locationIcon} ${locationText} <strong>${opponentText}</strong></span>
+                            </div>`;
+                            if (dateTimeText) {
+                                nextGameHtml += `<div style="font-size: 0.8em; color: #6c757d; padding: 2px 0;">
+                                    <span>📅 ${dateTimeText}</span>
+                                </div>`;
+                            }
+                            nextGameHtml += '</div>';
+                        }
+                        
                         // Format top scorers
                         let topScorersHtml = '';
                         if (data.top_scorers && data.top_scorers.length > 0) {
@@ -1244,6 +1281,7 @@
                                 <span class="stat-label">Last 5 Games:</span>
                                 <span class="stat-value">${streakHtml}</span>
                             </div>
+                            ${nextGameHtml}
                             ${topScorersHtml}
                         `;
                     } else if (type === 'referee') {
