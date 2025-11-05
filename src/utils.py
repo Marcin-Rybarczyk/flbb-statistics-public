@@ -291,6 +291,7 @@ def calculate_standings(df):
     last_five_games = []
     for team_name in standings_df['Team Name']:
         games = team_games[team_name][-5:]  # Get last 5 games
+        games = list(reversed(games))  # Reverse to show most recent first
         last_five_games.append(games)
     standings_df['Last 5 Games'] = last_five_games
 
