@@ -4014,7 +4014,13 @@ def get_team_player_stats_for_future_game(team_name, players_db_path='data/playe
 
 def predict_starting_five(players):
     """
-    Predict the starting five players based on their historical starting percentage.
+    Predict the starting five players based on a weighted formula that considers:
+    1. Starting Percentage (primary factor - 70% weight)
+    2. Games Played (experience factor - 20% weight)
+    3. Average Points Per Game (minor factor - 10% weight)
+    
+    The formula creates a composite score that balances historical starting frequency,
+    player experience, and offensive contribution.
     
     Parameters:
     players (list): List of player dictionaries with statistics
@@ -4025,19 +4031,76 @@ def predict_starting_five(players):
     if not players:
         return players
     
-    # Sort players by Starting Percentage (descending), then by Avg Points Per Game
-    sorted_players = sorted(
-        players,
-        key=lambda p: (p.get('Starting Percentage', 0), p.get('Avg Points Per Game', 0)),
-        reverse=True
-    )
+    # Calculate composite score for each player
+    def calculate_player_score(player):
+        """
+        Calculate a weighted score for predicting starting five.
+        
+        Formula:
+        Score = (Starting% * 0.7) + (Normalized Games Played * 0.2) + (Normalized Avg Points * 0.1)
+        
+        This prioritizes players who:
+        - Have high starting percentages (main indicator)
+        - Have played more games (experience and reliability)
+        - Contribute points (offensive value)
+        """
+        starting_pct = player.get('Starting Percentage', 0)
+        games_played = player.get('Games Played', 0)
+        avg_points = player.get('Avg Points Per Game', 0)
+        
+        # Starting percentage is already 0-100, we'll normalize it to 0-1
+        starting_score = starting_pct / 100.0
+        
+        # For normalization, we'll use the max values among all players
+        # This will be calculated after we know all players' values
+        return {
+            'starting_pct': starting_pct,
+            'games_played': games_played,
+            'avg_points': avg_points,
+            'starting_score': starting_score
+        }
+    
+    # Calculate scores for all players
+    player_scores = []
+    max_games = max((p.get('Games Played', 0) for p in players), default=0)
+    max_points = max((p.get('Avg Points Per Game', 0) for p in players), default=0)
+    
+    for player in players:
+        scores = calculate_player_score(player)
+        
+        # Normalize games played (0-1 scale)
+        # If max_games is 0, all players have 0 games, so games_score is 0 for all
+        games_score = scores['games_played'] / max_games if max_games > 0 else 0
+        
+        # Normalize average points (0-1 scale)
+        # If max_points is 0, all players have 0 points, so points_score is 0 for all
+        points_score = scores['avg_points'] / max_points if max_points > 0 else 0
+        
+        # Calculate weighted composite score
+        # 70% starting percentage, 20% games played, 10% points
+        composite_score = (
+            scores['starting_score'] * 0.7 +
+            games_score * 0.2 +
+            points_score * 0.1
+        )
+        
+        player_scores.append({
+            'player': player,
+            'composite_score': composite_score,
+            'starting_pct': scores['starting_pct'],
+            'games_played': scores['games_played'],
+            'avg_points': scores['avg_points']
+        })
+    
+    # Sort by composite score (descending)
+    player_scores.sort(key=lambda x: x['composite_score'], reverse=True)
     
     # Mark top 5 as starting five
-    for i, player in enumerate(sorted_players):
+    for i, item in enumerate(player_scores):
         if i < 5:
-            player['Starting Five'] = 'true'
+            item['player']['Starting Five'] = 'true'
         else:
-            player['Starting Five'] = 'false'
+            item['player']['Starting Five'] = 'false'
     
     return players
 
