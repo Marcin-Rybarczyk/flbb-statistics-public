@@ -110,6 +110,11 @@ def deploy_render():
     
     print_colored("\n📝 Configuration files created:")
     print("   • render_deploy.txt - Contains detailed instructions")
+    
+    print_colored("\n🔒 HTTPS/SSL Information:", Colors.GREEN)
+    print("   • Render.com provides automatic HTTPS/SSL certificates")
+    print("   • Your app will be available at https://your-app-name.onrender.com")
+    print("   • See docs/HTTPS_SETUP.md for custom domain setup")
 
 def deploy_railway():
     """Guide user through Railway.app deployment"""
@@ -138,6 +143,11 @@ def deploy_railway():
     print_colored("\n🔗 Ready to deploy?")
     if input("Open Railway.app in browser? (y/n): ").lower().startswith('y'):
         webbrowser.open("https://railway.app")
+    
+    print_colored("\n🔒 HTTPS/SSL Information:", Colors.GREEN)
+    print("   • Railway.app provides automatic HTTPS/SSL certificates")
+    print("   • Your app will be available at https://your-app.up.railway.app")
+    print("   • See docs/HTTPS_SETUP.md for custom domain setup")
 
 def deploy_github_pages():
     """Deploy static version to GitHub Pages"""
@@ -163,6 +173,11 @@ def deploy_github_pages():
         print("2. Go to your GitHub repository settings")
         print("3. Enable GitHub Pages from the 'static_site' folder")
         print("4. Your site will be available at: https://[username].github.io/[repo-name]")
+        
+        print_colored("\n🔒 HTTPS/SSL Information:", Colors.GREEN)
+        print("   • GitHub Pages provides automatic HTTPS")
+        print("   • Enable 'Enforce HTTPS' in repository settings")
+        print("   • See docs/HTTPS_SETUP.md for custom domain setup")
         
     except subprocess.CalledProcessError as e:
         print_colored(f"❌ Error generating static site: {e}", Colors.RED)
@@ -209,6 +224,7 @@ def main():
     args = parser.parse_args()
     
     print_colored("🏀 FLBB Statistics - Flask Deployment Assistant", Colors.BOLD)
+    print_colored("   📖 For HTTPS/SSL setup, see: docs/HTTPS_SETUP.md", Colors.BLUE)
     
     # Check requirements first (skip for GitHub Pages as it handles missing data gracefully)
     if args.platform != 'github' and not check_requirements():
