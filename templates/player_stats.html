@@ -177,7 +177,7 @@
             {% if selected_division or selected_team %}
             <p style="margin-top: 10px; color: #667eea; font-weight: 600;">
                 Showing statistics for: 
-                {% if selected_division %}{{ selected_division }}{% endif %}
+                {% if selected_division %}<span class="division-name hoverable-item" data-type="division" data-id="{{ selected_division }}">{{ selected_division }}</span>{% endif %}
                 {% if selected_division and selected_team %} - {% endif %}
                 {% if selected_team %}{{ selected_team }}{% endif %}
             </p>

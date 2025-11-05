@@ -20,7 +20,7 @@
                 <noscript><input type="submit" value="Filter" style="padding: 8px; font-size: 16px;"></noscript>
             </form>
             {% if selected_division %}
-            <p style="margin-top: 10px;"><em>Showing results for: <strong>{{ selected_division }}</strong></em></p>
+            <p style="margin-top: 10px;"><em>Showing results for: <strong><span class="division-name hoverable-item" data-type="division" data-id="{{ selected_division }}">{{ selected_division }}</span></strong></em></p>
             {% endif %}
         </div>
 
