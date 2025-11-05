@@ -362,52 +362,222 @@
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
         }
 
+        /* Mobile Navigation Toggle */
+        .mobile-menu-toggle {
+            display: none;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.2em;
+            font-weight: 600;
+            margin: 10px auto;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .mobile-menu-toggle:active {
+            transform: scale(0.95);
+        }
+
+        .navigation.mobile-hidden {
+            display: none;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
             }
             
+            .header {
+                padding: 15px;
+            }
+            
             .header h1 {
-                font-size: 2em;
+                font-size: 1.5em;
+                margin-bottom: 8px;
+            }
+
+            .header p {
+                font-size: 0.95em;
             }
             
             .user-prefs-button-container {
                 position: static;
                 text-align: center;
-                margin-bottom: 15px;
+                margin-bottom: 10px;
+            }
+
+            .user-prefs-button {
+                padding: 8px 16px;
+                font-size: 0.85em;
             }
             
+            /* Mobile Navigation Menu */
+            .mobile-menu-toggle {
+                display: block;
+                width: 100%;
+                max-width: 300px;
+            }
+
             .navigation {
                 padding: 10px;
+                display: none;
+            }
+
+            .navigation.mobile-visible {
+                display: block;
             }
             
             .navigation a {
-                margin: 5px;
-                padding: 6px 12px;
-                font-size: 0.9em;
+                display: block;
+                margin: 8px 0;
+                padding: 12px 16px;
+                font-size: 1em;
+                text-align: left;
+                border-radius: 8px;
             }
             
+            .content {
+                padding: 20px 15px;
+            }
+
             .stat-summary {
                 flex-direction: column;
+                gap: 15px;
+            }
+
+            .stat-card {
+                min-width: 100%;
             }
             
+            /* Responsive Tables */
+            .table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                margin: 15px -15px;
+                padding: 0 15px;
+            }
+
             table {
-                font-size: 0.9em;
+                font-size: 0.8em;
+                min-width: 100%;
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+
+            thead, tbody, tr {
+                display: table;
+                width: 100%;
+                table-layout: fixed;
             }
             
             th, td {
-                padding: 6px 8px;
-                font-size: 0.85em;
+                padding: 10px 6px;
+                font-size: 0.9em;
             }
 
             th {
-                font-size: 0.7em;
+                font-size: 0.75em;
+                padding: 12px 6px;
+            }
+
+            /* Make first column (rank/name) sticky on mobile for better UX */
+            th:first-child,
+            td:first-child {
+                position: sticky;
+                left: 0;
+                background: inherit;
+                z-index: 1;
+            }
+
+            th:first-child {
+                background: linear-gradient(135deg, #667eea, #764ba2);
             }
             
             .preferences-indicator {
                 position: static !important;
                 margin-top: 10px;
+                font-size: 0.85em;
+                padding: 8px 12px;
+            }
+
+            .preferences-indicator .pref-badge {
+                display: block;
+                margin: 5px 0;
+            }
+
+            /* Better form controls on mobile */
+            select, input[type="submit"] {
+                width: 100%;
+                max-width: 100%;
+                margin: 8px 0;
+                padding: 12px;
+                font-size: 1em;
+            }
+
+            /* Stats section spacing */
+            .stats-section {
+                margin-bottom: 30px;
+            }
+
+            .stats-section h2 {
+                font-size: 1.4em;
+                margin-bottom: 15px;
+            }
+
+            .stats-section h3 {
+                font-size: 1.1em;
+                margin-bottom: 12px;
+            }
+
+            /* Data source footer */
+            .data-source-footer {
+                margin-top: 20px;
+                padding: 12px;
+                font-size: 0.85em;
+            }
+
+            .data-source-footer small {
+                font-size: 1em;
+                line-height: 1.6;
+                display: block;
+            }
+
+            /* Hover tooltips - disable on mobile to avoid issues */
+            .hover-tooltip {
+                display: none !important;
+            }
+
+            /* Context menu adjustments */
+            .context-menu {
+                min-width: 150px;
+            }
+
+            .context-menu-item {
+                padding: 14px 18px;
+                font-size: 1em;
+            }
+        }
+
+        /* Tablet size adjustments */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .container {
+                padding: 15px;
+            }
+
+            .navigation a {
+                margin: 0 8px;
+                padding: 8px 12px;
+                font-size: 0.9em;
+            }
+
+            table {
+                font-size: 0.95em;
             }
         }
 
@@ -660,7 +830,11 @@
             </div>
         </div>
 
-        <div class="navigation">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="toggleMobileMenu()">
+            📱 Menu
+        </button>
+
+        <div class="navigation" id="mainNavigation">
             <a href="/" {% if request and request.endpoint == 'index' %}class="active"{% endif %}>🏠 Home</a>
             <a href="/standings" {% if request and request.endpoint == 'standings' %}class="active"{% endif %}>🏆 Standings</a>
             <a href="/fixtures" {% if request and request.endpoint == 'fixtures' %}class="active"{% endif %}>📅 Fixtures</a>
@@ -1319,6 +1493,63 @@
                 body.classList.add('theme-' + theme);
             }
         })();
+    </script>
+
+    <script>
+        // Mobile Menu Toggle
+        function toggleMobileMenu() {
+            const nav = document.getElementById('mainNavigation');
+            const toggle = document.getElementById('mobileMenuToggle');
+            
+            if (nav.classList.contains('mobile-visible')) {
+                nav.classList.remove('mobile-visible');
+                nav.style.display = 'none';
+                toggle.textContent = '📱 Menu';
+            } else {
+                nav.classList.add('mobile-visible');
+                nav.style.display = 'block';
+                toggle.textContent = '✖️ Close';
+            }
+        }
+
+        // Close mobile menu when clicking a link
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinks = document.querySelectorAll('#mainNavigation a');
+            const nav = document.getElementById('mainNavigation');
+            const toggle = document.getElementById('mobileMenuToggle');
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    // On mobile, close the menu when a link is clicked
+                    if (window.innerWidth <= 768) {
+                        nav.classList.remove('mobile-visible');
+                        nav.style.display = 'none';
+                        toggle.textContent = '📱 Menu';
+                    }
+                });
+            });
+
+            // Show navigation on desktop by default, hide on mobile
+            function handleResize() {
+                if (window.innerWidth > 768) {
+                    // Desktop mode - always show navigation
+                    nav.style.display = 'block';
+                    nav.classList.remove('mobile-visible');
+                } else {
+                    // Mobile mode - hide by default
+                    if (!nav.classList.contains('mobile-visible')) {
+                        nav.style.display = 'none';
+                    }
+                    toggle.textContent = nav.classList.contains('mobile-visible') ? '✖️ Close' : '📱 Menu';
+                }
+            }
+
+            // Run on load
+            handleResize();
+
+            // Run on resize
+            window.addEventListener('resize', handleResize);
+        });
     </script>
 
     {% block scripts %}{% endblock %}
