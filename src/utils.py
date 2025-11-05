@@ -3955,9 +3955,15 @@ def get_team_next_games(team_name, limit=5, gamesdb_path='data/gamesDB.json'):
             # Convert division name
             division_display = convert_division_name(game.get('GameDivisionName', ''))
             
+            # Extract time from datetime if available
+            game_time = None
+            if game_datetime:
+                game_time = game_datetime.strftime('%H:%M')
+            
             team_future_games.append({
                 'game_id': game.get('GameId'),
                 'date': game_date,
+                'time': game_time,
                 'datetime_obj': game_datetime,
                 'division': division_display,
                 'opponent': opponent,
@@ -4773,6 +4779,7 @@ def get_team_hover_stats(data, team_name):
         - total_teams: Total number of teams in division
         - division: Division name
         - top_scorers: List of top 5 scorers ranked by total points (descending) with total_points and avg_points
+        - next_game: Dictionary with next game info (opponent, opponent_position, opponent_total_teams, date, time, is_home, location) or None
     """
     if data.empty:
         return None
@@ -4860,6 +4867,42 @@ def get_team_hover_stats(data, team_name):
                     'avg_points': round(row['AvgPoints'], 1)
                 })
     
+    # Get next game information
+    next_game_info = None
+    try:
+        next_games = get_team_next_games(team_name, limit=1)
+        if next_games and len(next_games) > 0:
+            next_game = next_games[0]
+            opponent = next_game.get('opponent')
+            
+            # Get opponent's position in standings if available
+            opponent_position = None
+            opponent_total_teams = None
+            if opponent and division:
+                standings = calculate_standings_by_division(data, division)
+                if not standings.empty:
+                    # Normalize opponent name for comparison
+                    normalized_opponent = normalize_team_name_for_matching(opponent)
+                    opponent_row = standings[standings['Team Name'].apply(normalize_team_name_for_matching) == normalized_opponent]
+                    if not opponent_row.empty:
+                        opponent_position = opponent_row.index[0]
+                        opponent_total_teams = len(standings)
+            
+            next_game_info = {
+                'opponent': opponent,
+                'opponent_position': int(opponent_position) if opponent_position is not None else None,
+                'opponent_total_teams': int(opponent_total_teams) if opponent_total_teams is not None else None,
+                'date': next_game.get('date'),
+                'time': next_game.get('time'),
+                'is_home': next_game.get('is_home'),
+                'location': next_game.get('location')
+            }
+    except Exception as e:
+        # If there's any error getting next game info, just skip it
+        # This ensures the hover box still displays other information even if next game lookup fails
+        # (e.g., if gamesDB.json is missing or opponent team name doesn't match standings)
+        pass
+    
     return {
         'wins': int(wins) if wins is not None else 0,
         'losses': int(losses) if losses is not None else 0,
@@ -4867,7 +4910,8 @@ def get_team_hover_stats(data, team_name):
         'position': int(position) if position is not None else None,
         'total_teams': int(total_teams) if total_teams is not None else None,
         'division': str(division) if division is not None else None,
-        'top_scorers': top_scorers
+        'top_scorers': top_scorers,
+        'next_game': next_game_info
     }
 
 
