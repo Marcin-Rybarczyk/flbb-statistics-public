@@ -172,8 +172,8 @@
         }
 
         .matrix-table th.points-header {
-            min-width: 60px;
-            width: 60px;
+            min-width: 40px;
+            width: 40px;
             writing-mode: horizontal-tb;
         }
 
@@ -428,7 +428,6 @@
                     <thead>
                         <tr>
                             <th class="team-header">Teams</th>
-                            <th class="points-header">Points</th>
                             {% for away_team in matrix_data.teams %}
                                 <th class="team-header">
                                     <a href="/team-detail?team={{ away_team }}" title="View {{ away_team }} details">
@@ -440,6 +439,7 @@
                                     </a>
                                 </th>
                             {% endfor %}
+                            <th class="points-header">PTS</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -453,9 +453,6 @@
                                     {% endif %}
                                     {{ home_team }}
                                 </a>
-                            </td>
-                            <td class="team-points">
-                                {{ matrix_data.team_points.get(home_team, 0) }}
                             </td>
                             {% for away_team in matrix_data.teams %}
                                 {% set games = matrix_data.matrix[home_team][away_team] %}
@@ -524,6 +521,9 @@
                                     {% endif %}
                                 </td>
                             {% endfor %}
+                            <td class="team-points">
+                                {{ matrix_data.team_points.get(home_team, 0) }}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
