@@ -1,5 +1,6 @@
 $ROOT = $PSScriptRoot
-$DATA_ROOT = Join-Path -Path $ROOT -ChildPath "..\data"
+$PARENT_ROOT = Split-Path -Path $ROOT -Parent
+$DATA_ROOT = Join-Path -Path $PARENT_ROOT -ChildPath "data"
 
 Add-Type -Path "$ROOT\Net40\HtmlAgilityPack.dll"
 
