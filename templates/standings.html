@@ -102,9 +102,9 @@
                             <td class="last-five-cell">
                                 {% if row['Last 5 Games'] %}
                                     {% for game in row['Last 5 Games'] %}
-                                        <span class="game-result-badge hoverable-item {{ 'win-badge' if game.result == 'W' else 'loss-badge' }}" 
+                                        <span class="game-result-badge hoverable-item {{ 'win-badge' if game['result'] == 'W' else 'loss-badge' }}" 
                                               data-type="game" 
-                                              data-id="{{ game.game_id }}">{{ game.result }}</span>
+                                              data-id="{{ game['game_id'] }}">{{ game['result'] }}</span>
                                     {% endfor %}
                                 {% else %}
                                     <span style="color: #999;">-</span>
