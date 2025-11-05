@@ -292,9 +292,9 @@
                         <td>{{ game['date'] if game['date'] else 'TBD' }}</td>
                         <td>{{ game['division'] }}</td>
                         <td>
-                            {% if game['game_url'] %}
+                            {% if game['game_id'] %}
                             <div style="margin-bottom: 4px;">
-                                <a href="{{ game['game_url'] }}" target="_blank" style="font-size: 0.85em; color: #667eea;">View on FLBB ↗</a>
+                                <a href="/game-detail/{{ game['game_id'] }}" class="game-link hoverable-item" data-type="game" data-id="{{ game['game_id'] }}" style="font-size: 0.85em;">Game {{ game['game_id'] }}</a>
                             </div>
                             {% endif %}
                             <div>

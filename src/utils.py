@@ -2816,10 +2816,15 @@ def get_fixtures_matrix_data(data, division_filter=None):
     division_filter (str): Optional filter by division
     
     Returns:
-    dict: Matrix data with teams as rows/columns and games as cell contents
+    dict: Matrix data with the following keys:
+        - teams (list): List of teams sorted by points (descending), then alphabetically
+        - matrix (dict): Nested dict with teams as keys and lists of games as values
+        - divisions (list): List of available divisions
+        - current_division (str): Currently selected division
+        - team_points (dict): Dictionary mapping team names to their total points
     """
     if data.empty:
-        return {'teams': [], 'matrix': {}, 'divisions': []}
+        return {'teams': [], 'matrix': {}, 'divisions': [], 'team_points': {}}
     
     # Apply division filter if provided
     filtered_data = data.copy()
@@ -2840,6 +2845,9 @@ def get_fixtures_matrix_data(data, division_filter=None):
         if not future_games_df.empty:
             filtered_data = pd.concat([filtered_data, future_games_df], ignore_index=True)
     
+    # Get closest games for each team to determine which games are "next" for which team
+    closest_games = get_closest_games_by_team(data, division_filter)
+    
     # Get unique teams with normalization
     home_teams = set(normalize_team_name_for_display(name) for name in filtered_data['HomeTeamName'].dropna())
     away_teams = set(normalize_team_name_for_display(name) for name in filtered_data['AwayTeamName'].dropna())
@@ -2853,14 +2861,16 @@ def get_fixtures_matrix_data(data, division_filter=None):
     else:
         all_divisions = sorted(all_divisions_finished)
     
-    # Initialize matrix
+    # Initialize matrix and team points
     matrix = {}
+    team_points = {}
     for home_team in all_teams:
         matrix[home_team] = {}
+        team_points[home_team] = 0
         for away_team in all_teams:
             matrix[home_team][away_team] = []
     
-    # Populate matrix with games
+    # Populate matrix with games and calculate team points
     for _, game in filtered_data.iterrows():
         raw_home = game['HomeTeamName']
         raw_away = game['AwayTeamName']
@@ -2895,11 +2905,18 @@ def get_fixtures_matrix_data(data, division_filter=None):
             home_score_int = int(home_score_val) if pd.notna(home_score_val) else None
             away_score_int = int(away_score_val) if pd.notna(away_score_val) else None
             
+            # Determine which team(s) this game is the next game for
+            game_id = game['GameId']
+            is_next_for_home = closest_games.get(raw_home) == game_id
+            is_next_for_away = closest_games.get(raw_away) == game_id
+            
             game_info = {
-                'game_id': game['GameId'],
+                'game_id': game_id,
                 'date': game['DateTime'][:16] if pd.notna(game['DateTime']) else 'TBD',
                 'home_score': home_score_int,
                 'away_score': away_score_int,
+                'home_team_raw': raw_home,
+                'away_team_raw': raw_away,
                 'location': location_name,
                 'division': game['GameDivisionDisplay'],
                 'is_finished': is_finished,
@@ -2907,16 +2924,32 @@ def get_fixtures_matrix_data(data, division_filter=None):
                 'top_scorer': get_game_top_scorer(game) if is_finished else {'name': None, 'points': 0, 'team': None},
                 'hotness_score': hotness_score,
                 'hotness_icon': hotness_icon,
-                'is_future': game.get('IsFutureGame', False)
+                'is_future': game.get('IsFutureGame', False),
+                'is_next_for_home': is_next_for_home,
+                'is_next_for_away': is_next_for_away
             }
             
             matrix[home_team][away_team].append(game_info)
+            
+            # Calculate team points for finished games (2 points for win, 1 point for loss)
+            if is_finished and home_score_int is not None and away_score_int is not None:
+                if home_score_int > away_score_int:  # Home team wins
+                    team_points[home_team] += 2
+                    team_points[away_team] += 1
+                elif away_score_int > home_score_int:  # Away team wins
+                    team_points[home_team] += 1
+                    team_points[away_team] += 2
+                # Note: Tied games (rare in basketball) are not awarded points
+    
+    # Sort teams by points (descending), then alphabetically
+    sorted_teams = sorted(all_teams, key=lambda t: (-team_points[t], t))
     
     return {
-        'teams': all_teams,
+        'teams': sorted_teams,
         'matrix': matrix,
         'divisions': all_divisions,
-        'current_division': division_filter or (all_divisions[0] if all_divisions else None)
+        'current_division': division_filter or (all_divisions[0] if all_divisions else None),
+        'team_points': team_points
     }
 
 
@@ -3981,7 +4014,13 @@ def get_team_player_stats_for_future_game(team_name, players_db_path='data/playe
 
 def predict_starting_five(players):
     """
-    Predict the starting five players based on their historical starting percentage.
+    Predict the starting five players based on a weighted formula that considers:
+    1. Starting Percentage (primary factor - 70% weight)
+    2. Games Played (experience factor - 20% weight)
+    3. Average Points Per Game (minor factor - 10% weight)
+    
+    The formula creates a composite score that balances historical starting frequency,
+    player experience, and offensive contribution.
     
     Parameters:
     players (list): List of player dictionaries with statistics
@@ -3992,19 +4031,76 @@ def predict_starting_five(players):
     if not players:
         return players
     
-    # Sort players by Starting Percentage (descending), then by Avg Points Per Game
-    sorted_players = sorted(
-        players,
-        key=lambda p: (p.get('Starting Percentage', 0), p.get('Avg Points Per Game', 0)),
-        reverse=True
-    )
+    # Calculate composite score for each player
+    def calculate_player_score(player):
+        """
+        Calculate a weighted score for predicting starting five.
+        
+        Formula:
+        Score = (Starting% * 0.7) + (Normalized Games Played * 0.2) + (Normalized Avg Points * 0.1)
+        
+        This prioritizes players who:
+        - Have high starting percentages (main indicator)
+        - Have played more games (experience and reliability)
+        - Contribute points (offensive value)
+        """
+        starting_pct = player.get('Starting Percentage', 0)
+        games_played = player.get('Games Played', 0)
+        avg_points = player.get('Avg Points Per Game', 0)
+        
+        # Starting percentage is already 0-100, we'll normalize it to 0-1
+        starting_score = starting_pct / 100.0
+        
+        # For normalization, we'll use the max values among all players
+        # This will be calculated after we know all players' values
+        return {
+            'starting_pct': starting_pct,
+            'games_played': games_played,
+            'avg_points': avg_points,
+            'starting_score': starting_score
+        }
+    
+    # Calculate scores for all players
+    player_scores = []
+    max_games = max((p.get('Games Played', 0) for p in players), default=0)
+    max_points = max((p.get('Avg Points Per Game', 0) for p in players), default=0)
+    
+    for player in players:
+        scores = calculate_player_score(player)
+        
+        # Normalize games played (0-1 scale)
+        # If max_games is 0, all players have 0 games, so games_score is 0 for all
+        games_score = scores['games_played'] / max_games if max_games > 0 else 0
+        
+        # Normalize average points (0-1 scale)
+        # If max_points is 0, all players have 0 points, so points_score is 0 for all
+        points_score = scores['avg_points'] / max_points if max_points > 0 else 0
+        
+        # Calculate weighted composite score
+        # 70% starting percentage, 20% games played, 10% points
+        composite_score = (
+            scores['starting_score'] * 0.7 +
+            games_score * 0.2 +
+            points_score * 0.1
+        )
+        
+        player_scores.append({
+            'player': player,
+            'composite_score': composite_score,
+            'starting_pct': scores['starting_pct'],
+            'games_played': scores['games_played'],
+            'avg_points': scores['avg_points']
+        })
+    
+    # Sort by composite score (descending)
+    player_scores.sort(key=lambda x: x['composite_score'], reverse=True)
     
     # Mark top 5 as starting five
-    for i, player in enumerate(sorted_players):
+    for i, item in enumerate(player_scores):
         if i < 5:
-            player['Starting Five'] = 'true'
+            item['player']['Starting Five'] = 'true'
         else:
-            player['Starting Five'] = 'false'
+            item['player']['Starting Five'] = 'false'
     
     return players
 

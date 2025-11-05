@@ -154,6 +154,12 @@
             width: 30px;
         }
 
+        .matrix-table th.points-header {
+            min-width: 60px;
+            width: 60px;
+            writing-mode: horizontal-tb;
+        }
+
         .matrix-table td {
             border: 1px solid #ddd;
             padding: 4px;
@@ -170,6 +176,15 @@
             color: #2c3e50;
             text-align: center;
             padding: 8px;
+        }
+
+        .matrix-table .team-points {
+            background: #e8f4f8;
+            font-weight: bold;
+            color: #2c3e50;
+            text-align: center;
+            padding: 8px;
+            font-size: 1.1em;
         }
 
         .team-name a,
@@ -263,6 +278,34 @@
             font-size: 0.7em;
             font-weight: bold;
             margin-left: 4px;
+        }
+
+        .next-game-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-bottom: 4px;
+        }
+
+        .next-for-team {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            background: #ffc107;
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.65em;
+            font-weight: bold;
+            margin: 2px;
+        }
+
+        .next-for-team img {
+            width: 14px;
+            height: 14px;
+            object-fit: contain;
         }
 
         /* Future game styling */
@@ -368,6 +411,7 @@
                     <thead>
                         <tr>
                             <th class="team-header">Teams</th>
+                            <th class="points-header">Points</th>
                             {% for away_team in matrix_data.teams %}
                                 <th class="team-header">
                                     <a href="/team-detail?team={{ away_team }}" title="View {{ away_team }} details">
@@ -392,6 +436,9 @@
                                     {% endif %}
                                     {{ home_team }}
                                 </a>
+                            </td>
+                            <td class="team-points">
+                                {{ matrix_data.team_points.get(home_team, 0) }}
                             </td>
                             {% for away_team in matrix_data.teams %}
                                 {% set games = matrix_data.matrix[home_team][away_team] %}
@@ -425,7 +472,28 @@
                                                     <div style="font-size: 1.2em;" title="Hotness: {{ game.hotness_score }}/100">{{ game.hotness_icon }}</div>
                                                 {% endif %}
                                             {% else %}
-                                                <div class="game-score">{% if is_closest %}<span class="closest-game-badge">NEXT</span>{% endif %}</div>
+                                                {% if game.is_next_for_home or game.is_next_for_away %}
+                                                    <div class="next-game-indicator">
+                                                        {% if game.is_next_for_home %}
+                                                            <span class="next-for-team" title="Next game for {{ game.home_team_raw }}">
+                                                                {% set home_logo = get_team_logo_url(game.home_team_raw) %}
+                                                                {% if home_logo %}
+                                                                    <img src="{{ home_logo }}" alt="{{ game.home_team_raw }}">
+                                                                {% endif %}
+                                                                NEXT
+                                                            </span>
+                                                        {% endif %}
+                                                        {% if game.is_next_for_away %}
+                                                            <span class="next-for-team" title="Next game for {{ game.away_team_raw }}">
+                                                                {% set away_logo = get_team_logo_url(game.away_team_raw) %}
+                                                                {% if away_logo %}
+                                                                    <img src="{{ away_logo }}" alt="{{ game.away_team_raw }}">
+                                                                {% endif %}
+                                                                NEXT
+                                                            </span>
+                                                        {% endif %}
+                                                    </div>
+                                                {% endif %}
                                             {% endif %}
                                             <div class="game-date">{{ game.date[:10] if game.date != 'TBD' else 'TBD' }}</div>
                                             {% if game.top_scorer.name %}
@@ -442,7 +510,7 @@
                         </tr>
                         {% endfor %}
                     </tbody>
-                </table>
+                </table></div>
             </div>
         </div>
     </div>
@@ -451,7 +519,7 @@
     <div class="traditional-view">
         <div class="stats-section fixtures-table">
             <h2>All Fixtures</h2>
-            <table>
+            <div class="table-container"><table>
                 <thead>
                     <tr>
                         <th>Game ID</th>
@@ -561,7 +629,7 @@
                     </tr>
                     {% endfor %}
                 </tbody>
-            </table>
+            </table></div>
         </div>
     </div>
 
