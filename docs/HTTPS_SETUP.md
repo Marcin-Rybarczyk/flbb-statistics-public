@@ -2,6 +2,8 @@
 
 This guide provides comprehensive instructions for enabling HTTPS (SSL/TLS) on the FLBB Statistics Flask application across different hosting platforms, as well as workarounds for accessing HTTP-only pages during development.
 
+> **⚡ Quick Reference:** For a condensed version with the most common commands and solutions, see **[HTTPS_QUICK_REFERENCE.md](HTTPS_QUICK_REFERENCE.md)**.
+
 ## 📋 Table of Contents
 
 - [Overview](#overview)

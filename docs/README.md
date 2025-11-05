@@ -186,6 +186,7 @@ Comprehensive documentation is available in this directory:
 ### Core Documentation
 - **[Deployment Guide](README_DEPLOYMENT.md)** - Complete deployment instructions for all platforms
 - **[HTTPS Setup Guide](HTTPS_SETUP.md)** - Enable HTTPS/SSL and browser workarounds for HTTP access
+  - **[HTTPS Quick Reference](HTTPS_QUICK_REFERENCE.md)** - Fast reference for common HTTPS tasks
 - **[MyDevil Statistics Setup](MYDEVIL_STATISTICS.md)** - Enable visitor statistics for MyDevil.net hosting
 - **[User Features Guide](USER_FEATURES.md)** - Themes, preferences, and personalization
 
