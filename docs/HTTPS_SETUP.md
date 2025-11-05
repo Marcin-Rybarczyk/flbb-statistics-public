@@ -143,15 +143,19 @@ Add to your `src/app.py` (optional, Render does this automatically):
 
 ```python
 from flask import Flask, redirect, request
+import os
 
 app = Flask(__name__)
 
 @app.before_request
 def force_https():
     """Force HTTPS in production"""
-    if not request.is_secure and os.environ.get('FLASK_ENV') == 'production':
-        url = request.url.replace('http://', 'https://', 1)
-        return redirect(url, code=301)
+    # Check if running in production and request is not secure
+    if os.environ.get('FLASK_ENV') == 'production' and not request.is_secure:
+        # Check X-Forwarded-Proto header (set by most reverse proxies)
+        if request.headers.get('X-Forwarded-Proto', 'http') != 'https':
+            url = request.url.replace('http://', 'https://', 1)
+            return redirect(url, code=301)
 ```
 
 ### 3. Railway.app
@@ -393,9 +397,16 @@ For testing HTTPS locally:
    brew install mkcert
    brew install nss # for Firefox
 
-   # Linux
+   # Linux (recommended: use package manager if available)
+   # Option 1: From package manager (Debian/Ubuntu 23.04+)
+   sudo apt install mkcert
+   
+   # Option 2: Manual installation with checksum verification
    sudo apt install libnss3-tools
    wget https://github.com/FiloSottile/mkcert/releases/download/v1.4.4/mkcert-v1.4.4-linux-amd64
+   # Verify checksum (optional but recommended)
+   # sha256sum mkcert-v1.4.4-linux-amd64
+   # Compare with official release checksums at https://github.com/FiloSottile/mkcert/releases
    chmod +x mkcert-v1.4.4-linux-amd64
    sudo mv mkcert-v1.4.4-linux-amd64 /usr/local/bin/mkcert
 
@@ -661,7 +672,9 @@ def test_https(url):
         # Check certificate
         if https_response.url.startswith('https://'):
             print(f"✅ HTTPS connection successful")
-            print(f"TLS Version: {https_response.raw.connection.sock.version()}")
+            # Note: TLS version checking requires deeper socket access
+            # Use OpenSSL command line for detailed TLS info:
+            # openssl s_client -connect domain:443 -servername domain
         
         return True
     except Exception as e:
