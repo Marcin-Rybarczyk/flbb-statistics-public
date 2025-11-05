@@ -6,8 +6,10 @@ A comprehensive Flask-based web application for analyzing and visualizing basket
 
 This project provides in-depth analysis and visualization of basketball statistics from the Luxembourg Basketball Federation. It automatically scrapes game data, processes it into meaningful insights, and presents interactive visualizations through a modern web interface.
 
-**Live Demo**: [Visit the deployed application](http://flbb.ryba.usermd.net)
+**Live Demo**: [Visit the deployed application](https://flbb.ryba.usermd.net)  
 **Test Environment**: [Visit the deployed application](https://test.flbb-public.ryba.usermd.net)
+
+> **Note:** If you cannot access the site due to HTTPS/SSL issues, see the [HTTPS Setup Guide](docs/HTTPS_SETUP.md) for browser workarounds and configuration instructions.
 
 
 ## ✨ Key Features
@@ -179,6 +181,7 @@ Comprehensive documentation is available in the `docs/` directory:
 ### Core Documentation
 - **[Documentation Overview](docs/README.md)** - Complete documentation index
 - **[Deployment Guide](docs/README_DEPLOYMENT.md)** - Complete deployment instructions for multiple platforms
+- **[HTTPS Setup Guide](docs/HTTPS_SETUP.md)** - Enable HTTPS/SSL and browser workarounds for HTTP access
 - **[MyDevil Statistics Setup](docs/MYDEVIL_STATISTICS.md)** - Enable visitor statistics for MyDevil.net hosting
 - **[User Features Guide](docs/USER_FEATURES.md)** - Themes, preferences, and personalization
 

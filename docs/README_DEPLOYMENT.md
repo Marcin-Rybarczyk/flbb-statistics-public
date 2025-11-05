@@ -2,6 +2,8 @@
 
 This guide provides comprehensive instructions for deploying the FLBB Statistics Flask application locally and to various free hosting platforms.
 
+> **🔒 HTTPS/SSL Setup:** For detailed instructions on enabling HTTPS/SSL certificates and browser workarounds for HTTP-only access, see the **[HTTPS Setup Guide](HTTPS_SETUP.md)**.
+
 ## 🚀 Quick Start
 
 ### Prerequisites
