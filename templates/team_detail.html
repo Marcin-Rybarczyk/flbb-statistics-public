@@ -284,7 +284,7 @@
                                 {% endif %}
                             </div>
                         </td>
-                        <td><strong>{{ game['TeamScore'] }} - {{ game['OpponentScore'] }}</strong></td>
+                        <td><strong>{% if game['IsHome'] %}{{ game['TeamScore'] }} - {{ game['OpponentScore'] }}{% else %}{{ game['OpponentScore'] }} - {{ game['TeamScore'] }}{% endif %}</strong></td>
                         <td style="text-align: center;">
                             {% if game['HotnessIcon'] %}
                                 <span style="font-size: 1.5em;" title="Hotness Score: {{ game['HotnessScore'] }}/100">{{ game['HotnessIcon'] }}</span>
