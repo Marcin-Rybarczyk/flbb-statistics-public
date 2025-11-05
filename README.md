@@ -6,7 +6,9 @@ A comprehensive Flask-based web application for analyzing and visualizing basket
 
 This project provides in-depth analysis and visualization of basketball statistics from the Luxembourg Basketball Federation. It automatically scrapes game data, processes it into meaningful insights, and presents interactive visualizations through a modern web interface.
 
-**Live Demo**: [Visit the deployed application](https://marcin-rybarczyk.github.io/flbb-statistics-public)
+**Live Demo**: [Visit the deployed application](http://flbb.ryba.usermd.net)
+**Test Environment**: [Visit the deployed application](https://test.flbb-public.ryba.usermd.net)
+
 
 ## ✨ Key Features
 
@@ -167,9 +169,6 @@ python3 deployment/deploy_flask.py github      # Generate static site for GitHub
 ```
 
 ### Platform-Specific Instructions
-- **[Render.com](docs/README_DEPLOYMENT.md#render-com)** - Recommended for full Flask deployment
-- **[Railway.app](docs/README_DEPLOYMENT.md#railway-app)** - Modern platform with generous free tier
-- **[GitHub Pages](docs/README_DEPLOYMENT.md#github-pages)** - Static version hosting
 - **[MyDevil.net](docs/README_DEPLOYMENT.md#mydevil-net)** - Polish hosting with Python support
 
 ## 📖 Documentation
