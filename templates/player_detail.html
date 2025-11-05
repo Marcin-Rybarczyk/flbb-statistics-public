@@ -529,9 +529,21 @@
                                 </a>
                             </div>
                             <div>
-                                <a href="/team-detail?team={{ game.Team }}" class="team-link">{{ game.Team }}</a>
+                                <a href="/team-detail?team={{ game.Team }}" class="team-link">
+                                    {% set team_logo_url = get_team_logo_url(game.Team) %}
+                                    {% if team_logo_url %}
+                                    <img src="{{ team_logo_url }}" alt="{{ game.Team }} logo" class="team-logo-icon">
+                                    {% endif %}
+                                    {{ game.Team }}
+                                </a>
                                 vs
-                                <a href="/team-detail?team={{ game.OpponentTeam }}" class="team-link">{{ game.OpponentTeam }}</a>
+                                <a href="/team-detail?team={{ game.OpponentTeam }}" class="team-link">
+                                    {% set opponent_logo_url = get_team_logo_url(game.OpponentTeam) %}
+                                    {% if opponent_logo_url %}
+                                    <img src="{{ opponent_logo_url }}" alt="{{ game.OpponentTeam }} logo" class="team-logo-icon">
+                                    {% endif %}
+                                    {{ game.OpponentTeam }}
+                                </a>
                             </div>
                         </td>
                         <td>
@@ -755,11 +767,40 @@
                 }
             });
             
+            // Helper function to get team logo URL
+            function getTeamLogoUrl(teamName) {
+                if (!teamName) return null;
+                // Normalize team name (convert to lowercase, replace spaces with hyphens)
+                const normalized = teamName.toLowerCase()
+                    .replace(/\s+/g, '-')
+                    .replace(/[àáâãäå]/g, 'a')
+                    .replace(/[èéêë]/g, 'e')
+                    .replace(/[ìíîï]/g, 'i')
+                    .replace(/[òóôõö]/g, 'o')
+                    .replace(/[ùúûü]/g, 'u')
+                    .replace(/[ñ]/g, 'n')
+                    .replace(/[ç]/g, 'c');
+                
+                // Try PNG first (most common)
+                return `/logos/${normalized}.png`;
+            }
+            
+            // Helper function to generate team logo HTML
+            function getTeamLogoHtml(teamName) {
+                const logoUrl = getTeamLogoUrl(teamName);
+                if (logoUrl) {
+                    return `<img src="${logoUrl}" alt="${teamName} logo" class="team-logo-icon" onerror="this.style.display='none'">`;
+                }
+                return '';
+            }
+            
             // Build games table with quarter breakdown
             let tableHTML = '<h3>Game-by-Game Breakdown</h3><table><thead><tr><th>Game</th><th>Date</th><th>Matchup</th><th>Points</th><th>Fouls</th><th>1P</th><th>2P</th><th>3P</th></tr></thead><tbody>';
             
             last5Games.forEach((game, idx) => {
                 const hotnessIconHtml = game.HotnessIcon ? `<span style="font-size: 1.3em; margin-left: 5px;" title="Game Hotness: ${game.HotnessScore}/100">${game.HotnessIcon}</span>` : '';
+                const teamLogoHtml = getTeamLogoHtml(game.Team);
+                const opponentLogoHtml = getTeamLogoHtml(game.OpponentTeam);
                 tableHTML += `<tr>
                     <td>${idx + 1}</td>
                     <td>${game.GameDate}</td>
@@ -768,9 +809,9 @@
                             <a href="/game-detail/${game.GameId}" class="game-link hoverable-item" data-type="game" data-id="${game.GameId}" style="font-size: 0.85em;">Game ${game.GameId}${hotnessIconHtml}</a>
                         </div>
                         <div>
-                            <a href="/team-detail?team=${encodeURIComponent(game.Team)}" class="team-link">${game.Team}</a>
+                            <a href="/team-detail?team=${encodeURIComponent(game.Team)}" class="team-link">${teamLogoHtml}${game.Team}</a>
                             vs
-                            <a href="/team-detail?team=${encodeURIComponent(game.OpponentTeam)}" class="team-link">${game.OpponentTeam}</a>
+                            <a href="/team-detail?team=${encodeURIComponent(game.OpponentTeam)}" class="team-link">${opponentLogoHtml}${game.OpponentTeam}</a>
                         </div>
                     </td>
                     <td><strong>${game.TotalPoints}</strong></td>
