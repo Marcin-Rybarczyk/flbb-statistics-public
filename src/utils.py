@@ -4779,6 +4779,7 @@ def get_team_hover_stats(data, team_name):
         - total_teams: Total number of teams in division
         - division: Division name
         - top_scorers: List of top 5 scorers ranked by total points (descending) with total_points and avg_points
+        - next_game: Dictionary with next game info (opponent, opponent_position, opponent_total_teams, date, time, is_home, location) or None
     """
     if data.empty:
         return None
