@@ -4905,6 +4905,77 @@ def get_referee_hover_stats(data, referee_name):
     }
 
 
+def _get_team_position_and_streak(data, team_name, division):
+    """
+    Helper function to get team position and last 5 game streak.
+    
+    Parameters:
+    data (DataFrame): The game data
+    team_name (str): The name of the team
+    division (str): The division name
+    
+    Returns:
+    dict: Dictionary containing:
+        - position: Current position in division standings (None if not found)
+        - total_teams: Total number of teams in division (None if not found)
+        - last_five: List of results for last 5 games (W/L), empty list if no games
+    """
+    if data.empty or not team_name:
+        return {
+            'position': None,
+            'total_teams': None,
+            'last_five': []
+        }
+    
+    # Filter games for this team
+    team_games = data[
+        (data['HomeTeamName'] == team_name) | 
+        (data['AwayTeamName'] == team_name)
+    ].copy()
+    
+    # Get last 5 games streak
+    last_five = []
+    if not team_games.empty:
+        # Sort by date
+        team_games = team_games.sort_values('DateTime')
+        
+        # Process each game
+        team_games['IsHome'] = team_games['HomeTeamName'] == team_name
+        team_games['TeamScore'] = team_games.apply(
+            lambda row: row['FinalHomeScore'] if row['IsHome'] else row['FinalAwayScore'], 
+            axis=1
+        )
+        team_games['OpponentScore'] = team_games.apply(
+            lambda row: row['FinalAwayScore'] if row['IsHome'] else row['FinalHomeScore'], 
+            axis=1
+        )
+        team_games['Result'] = team_games.apply(
+            lambda row: 'W' if row['TeamScore'] > row['OpponentScore'] else 'L', 
+            axis=1
+        )
+        
+        # Get last 5 games
+        last_five = team_games.tail(5)['Result'].tolist()
+    
+    # Calculate position in division standings
+    position = None
+    total_teams = None
+    if division:
+        standings = calculate_standings_by_division(data, division)
+        if not standings.empty:
+            total_teams = int(len(standings))
+            team_row = standings[standings['Team Name'] == team_name]
+            if not team_row.empty:
+                # Get position (index starts at 1 in standings)
+                position = int(team_row.index[0])
+    
+    return {
+        'position': position,
+        'total_teams': total_teams,
+        'last_five': last_five
+    }
+
+
 def get_game_hover_stats(data, game_id):
     """
     Get basic statistics for a game to display in hover tooltip.
@@ -5000,16 +5071,36 @@ def get_game_hover_stats(data, game_id):
                 # Get division name
                 division = convert_division_name(game.get('GameDivisionName', ''))
                 
+                # Get position and streak for both teams
+                home_team_info = _get_team_position_and_streak(data, home_team, division)
+                away_team_info = _get_team_position_and_streak(data, away_team, division)
+                
+                # Get referees if available (currently not in gamesDB.json for future games)
+                referees = []
+                if 'Referees' in game and game['Referees']:
+                    try:
+                        referee_names = [
+                            ref.get('RefereeName') or ref.get('Referee Name', 'Unknown') 
+                            for ref in game['Referees']
+                        ] if isinstance(game['Referees'], list) else []
+                        referees = referee_names
+                    except:
+                        referees = []
+                
                 return {
                     'result': f"{home_team} vs {away_team}",
-                    'referees': [],
+                    'referees': referees,
                     'date_time': game_date,
-                    'lead_changes': 0,
-                    'ties': 0,
-                    'hotness_score': 0,
-                    'hotness_icon': "📅",
                     'is_future': True,
-                    'division': division
+                    'division': division,
+                    'home_team': home_team,
+                    'away_team': away_team,
+                    'home_position': home_team_info['position'],
+                    'home_total_teams': home_team_info['total_teams'],
+                    'home_last_five': home_team_info['last_five'],
+                    'away_position': away_team_info['position'],
+                    'away_total_teams': away_team_info['total_teams'],
+                    'away_last_five': away_team_info['last_five']
                 }
     
     # Game not found in either finished or future games

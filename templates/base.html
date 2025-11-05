@@ -1259,34 +1259,107 @@
                             </div>
                         `;
                     } else if (type === 'game') {
-                        const refereesHtml = data.referees.join(', ') || 'N/A';
-                        content = `
-                            <h4>🏀 Game ${id}</h4>
-                            <div class="stat-row">
-                                <span class="stat-label">Result:</span>
-                                <span class="stat-value" style="font-size: 0.85em;">${data.result}</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="stat-label">Date:</span>
-                                <span class="stat-value">${data.date_time}</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="stat-label">Game Hotness:</span>
-                                <span class="stat-value" style="font-size: 1.5em;" title="Hotness Score: ${data.hotness_score}/100">${data.hotness_icon}</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="stat-label">Lead Changes:</span>
-                                <span class="stat-value">${data.lead_changes}</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="stat-label">Tied Scores:</span>
-                                <span class="stat-value">${data.ties}</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="stat-label">Referees:</span>
-                                <span class="stat-value" style="font-size: 0.85em;">${refereesHtml}</span>
-                            </div>
-                        `;
+                        // Check if this is a future game
+                        if (data.is_future) {
+                            // Future game - show different information
+                            const refereesHtml = data.referees && data.referees.length > 0 ? data.referees.join(', ') : 'TBD';
+                            
+                            // Format home team streak
+                            let homeStreakHtml = '';
+                            if (data.home_last_five && data.home_last_five.length > 0) {
+                                homeStreakHtml = data.home_last_five.map(result => 
+                                    `<span class="streak ${result === 'W' ? 'win' : 'loss'}">${result}</span>`
+                                ).join('');
+                            } else {
+                                homeStreakHtml = 'N/A';
+                            }
+                            
+                            // Format away team streak
+                            let awayStreakHtml = '';
+                            if (data.away_last_five && data.away_last_five.length > 0) {
+                                awayStreakHtml = data.away_last_five.map(result => 
+                                    `<span class="streak ${result === 'W' ? 'win' : 'loss'}">${result}</span>`
+                                ).join('');
+                            } else {
+                                awayStreakHtml = 'N/A';
+                            }
+                            
+                            // Format positions
+                            const homePosition = data.home_position && data.home_total_teams 
+                                ? `${data.home_position} / ${data.home_total_teams}` 
+                                : 'N/A';
+                            const awayPosition = data.away_position && data.away_total_teams 
+                                ? `${data.away_position} / ${data.away_total_teams}` 
+                                : 'N/A';
+                            
+                            content = `
+                                <h4>📅 Game ${id}</h4>
+                                <div class="stat-row">
+                                    <span class="stat-label">Match-up:</span>
+                                    <span class="stat-value" style="font-size: 0.85em;">${data.result}</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Date & Time:</span>
+                                    <span class="stat-value">${data.date_time}</span>
+                                </div>
+                                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1);">
+                                    <div style="font-weight: 600; color: #2980b9; margin-bottom: 4px;">${data.home_team || 'Home Team'}</div>
+                                    <div class="stat-row">
+                                        <span class="stat-label">Position:</span>
+                                        <span class="stat-value">${homePosition}</span>
+                                    </div>
+                                    <div class="stat-row">
+                                        <span class="stat-label">Last 5:</span>
+                                        <span class="stat-value">${homeStreakHtml}</span>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1);">
+                                    <div style="font-weight: 600; color: #e67e22; margin-bottom: 4px;">${data.away_team || 'Away Team'}</div>
+                                    <div class="stat-row">
+                                        <span class="stat-label">Position:</span>
+                                        <span class="stat-value">${awayPosition}</span>
+                                    </div>
+                                    <div class="stat-row">
+                                        <span class="stat-label">Last 5:</span>
+                                        <span class="stat-value">${awayStreakHtml}</span>
+                                    </div>
+                                </div>
+                                <div class="stat-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1);">
+                                    <span class="stat-label">Referees:</span>
+                                    <span class="stat-value" style="font-size: 0.85em;">${refereesHtml}</span>
+                                </div>
+                            `;
+                        } else {
+                            // Finished game - show original information
+                            const refereesHtml = data.referees.join(', ') || 'N/A';
+                            content = `
+                                <h4>🏀 Game ${id}</h4>
+                                <div class="stat-row">
+                                    <span class="stat-label">Result:</span>
+                                    <span class="stat-value" style="font-size: 0.85em;">${data.result}</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Date:</span>
+                                    <span class="stat-value">${data.date_time}</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Game Hotness:</span>
+                                    <span class="stat-value" style="font-size: 1.5em;" title="Hotness Score: ${data.hotness_score}/100">${data.hotness_icon}</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Lead Changes:</span>
+                                    <span class="stat-value">${data.lead_changes}</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Tied Scores:</span>
+                                    <span class="stat-value">${data.ties}</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Referees:</span>
+                                    <span class="stat-value" style="font-size: 0.85em;">${refereesHtml}</span>
+                                </div>
+                            `;
+                        }
                     }
 
                     tooltip.innerHTML = content;
