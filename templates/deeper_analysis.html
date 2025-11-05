@@ -178,7 +178,7 @@
         <!-- Division Info -->
         {% if selected_division %}
         <div class="division-info">
-            📊 Showing analysis for: <strong>{{ selected_division }}</strong>
+            📊 Showing analysis for: <strong><span class="division-name hoverable-item" data-type="division" data-id="{{ selected_division }}">{{ selected_division }}</span></strong>
         </div>
         {% else %}
         <div class="division-info">

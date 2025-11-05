@@ -797,6 +797,20 @@
             cursor: pointer;
         }
 
+        /* Division names styling */
+        .division-name {
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            display: inline-block;
+        }
+
+        .division-name:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }
+
         {% block extra_styles %}{% endblock %}
     </style>
 </head>
@@ -1441,6 +1455,27 @@
                             <i>🔍</i>Open Game Details
                         </div>
                     `;
+                } else if (type === 'division') {
+                    menuHtml = `
+                        <div class="context-menu-item" data-action="standings" data-type="division" data-id="${id}">
+                            <i>🏆</i>Open Standing
+                        </div>
+                        <div class="context-menu-item" data-action="fixtures" data-type="division" data-id="${id}">
+                            <i>📅</i>Open Fixtures
+                        </div>
+                        <div class="context-menu-item" data-action="statistics" data-type="division" data-id="${id}">
+                            <i>🎮</i>Open Game Stats
+                        </div>
+                        <div class="context-menu-item" data-action="player-stats" data-type="division" data-id="${id}">
+                            <i>👤</i>Open Player Stats
+                        </div>
+                        <div class="context-menu-item" data-action="team-stats" data-type="division" data-id="${id}">
+                            <i>🏆</i>Open Team Stats
+                        </div>
+                        <div class="context-menu-item" data-action="deeper-analysis" data-type="division" data-id="${id}">
+                            <i>📊</i>Open Deep Analysis
+                        </div>
+                    `;
                 }
 
                 contextMenu.innerHTML = menuHtml;
@@ -1481,6 +1516,22 @@
                                 window.location.href = `/referee-detail?referee=${encodeURIComponent(menuId)}`;
                             } else if (menuType === 'game') {
                                 window.location.href = `/game-detail/${menuId}`;
+                            }
+                        } else if (menuType === 'division') {
+                            // Handle division-specific actions
+                            const divisionParam = encodeURIComponent(menuId);
+                            if (action === 'standings') {
+                                window.location.href = `/standings?division=${divisionParam}`;
+                            } else if (action === 'fixtures') {
+                                window.location.href = `/fixtures?division=${divisionParam}`;
+                            } else if (action === 'statistics') {
+                                window.location.href = `/statistics?division=${divisionParam}`;
+                            } else if (action === 'player-stats') {
+                                window.location.href = `/player-stats?division=${divisionParam}`;
+                            } else if (action === 'team-stats') {
+                                window.location.href = `/team-stats?division=${divisionParam}`;
+                            } else if (action === 'deeper-analysis') {
+                                window.location.href = `/deeper-analysis?division=${divisionParam}`;
                             }
                         }
                         

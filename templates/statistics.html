@@ -121,7 +121,7 @@
         <!-- Division Info -->
         {% if selected_division %}
         <div class="division-info">
-            📊 Showing statistics for: <strong>{{ selected_division }}</strong>
+            📊 Showing statistics for: <strong><span class="division-name hoverable-item" data-type="division" data-id="{{ selected_division }}">{{ selected_division }}</span></strong>
         </div>
         {% else %}
         <div class="division-info">
@@ -176,7 +176,7 @@
                         </td>
                         <td>{{ row['FinalHomeScore'] }} - {{ row['FinalAwayScore'] }}</td>
                         <td><strong>{{ row['TotalScore'] }}</strong></td>
-                        <td>{{ row['GameDivisionDisplay'] }}</td>
+                        <td><span class="division-name hoverable-item" data-type="division" data-id="{{ row['GameDivisionDisplay'] }}">{{ row['GameDivisionDisplay'] }}</span></td>
                     </tr>
                     {% endfor %}
                 </tbody>

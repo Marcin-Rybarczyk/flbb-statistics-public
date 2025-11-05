@@ -393,7 +393,7 @@
     <div class="stats-summary">
         <h3>📊 Season Overview</h3>
         <p>Teams: {{ matrix_data.teams|length }} | 
-           Division: {% if selected_division == 'ALL' %}All Divisions{% else %}{{ selected_division }}{% endif %}
+           Division: {% if selected_division == 'ALL' %}All Divisions{% else %}<span class="division-name hoverable-item" data-type="division" data-id="{{ selected_division }}">{{ selected_division }}</span>{% endif %}
         </p>
     </div>
 
@@ -621,7 +621,7 @@
                             {% endif %}
                         </td>
                         <td>
-                            <span class="division-badge">{{ row.get('Division', row.get('GameDivisionDisplay', 'Unknown')) }}</span>
+                            <span class="division-badge division-name hoverable-item" data-type="division" data-id="{{ row.get('Division', row.get('GameDivisionDisplay', 'Unknown')) }}">{{ row.get('Division', row.get('GameDivisionDisplay', 'Unknown')) }}</span>
                         </td>
                         <td class="location">{{ row.get('Location', 'TBD') }}</td>
                         
