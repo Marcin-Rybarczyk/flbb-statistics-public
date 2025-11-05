@@ -99,13 +99,94 @@ This guide provides comprehensive instructions for deploying the FLBB Statistics
 
 **Deployment:**
 ```bash
-python3 deploy_flask.py github
+python3 deployment/deploy_flask.py github
 ```
 
 This will:
 1. Generate static HTML files using `generate_static.py`
 2. Create files in the `static_site/` directory
 3. Provide instructions for GitHub Pages setup
+
+### 4. MyDevil.net (Polish Hosting)
+
+**Why MyDevil.net:**
+- ✅ Affordable Polish hosting with Python support
+- ✅ SSH access for deployment
+- ✅ Virtual environment support
+- ✅ Custom domain support
+
+**Deployment Steps:**
+
+1. **Prepare your project for MyDevil:**
+   ```bash
+   python3 prepare_mydevil_setup.py
+   ```
+   
+   This script will:
+   - Ensure all `__init__.py` files exist in `src/` directory
+   - Fix relative imports to use absolute paths (e.g., `from src.utils import ...`)
+   - Create/verify `wsgi.py` and `passenger_wsgi.py` entry points
+   - Check `requirements.txt` for Flask and gunicorn
+
+2. **SSH into your MyDevil account:**
+   ```bash
+   ssh yourlogin@server.mydevil.net
+   ```
+
+3. **Create a virtual environment:**
+   ```bash
+   python3.11 -m venv ~/flaskenv
+   source ~/flaskenv/bin/activate
+   ```
+
+4. **Upload your project:**
+   - Use Git: `git clone your-repo-url`
+   - Or use SFTP to upload files
+
+5. **Install dependencies:**
+   ```bash
+   cd ~/your-project-directory
+   pip install -r requirements.txt
+   ```
+
+6. **Configure webapp in MyDevil panel:**
+   - Go to WWW → Add new website
+   - Choose Python application
+   - Set Python version to 3.11
+   - Set WSGI file path: `/home/yourlogin/path/to/passenger_wsgi.py`
+   
+   Or via SSH:
+   ```bash
+   devil www add myflaskapp python3.11 ~/path/to/passenger_wsgi.py
+   ```
+
+7. **Set environment variables (optional):**
+   Create `.env` file or set in panel:
+   ```
+   FLASK_ENV=production
+   DEBUG=False
+   SECRET_KEY=your-secret-key-here
+   ```
+
+8. **Restart the application:**
+   ```bash
+   touch ~/domains/myflaskapp.YOURUSERNAME.mydevil.net/tmp/restart.txt
+   ```
+
+9. **Access your application:**
+   Visit `https://myflaskapp.YOURUSERNAME.mydevil.net`
+
+**Important Files for MyDevil:**
+- `passenger_wsgi.py` - Entry point for Passenger WSGI
+- `prepare_mydevil_setup.py` - Setup automation script
+- `requirements.txt` - Dependencies list
+- `.env` (optional) - Environment variables
+
+**Troubleshooting:**
+- If you see import errors, make sure all imports use `from src.module import ...` format
+- Check error logs: `~/logs/yourapp-error.log`
+- Verify Python version: `python --version` (should be 3.11+)
+- Restart after changes: `touch tmp/restart.txt`
 
 ## 🛠️ Deployment Scripts
 
@@ -116,10 +197,10 @@ Local development and testing script with the following features:
 - **Flask app testing:** Validates routes and functionality
 - **Multiple modes:**
   ```bash
-  python3 test_local_flask.py --help           # Show help
-  python3 test_local_flask.py --test-only      # Run tests only
-  python3 test_local_flask.py --port 8080      # Custom port
-  python3 test_local_flask.py --production     # Test with gunicorn
+  python3 tests/test_local_flask.py --help           # Show help
+  python3 tests/test_local_flask.py --test-only      # Run tests only
+  python3 tests/test_local_flask.py --port 8080      # Custom port
+  python3 tests/test_local_flask.py --production     # Test with gunicorn
   ```
 
 ### `deploy_flask.py`
@@ -131,23 +212,46 @@ Comprehensive deployment assistant:
 - **Browser integration:** Opens deployment sites automatically
 
 ```bash
-python3 deploy_flask.py                    # Interactive mode
-python3 deploy_flask.py render            # Render.com guide
-python3 deploy_flask.py railway           # Railway.app guide
-python3 deploy_flask.py github            # GitHub Pages deploy
-python3 deploy_flask.py local             # Local production test
+python3 deployment/deploy_flask.py                    # Interactive mode
+python3 deployment/deploy_flask.py render            # Render.com guide
+python3 deployment/deploy_flask.py railway           # Railway.app guide
+python3 deployment/deploy_flask.py github            # GitHub Pages deploy
+python3 deployment/deploy_flask.py local             # Local production test
+```
+
+### `prepare_mydevil_setup.py`
+MyDevil.net deployment preparation script:
+
+- **Ensures proper project structure:** Creates `__init__.py` files in all directories
+- **Fixes imports:** Converts relative imports to absolute imports for MyDevil compatibility
+- **Creates WSGI files:** Sets up `passenger_wsgi.py` for Passenger WSGI
+- **Validates requirements:** Checks for Flask and gunicorn in `requirements.txt`
+
+```bash
+python3 prepare_mydevil_setup.py
 ```
 
 ## 📁 Project Structure
 
 ```
 flbb-statistics/
-├── app.py                 # Main Flask application
-├── wsgi.py                # Production WSGI entry point
-├── utils.py               # Data processing utilities
-├── requirements.txt       # Python dependencies
-├── test_local_flask.py    # Local testing script
-├── deploy_flask.py        # Deployment assistant
+├── src/
+│   ├── app.py                 # Main Flask application
+│   ├── wsgi.py                # Production WSGI entry point
+│   ├── utils.py               # Data processing utilities
+│   ├── version.py             # Version tracking
+│   └── google_drive_helper.py # Google Drive integration
+├── deployment/
+│   ├── deploy_flask.py        # Deployment assistant
+│   ├── generate_static.py     # Static site generator
+│   └── requirements.txt       # Deployment dependencies
+├── tests/
+│   └── test_local_flask.py    # Local testing script
+├── requirements.txt           # Main Python dependencies
+├── passenger_wsgi.py          # MyDevil.net WSGI entry point
+├── prepare_mydevil_setup.py   # MyDevil deployment prep
+└── ...
+```
 ├── templates/             # HTML templates
 ├── static_site/           # Generated static files (for GitHub Pages)
 ├── full-game-stats.csv    # Basketball statistics data
