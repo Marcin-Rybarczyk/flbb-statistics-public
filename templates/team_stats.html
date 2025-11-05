@@ -74,7 +74,7 @@
                             {% if team_logo_url %}
                                 <img src="{{ team_logo_url }}" alt="{{ row['Team'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
                             {% endif %}
-                            <a href="/team-detail?team={{ row['Team'] }}" style="color: #667eea; text-decoration: underline; font-weight: bold;">{{ row['Team'] }}</a>
+                            <a href="/team-detail?team={{ row['Team'] }}" class="team-link">{{ row['Team'] }}</a>
                         </td>
                         <td>{{ row['TotalGames'] }}</td>
                         <td>{{ row['Wins'] }}</td>
@@ -115,7 +115,7 @@
                             {% if team_logo_url %}
                                 <img src="{{ team_logo_url }}" alt="{{ row['Team'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
                             {% endif %}
-                            <a href="/team-detail?team={{ row['Team'] }}" style="color: #667eea; text-decoration: underline;">{{ row['Team'] }}</a>
+                            <a href="/team-detail?team={{ row['Team'] }}" class="team-link">{{ row['Team'] }}</a>
                         </td>
                         <td><strong>{{ "%.1f"|format(row['AvgPointsScored']) }}</strong></td>
                         <td>{{ row['HighestScore'] }}</td>
@@ -147,7 +147,7 @@
                             {% if team_logo_url %}
                                 <img src="{{ team_logo_url }}" alt="{{ row['Team'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
                             {% endif %}
-                            <a href="/team-detail?team={{ row['Team'] }}" style="color: #667eea; text-decoration: underline;">{{ row['Team'] }}</a>
+                            <a href="/team-detail?team={{ row['Team'] }}" class="team-link">{{ row['Team'] }}</a>
                         </td>
                         <td><strong>{{ "%.1f"|format(row['AvgPointsAllowed']) }}</strong></td>
                         <td>{{ "%.1f"|format(row['PointsDifferential']) }}</td>

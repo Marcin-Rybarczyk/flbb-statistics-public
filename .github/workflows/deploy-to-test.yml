@@ -27,7 +27,7 @@ jobs:
         id: deploy
         run: |
           set -e
-          ssh ${{ secrets.MYDEVIL_USER }}@${{ secrets.MYDEVIL_HOST }} << 'EOF'
+          ssh ${{ secrets.MYDEVIL_USER }}@${{ secrets.MYDEVIL_HOST }} -p 443 << 'EOF'
           set -e
           cd ~/domains/${{ secrets.MYDEVIL_TEST_DOMAIN_NAME }}/public_python
           if [ ! -d .git ]; then

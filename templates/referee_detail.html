@@ -347,14 +347,14 @@
                         {% for game in referee_stats.games %}
                         <tr>
                             <td>
-                                <a href="/game-detail/{{ game.game_id }}" class="game-link">
+                                <a href="/game-detail/{{ game.game_id }}" class="game-link hoverable-item" data-type="game" data-id="{{ game.game_id }}">
                                     {{ game.game_id }}
                                 </a>
                             </td>
                             <td>{{ game.date_time }}</td>
                             <td>{{ game.division }}</td>
                             <td>
-                                <a href="/game-detail/{{ game.game_id }}" class="game-link">
+                                <a href="/game-detail/{{ game.game_id }}" class="game-link hoverable-item" data-type="game" data-id="{{ game.game_id }}">
                                     {{ game.home_team }} vs {{ game.away_team }}
                                 </a>
                             </td>

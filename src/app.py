@@ -1,7 +1,7 @@
 import os
 import re
 from urllib.parse import unquote
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 import pandas as pd
 from src.utils import (calculate_standings_by_division, get_highest_scoring_games, 
                    load_game_data, get_top_players_by_score, get_team_performance_stats,
@@ -15,10 +15,24 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
                    get_fixtures_matrix_data, get_data_source_info, get_season_info, 
                    get_website_config, list_available_archives, import_season_archive,
                    get_all_players_list, get_player_detail_stats, get_game_details, get_referee_detail_stats,
-                   get_team_detail_stats, get_all_referees_list)
+                   get_team_detail_stats, get_all_referees_list, get_all_games_list,
+                   get_player_hover_stats, get_team_hover_stats, get_referee_hover_stats, get_game_hover_stats,
+                   calculate_referee_performance_index, get_closest_games_by_team)
 from src.version import get_version_info
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
+
+# Valid theme options for the application
+VALID_THEMES = ['default', 'ocean', 'sunset', 'forest', 'minimal', 'cherry']
+
+# Set secret key for session management
+# In production, SECRET_KEY should be set via environment variable
+# For development, generate a random key if not set
+if not os.environ.get('SECRET_KEY'):
+    import secrets
+    app.secret_key = secrets.token_hex(32)
+else:
+    app.secret_key = os.environ.get('SECRET_KEY')
 
 # Context processor to make season info available to all templates
 @app.context_processor
@@ -27,10 +41,19 @@ def inject_season_info():
     season_info = get_season_info()
     website_config = get_website_config()
     version_info = get_version_info()
+    
+    # Get user preferences from session
+    user_prefs = {
+        'division': session.get('preferred_division'),
+        'team': session.get('preferred_team'),
+        'theme': session.get('preferred_theme', 'default')
+    }
+    
     return {
         'season_info': season_info,
         'website_config': website_config,
-        'version_info': version_info
+        'version_info': version_info,
+        'user_prefs': user_prefs
     }
 
 # Logo utility functions
@@ -84,75 +107,68 @@ if not data.empty:
         data = data.drop('Unnamed: 0', axis=1)
     # Extract unique divisions
     divisions = data['GameDivisionDisplay'].unique()
+    # Extract unique teams from player stats
+    from src.utils import extract_all_player_stats
+    player_stats = extract_all_player_stats(data)
+    if not player_stats.empty:
+        teams = sorted(player_stats['Team'].unique())
+    else:
+        teams = []
 else:
     divisions = []
+    teams = []
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    selected_division = request.form.get('division')
+    """Home page with navigation tiles"""
+    return render_template('index.html', 
+                         divisions=divisions,
+                         data_source_info=data_source_info)
+
+@app.route('/standings', methods=['GET', 'POST'])
+def standings():
+    """Division standings page"""
+    # Get division from form, query params, or user preferences
+    selected_division = request.form.get('division') or request.args.get('division') or session.get('preferred_division')
     standings = None
-    highest_games = None
 
     if selected_division and not data.empty:
         # Calculate standings for the selected division
         standings = calculate_standings_by_division(data, selected_division)
-        # Get highest scoring games for the division
-        division_data = data[data['GameDivisionDisplay'] == selected_division]
-        highest_games = get_highest_scoring_games(division_data, 5)
 
-    return render_template('index.html', 
+    return render_template('standings.html', 
                          divisions=divisions, 
-                         standings=standings, 
-                         highest_games=highest_games,
+                         standings=standings,
                          selected_division=selected_division,
                          data_source_info=data_source_info)
 
-@app.route('/statistics')
+@app.route('/statistics', methods=['GET', 'POST'])
 def statistics():
-    """Statistics page with comprehensive data analysis"""
+    """Game Statistics page with division filtering"""
     if data.empty:
         return render_template('statistics.html', 
                              error="No data available",
                              divisions=divisions,
                              data_source_info=data_source_info)
     
-    # Get overall statistics
-    highest_games = get_highest_scoring_games(data, 10)
+    # Get selected division from form, query parameter, or user preferences
+    selected_division = request.form.get('division') or request.args.get('division') or session.get('preferred_division')
     
-    # Player Statistics
-    top_scorers = get_top_scorers(data, 20)
-    highest_single_score = get_highest_single_game_score(data)
-    top_three_pointers = get_top_three_pointers(data, 10)
-    top_foulers = get_top_foulers(data, 10)
-    
-    # Referee Statistics
-    referee_stats = get_referee_statistics(data)
-    referee_fouls = get_referee_fouls_per_game(data)
-    referee_least_fouls = get_referees_least_fouls_per_game(data)
-    
-    # Game Statistics  
-    biggest_wins = get_biggest_wins(data, 10)
-    biggest_leads = get_biggest_leads(data, 10)
-    most_ties = get_most_tie_scores(data, 10)
-    most_lead_changes = get_most_lead_changes(data, 10)
-    
-    team_stats = get_team_performance_stats(data)
+    # Get game statistics with optional division filter
+    highest_games = get_highest_scoring_games(data, 10, division=selected_division)
+    biggest_wins = get_biggest_wins(data, 10, division=selected_division)
+    biggest_leads = get_biggest_leads(data, 10, division=selected_division)
+    most_ties = get_most_tie_scores(data, 10, division=selected_division)
+    most_lead_changes = get_most_lead_changes(data, 10, division=selected_division)
     
     return render_template('statistics.html', 
                          highest_games=highest_games,
-                         top_scorers=top_scorers,
-                         highest_single_score=highest_single_score,
-                         top_three_pointers=top_three_pointers,
-                         top_foulers=top_foulers,
-                         referee_stats=referee_stats,
-                         referee_fouls=referee_fouls,
-                         referee_least_fouls=referee_least_fouls,
                          biggest_wins=biggest_wins,
                          biggest_leads=biggest_leads,
                          most_ties=most_ties,
                          most_lead_changes=most_lead_changes,
-                         team_stats=team_stats,
                          divisions=divisions,
+                         selected_division=selected_division,
                          data_source_info=data_source_info)
 
 @app.route('/team-stats', methods=['GET', 'POST'])
@@ -161,8 +177,8 @@ def team_stats():
     if data.empty:
         return render_template('team_stats.html', error="No data available", data_source_info=data_source_info)
     
-    # Get selected division from form
-    selected_division = request.form.get('division')
+    # Get selected division from form or user preferences
+    selected_division = request.form.get('division') or session.get('preferred_division')
     
     # Get team performance stats
     team_performance = get_team_performance_stats(data)
@@ -190,8 +206,8 @@ def team_detail():
     away_teams = set(data['AwayTeamName'].unique())
     all_teams = sorted(home_teams.union(away_teams))
     
-    # Get selected team from query parameter
-    team_name = request.args.get('team')
+    # Get selected team from query parameter or user preferences
+    team_name = request.args.get('team') or session.get('preferred_team')
     team_stats_detail = None
     
     if team_name:
@@ -210,20 +226,21 @@ def player_stats():
     if data.empty:
         return render_template('player_stats.html', error="No data available", data_source_info=data_source_info)
     
-    # Get selected division from form
+    # Get selected division and team from form
     selected_division = request.form.get('division')
+    selected_team = request.form.get('team')
     
-    # Get comprehensive player statistics (filtered by division if selected)
-    top_scorers = get_top_scorers(data, 50, division=selected_division)  # Get top 50 for comprehensive view
-    highest_single_scores = get_highest_single_game_score(data, 10, division=selected_division)  # Now returns top 10
-    top_three_pointers = get_top_three_pointers(data, 20, division=selected_division)
-    top_foulers = get_top_foulers(data, 20, division=selected_division)
+    # Get comprehensive player statistics (filtered by division and team if selected)
+    top_scorers = get_top_scorers(data, 50, division=selected_division, team=selected_team)  # Get top 50 for comprehensive view
+    highest_single_scores = get_highest_single_game_score(data, 10, division=selected_division, team=selected_team)  # Now returns top 10
+    top_three_pointers = get_top_three_pointers(data, 20, division=selected_division, team=selected_team)
+    top_foulers = get_top_foulers(data, 20, division=selected_division, team=selected_team)
     
     # New basketball-specific statistics
-    shooting_efficiency = get_player_shooting_efficiency(data, 20, division=selected_division)
-    starter_bench_stats = get_starting_five_vs_bench_stats(data, division=selected_division)
-    double_digit_scorers = get_double_digit_scorers(data, division=selected_division)
-    consistent_scorers = get_consistent_scorers(data, division=selected_division)
+    shooting_efficiency = get_player_shooting_efficiency(data, 20, division=selected_division, team=selected_team)
+    starter_bench_stats = get_starting_five_vs_bench_stats(data, division=selected_division, team=selected_team)
+    double_digit_scorers = get_double_digit_scorers(data, division=selected_division, team=selected_team)
+    consistent_scorers = get_consistent_scorers(data, division=selected_division, team=selected_team)
     
     return render_template('player_stats.html',
                          top_scorers=top_scorers,
@@ -235,7 +252,9 @@ def player_stats():
                          double_digit_scorers=double_digit_scorers,
                          consistent_scorers=consistent_scorers,
                          divisions=divisions,
+                         teams=teams,
                          selected_division=selected_division,
+                         selected_team=selected_team,
                          data_source_info=data_source_info)
 
 @app.route('/player-detail')
@@ -304,14 +323,55 @@ def referee_detail():
                          divisions=divisions,
                          data_source_info=data_source_info)
 
+@app.route('/referee-performance-index')
+def referee_performance_index():
+    """Referee Performance Index (RPI) page with comprehensive rankings"""
+    if data.empty:
+        return render_template('referee_performance_index.html', error="No data available", data_source_info=data_source_info)
+    
+    # Calculate Referee Performance Index
+    rpi_data = calculate_referee_performance_index(data)
+    
+    # Prepare data for visualizations
+    scatter_data = []
+    radar_data = []
+    
+    if not rpi_data.empty:
+        # Scatter plot data: Fairness vs Consistency
+        for _, ref in rpi_data.iterrows():
+            scatter_data.append({
+                'name': ref['RefereeName'],
+                'fairness': ref['FairnessScore'],
+                'consistency': ref['ConsistencyScore'],
+                'rpi': ref['RPI'],
+                'games': ref['GamesRefereed']
+            })
+        
+        # Radar data for top 10 referees
+        for _, ref in rpi_data.head(10).iterrows():
+            radar_data.append({
+                'name': ref['RefereeName'],
+                'fairness': ref['FairnessScore'],
+                'consistency': ref['ConsistencyScore'],
+                'control': ref['GameControlScore'],
+                'experience': ref['ExperienceScore']
+            })
+    
+    return render_template('referee_performance_index.html',
+                         rpi_data=rpi_data,
+                         scatter_data=scatter_data,
+                         radar_data=radar_data,
+                         divisions=divisions,
+                         data_source_info=data_source_info)
+
 @app.route('/deeper-analysis')
 def deeper_analysis():
     """Deep game analysis page with advanced metrics"""
     if data.empty:
         return render_template('deeper_analysis.html', error="No data available", divisions=divisions, data_source_info=data_source_info)
     
-    # Get division filter from query parameters
-    division_filter = request.args.get('division')
+    # Get division filter from query parameters or user preferences
+    division_filter = request.args.get('division') or session.get('preferred_division')
     
     # Apply division filter if provided
     filtered_data = data.copy()
@@ -339,15 +399,21 @@ def fixtures():
     if data.empty:
         return render_template('fixtures.html', error="No data available", divisions=divisions, data_source_info=data_source_info)
     
-    # Get division filter from query parameters
-    # Default to "M-Division 1:" if no filter is provided (first time visit)
+    # Get division filter from query parameters or user preferences
+    # Default to "M-Division 1:" if no filter is provided (first time visit) and no preference set
     DEFAULT_DIVISION = "M-Division 1:"
     division_param = request.args.get('division')
+    preferred_division = session.get('preferred_division')
     
     if division_param is None:
-        # First time visit - default to "M-Division 1:"
-        division_filter = DEFAULT_DIVISION
-        selected_division_param = DEFAULT_DIVISION
+        # No explicit param - use preference or default
+        if preferred_division:
+            division_filter = preferred_division
+            selected_division_param = preferred_division
+        else:
+            # First time visit - default to "M-Division 1:"
+            division_filter = DEFAULT_DIVISION
+            selected_division_param = DEFAULT_DIVISION
     elif division_param == "ALL":
         # User explicitly selected "All Divisions" - show all
         division_filter = None
@@ -363,16 +429,20 @@ def fixtures():
     # Also get traditional table data with filter applied
     fixtures_data = get_all_fixtures_data(data, division_filter)
     
-    # Sort by date (most recent first)
+    # Sort by date (oldest first)
     if not fixtures_data.empty and 'DateTime' in fixtures_data.columns:
-        fixtures_data = fixtures_data.sort_values('DateTime', ascending=False)
+        fixtures_data = fixtures_data.sort_values('DateTime', ascending=True)
+    
+    # Get closest games for each team
+    closest_games = get_closest_games_by_team(data, division_filter)
     
     return render_template('fixtures.html',
                          fixtures=fixtures_data,
                          matrix_data=matrix_data,
                          divisions=divisions,
                          selected_division=selected_division_param,
-                         data_source_info=data_source_info)
+                         data_source_info=data_source_info,
+                         closest_games=closest_games)
 
 @app.route('/game-detail/<game_id>')
 def game_detail(game_id):
@@ -388,6 +458,65 @@ def game_detail(game_id):
     
     return render_template('game_detail.html',
                          game=game_details,
+                         data_source_info=data_source_info)
+
+@app.route('/game-details')
+def game_details_search():
+    """Game details search page with searchable functionality similar to player detail"""
+    if data.empty:
+        return render_template('game_details.html', error="No data available", data_source_info=data_source_info)
+    
+    # Get all games for autocomplete
+    all_games = get_all_games_list(data)
+    
+    # Get selected game from query parameter
+    game_id = request.args.get('game')
+    game_details_data = None
+    
+    if game_id:
+        game_details_data = get_game_details(data, game_id)
+    
+    return render_template('game_details.html',
+                         all_games=all_games,
+                         game_id=game_id,
+                         game=game_details_data,
+                         divisions=divisions,
+                         data_source_info=data_source_info)
+
+@app.route('/preferences', methods=['GET', 'POST'])
+def preferences():
+    """User preferences page for setting default filters"""
+    if request.method == 'POST':
+        # Save preferences to session
+        session['preferred_division'] = request.form.get('division') or None
+        session['preferred_team'] = request.form.get('team') or None
+        
+        # Validate and save theme preference
+        theme = request.form.get('theme', 'default')
+        if theme in VALID_THEMES:
+            session['preferred_theme'] = theme
+        else:
+            session['preferred_theme'] = 'default'
+        
+        # Always redirect to preferences page (don't use user-provided URL)
+        return redirect(url_for('preferences'))
+    
+    # Get all unique teams for dropdown
+    home_teams = set(data['HomeTeamName'].unique()) if not data.empty else set()
+    away_teams = set(data['AwayTeamName'].unique()) if not data.empty else set()
+    all_teams = sorted(home_teams.union(away_teams))
+    
+    # Get current preferences from session
+    current_prefs = {
+        'division': session.get('preferred_division'),
+        'team': session.get('preferred_team'),
+        'theme': session.get('preferred_theme', 'default')
+    }
+    
+    return render_template('preferences.html',
+                         divisions=divisions,
+                         all_teams=all_teams,
+                         current_prefs=current_prefs,
                          data_source_info=data_source_info)
 
 @app.route('/admin')
@@ -524,6 +653,64 @@ def import_season_data():
                 
     except Exception as e:
         return {'success': False, 'error': f'Import failed: {str(e)}'}, 500
+
+# API endpoints for hover tooltips
+@app.route('/api/hover/player/<player_name>')
+def api_player_hover(player_name):
+    """API endpoint to get player hover statistics"""
+    if data.empty:
+        return jsonify({'error': 'No data available'}), 404
+    
+    # URL decode the player name
+    player_name = unquote(player_name)
+    
+    stats = get_player_hover_stats(data, player_name)
+    if stats is None:
+        return jsonify({'error': 'Player not found'}), 404
+    
+    return jsonify(stats)
+
+@app.route('/api/hover/team/<team_name>')
+def api_team_hover(team_name):
+    """API endpoint to get team hover statistics"""
+    if data.empty:
+        return jsonify({'error': 'No data available'}), 404
+    
+    # URL decode the team name
+    team_name = unquote(team_name)
+    
+    stats = get_team_hover_stats(data, team_name)
+    if stats is None:
+        return jsonify({'error': 'Team not found'}), 404
+    
+    return jsonify(stats)
+
+@app.route('/api/hover/referee/<referee_name>')
+def api_referee_hover(referee_name):
+    """API endpoint to get referee hover statistics"""
+    if data.empty:
+        return jsonify({'error': 'No data available'}), 404
+    
+    # URL decode the referee name
+    referee_name = unquote(referee_name)
+    
+    stats = get_referee_hover_stats(data, referee_name)
+    if stats is None:
+        return jsonify({'error': 'Referee not found'}), 404
+    
+    return jsonify(stats)
+
+@app.route('/api/hover/game/<game_id>')
+def api_game_hover(game_id):
+    """API endpoint to get game hover statistics"""
+    if data.empty:
+        return jsonify({'error': 'No data available'}), 404
+    
+    stats = get_game_hover_stats(data, game_id)
+    if stats is None:
+        return jsonify({'error': 'Game not found'}), 404
+    
+    return jsonify(stats)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

@@ -1,5 +1,5 @@
 $ROOT = $PSScriptRoot
-
+$DATA_ROOT = "$ROOT\..\data"
 Add-Type -Path "$ROOT\Net40\HtmlAgilityPack.dll"
 
 # Load configuration from config.json
@@ -16,10 +16,10 @@ if (Test-Path $CONFIG_FILEPATH) {
 if ($configData) {
     $PLAYER_MAP_FILEPATH = "$ROOT/$($configData.files.playerMap)"
     $EVENT_ACTION_PATTERNS_FILEPATH = "$ROOT/$($configData.files.eventActionPatterns)"
-    $GAMES_DB_FILEPATH = "$ROOT/$($configData.files.gamesDb)"
-    $GAME_SCHEDULE_DB_FILEPATH = "$ROOT/$($configData.files.gameScheduleDb)"
-    $GAME_SCHEDULE_RAW_DIRECTORY = "$ROOT/$($configData.directories.gameScheduleRaw)"
-    $FULL_GAME_STATS_RAW_DIRECTORY = "$ROOT/$($configData.directories.fullGameStatsRaw)"
+    $GAMES_DB_FILEPATH = "$DATA_ROOT/$($configData.files.gamesDb)"
+    $GAME_SCHEDULE_DB_FILEPATH = "$DATA_ROOT/$($configData.files.gameScheduleDb)"
+    $GAME_SCHEDULE_RAW_DIRECTORY = "$DATA_ROOT/$($configData.directories.gameScheduleRaw)"
+    $FULL_GAME_STATS_RAW_DIRECTORY = "$DATA_ROOT/$($configData.directories.fullGameStatsRaw)"
     $NUMBER_OF_PARALLEL_DOWNLOADS = $configData.processing.parallelDownloads
     $SEASON_ID = $configData.seasonId
     $FLBB_ALL_COMPTETION_URL = $configData.dataSource.allCompetitionsUrl
@@ -33,9 +33,9 @@ if ($configData) {
     $GAME_SCHEDULE_RAW_DIRECTORY = "$ROOT/game-schedule-raw"
     $FULL_GAME_STATS_RAW_DIRECTORY = "$ROOT/full-game-stats-raw"
     $NUMBER_OF_PARALLEL_DOWNLOADS = 10
-    $SEASON_ID = "2024-2025"
+    $SEASON_ID = "2099-2100"
     $FLBB_ALL_COMPTETION_URL = "https://www.luxembourg.basketball/c/categorie/all"
-    $DIVISIONS_INCLUDED = @("division 1 hommes", "division 2 hommes", "division 3 hommes", "division 4 hommes")
+    $DIVISIONS_INCLUDED = @("division 1 hommes")
 }
 
 $PATTERN_SCHEDULE_URL = "https://www.luxembourg.basketball/c/calendrier-resultat/(\d+)/(.+)"
@@ -205,6 +205,46 @@ function Invoke-MultipleDownloadRawHtml($appConfig, $urls, $forceToDownload = $f
         Write-Host "Downloaded $([System.Math]::Round($downloads/$urls.Count *100,0))% ($downloads out of $($urls.Count))"
     }
 }
+function Get-GameTimeFromMatchNode($matchNode) {
+    # Try to extract game time from the match node
+    # The time is typically in format HH:mm or HHhmm
+    try {
+        # Get all text content from the node
+        $nodeText = if ($matchNode.InnerText) { $matchNode.InnerText } else { $matchNode.InnerHtml }
+        
+        # Try to match time patterns (HH:mm, HHhmm, HH.mm)
+        # Match patterns like: "20:30", "20h30", "20.30", "9:15"
+        # Validate hours (0-23) and minutes (0-59)
+        if ($nodeText -match '\b([0-1]?[0-9]|2[0-3])[:h\.]([0-5][0-9])\b') {
+            $hours = $Matches[1].PadLeft(2, '0')
+            $minutes = $Matches[2]
+            Write-Debug "Found time in main text: ${hours}:${minutes}:00"
+            return "${hours}:${minutes}:00"
+        }
+        
+        # Alternative: Look for specific time elements in child nodes
+        # Check common CSS classes and column positions used for time display
+        $timeNode = $matchNode.SelectSingleNode(".//div[contains(@class, 'time')] | .//span[contains(@class, 'time')] | .//div[@class='col-2'] | .//div[@class='col-1']")
+        if ($null -ne $timeNode) {
+            $timeText = if ($timeNode.InnerText) { $timeNode.InnerText.Trim() } else { "" }
+            # Use same validation pattern with word boundaries
+            if ($timeText -match '\b([0-1]?[0-9]|2[0-3])[:h\.]([0-5][0-9])\b') {
+                $hours = $Matches[1].PadLeft(2, '0')
+                $minutes = $Matches[2]
+                Write-Debug "Found time in child node: ${hours}:${minutes}:00"
+                return "${hours}:${minutes}:00"
+            }
+        }
+    }
+    catch {
+        Write-Debug "Could not extract time from match node: $_"
+    }
+    
+    # Default to midnight if time cannot be extracted
+    Write-Debug "No time found, using default 00:00:00"
+    return "00:00:00"
+}
+
 function Get-GamesInDivision($appConfig, $gameSchedule) {
     Write-Host "Requested url: $($gameSchedule.CategoryUrl)"
     # $divisionNameExtracted = $gameSchedule.DivisionUrl.Split("/")[-1]
@@ -232,13 +272,28 @@ function Get-GamesInDivision($appConfig, $gameSchedule) {
         $gameUrlNode = $matchNode.SelectNodes('.//a') | Where-Object { $_.GetAttributeValue('href', '') -match $PATTERN_GAME_URL } 
         $gameUrl = $gameUrlNode.GetAttributeValue('href', '')
         if ($gameUrl -match $PATTERN_GAME_URL) {
+            # Extract date from URL
+            $gameDate = $Matches[2]
+            
+            # Extract time from HTML node
+            $gameTime = Get-GameTimeFromMatchNode -matchNode $matchNode
+            
+            # Combine date and time with error handling
+            try {
+                $scheduledDateTime = Get-Date -Date "$gameDate $gameTime"
+            }
+            catch {
+                Write-Warning "Failed to parse date/time for game ID $($Matches[1]): $gameDate $gameTime. Using date only."
+                $scheduledDateTime = Get-Date -Date $gameDate
+            }
+            
             $game = @{
                 "GameId"            = $Matches[1]
                 "GameStatus"        = $GAME_STATUS_NOT_STARTED
                 "GameDivisionName"  = $Matches[4]
                 "GameUrl"           = $gameUrl
                 "SeasonId"          = $appConfig.SeasonId
-                "ScheduledGameDate" = Get-Date -Date $Matches[2]
+                "ScheduledGameDate" = $scheduledDateTime
                 "ExcludedFromStats" = if ($Matches[4] -in $DIVISIONS_EXCLUDED -or 
                     $gameSchedule.CategoryName -in $CATEGORIES_EXCLUDED) { $true } else { $false }
             }

@@ -5,6 +5,7 @@ from collections import defaultdict
 import zipfile
 import tempfile
 from datetime import datetime
+import html
 
 
 FULL_GAME_STATS_OUTPUT_DIR = "full-game-stats-output"
@@ -15,9 +16,17 @@ FORCE_TO_CREATE_CSV = True
 # Set to False to disable automatic generation (can still be called manually)
 AUTO_CREATE_PLAYER_DATABASE = False
 
+# Date format constants
+GAMESDB_DATE_FORMAT = '%A, %B %d, %Y %I:%M:%S %p'  # Format used in gamesDB.json
+ISO_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'  # Format used in CSV and for display
+
+# Foul visualization settings
+MAX_FOUL_BLOCKS_DISPLAY = 20  # Maximum number of visual blocks (■) to display for a single foul type
+
 # Configuration file paths
 CONFIG_FILEPATH = "data/config.json"
 DEFAULT_CONFIG_FILEPATH = "config.json"
+SCRIPTS_CONFIG_FILEPATH = "scripts/config.json"
 
 # Global variables to track data source and last update
 _data_source_info = {
@@ -41,7 +50,7 @@ def get_data_source_info():
 def load_config():
     """
     Load configuration from config.json file.
-    First tries data/config.json, then config.json, then returns defaults.
+    First tries data/config.json, then config.json, then scripts/config.json, then returns defaults.
     
     Returns:
     dict: Configuration dictionary
@@ -51,8 +60,8 @@ def load_config():
     if _cached_config is not None:
         return _cached_config
     
-    # Try data/config.json first
-    for config_path in [CONFIG_FILEPATH, DEFAULT_CONFIG_FILEPATH]:
+    # Try config files in order: data/config.json, config.json, scripts/config.json
+    for config_path in [CONFIG_FILEPATH, DEFAULT_CONFIG_FILEPATH, SCRIPTS_CONFIG_FILEPATH]:
         if os.path.exists(config_path):
             try:
                 with open(config_path, 'r', encoding='utf-8') as f:
@@ -506,7 +515,7 @@ def create_players_database(data, output_filepath=None):
     
     return players_db
 
-def get_top_scorers(data, top_n=20, division=None):
+def get_top_scorers(data, top_n=20, division=None, team=None):
     """
     Get top N scorers across all games.
     
@@ -514,6 +523,7 @@ def get_top_scorers(data, top_n=20, division=None):
     data (DataFrame): The game data
     top_n (int): Number of top scorers to return
     division (str): Optional division filter
+    team (str): Optional team filter
     
     Returns:
     DataFrame: Top scorers with their statistics
@@ -526,6 +536,10 @@ def get_top_scorers(data, top_n=20, division=None):
     
     if player_stats.empty:
         return pd.DataFrame()
+    
+    # Filter by team if specified
+    if team:
+        player_stats = player_stats[player_stats['Team'] == team]
     
     # Group by player and calculate totals
     scorer_stats = player_stats.groupby(['PlayerName', 'Team']).agg({
@@ -542,7 +556,7 @@ def get_top_scorers(data, top_n=20, division=None):
     # Sort by total points and return top N
     return scorer_stats.sort_values('TotalPoints', ascending=False).head(top_n).reset_index(drop=True)
 
-def get_highest_single_game_score(data, top_n=10, division=None):
+def get_highest_single_game_score(data, top_n=10, division=None, team=None):
     """
     Get the highest single game scores by any player, with one entry per player (their best game).
     
@@ -550,6 +564,7 @@ def get_highest_single_game_score(data, top_n=10, division=None):
     data (DataFrame): The game data
     top_n (int): Number of top single game scores to return
     division (str): Optional division filter
+    team (str): Optional team filter
     
     Returns:
     DataFrame: Players with highest single game scores (unique players)
@@ -563,6 +578,10 @@ def get_highest_single_game_score(data, top_n=10, division=None):
     if player_stats.empty:
         return pd.DataFrame()
     
+    # Filter by team if specified
+    if team:
+        player_stats = player_stats[player_stats['Team'] == team]
+    
     # Get the highest score for each player (eliminate duplicates)
     # Group by player and get the row with max points for each player
     idx = player_stats.groupby('PlayerName')['TotalPoints'].idxmax()
@@ -570,7 +589,7 @@ def get_highest_single_game_score(data, top_n=10, division=None):
     
     return top_single_games
 
-def get_player_shooting_efficiency(data, top_n=20, division=None):
+def get_player_shooting_efficiency(data, top_n=20, division=None, team=None):
     """
     Get player free throw statistics (leaders by total free throws made).
     
@@ -582,6 +601,7 @@ def get_player_shooting_efficiency(data, top_n=20, division=None):
     data (DataFrame): The game data
     top_n (int): Number of top players to return
     division (str): Optional division filter
+    team (str): Optional team filter
     
     Returns:
     DataFrame: Players with free throw statistics
@@ -594,6 +614,10 @@ def get_player_shooting_efficiency(data, top_n=20, division=None):
     
     if player_stats.empty:
         return pd.DataFrame()
+    
+    # Filter by team if specified
+    if team:
+        player_stats = player_stats[player_stats['Team'] == team]
     
     # Group by player and calculate free throw stats
     ft_stats = player_stats.groupby(['PlayerName', 'Team']).agg({
@@ -621,13 +645,14 @@ def get_player_shooting_efficiency(data, top_n=20, division=None):
     
     return ft_stats.sort_values('TotalFreeThrowsMade', ascending=False).head(top_n).reset_index(drop=True)
 
-def get_starting_five_vs_bench_stats(data, division=None):
+def get_starting_five_vs_bench_stats(data, division=None, team=None):
     """
     Compare starting five players vs bench players statistics.
     
     Parameters:
     data (DataFrame): The game data
     division (str): Optional division filter
+    team (str): Optional team filter
     
     Returns:
     dict: Statistics comparing starters vs bench, including:
@@ -653,6 +678,10 @@ def get_starting_five_vs_bench_stats(data, division=None):
     
     if player_stats.empty:
         return {}
+    
+    # Filter by team if specified
+    if team:
+        player_stats = player_stats[player_stats['Team'] == team]
     
     # Separate starters and bench players
     starters = player_stats[player_stats['StartingFive'] == True]
@@ -724,7 +753,7 @@ def get_starting_five_vs_bench_stats(data, division=None):
     
     return result
 
-def get_double_digit_scorers(data, min_points=10, division=None):
+def get_double_digit_scorers(data, min_points=10, division=None, team=None):
     """
     Get players with double-digit scoring games.
     
@@ -732,6 +761,7 @@ def get_double_digit_scorers(data, min_points=10, division=None):
     data (DataFrame): The game data
     min_points (int): Minimum points for double-digit game
     division (str): Optional division filter
+    team (str): Optional team filter
     
     Returns:
     DataFrame: Players with double-digit scoring statistics
@@ -744,6 +774,10 @@ def get_double_digit_scorers(data, min_points=10, division=None):
     
     if player_stats.empty:
         return pd.DataFrame()
+    
+    # Filter by team if specified
+    if team:
+        player_stats = player_stats[player_stats['Team'] == team]
     
     # Filter games with double-digit scoring
     double_digit_games = player_stats[player_stats['TotalPoints'] >= min_points]
@@ -771,7 +805,7 @@ def get_double_digit_scorers(data, min_points=10, division=None):
     
     return double_digit_stats.sort_values('DoubleDigitGames', ascending=False).head(20).reset_index(drop=True)
 
-def get_consistent_scorers(data, min_games=5, division=None):
+def get_consistent_scorers(data, min_games=5, division=None, team=None):
     """
     Get players who consistently score well across multiple games.
     
@@ -779,6 +813,7 @@ def get_consistent_scorers(data, min_games=5, division=None):
     data (DataFrame): The game data
     min_games (int): Minimum games to be considered
     division (str): Optional division filter
+    team (str): Optional team filter
     
     Returns:
     DataFrame: Most consistent scorers
@@ -792,16 +827,20 @@ def get_consistent_scorers(data, min_games=5, division=None):
     if player_stats.empty:
         return pd.DataFrame()
     
+    # Filter by team if specified
+    if team:
+        player_stats = player_stats[player_stats['Team'] == team]
+    
     # Group by player and calculate consistency metrics
     player_groups = player_stats.groupby(['PlayerName', 'Team'])
     
     consistency_stats = []
-    for (player, team), group in player_groups:
+    for (player, team_name), group in player_groups:
         if len(group) >= min_games:
             points = group['TotalPoints']
             consistency_stats.append({
                 'PlayerName': player,
-                'Team': team,
+                'Team': team_name,
                 'GamesPlayed': len(group),
                 'AvgPoints': points.mean().round(1),
                 'StdDevPoints': points.std().round(1),
@@ -816,7 +855,7 @@ def get_consistent_scorers(data, min_games=5, division=None):
         
     return consistency_df.sort_values('ConsistencyScore', ascending=False).head(20).reset_index(drop=True)
 
-def get_top_three_pointers(data, top_n=10, division=None):
+def get_top_three_pointers(data, top_n=10, division=None, team=None):
     """
     Get top N three-point shooters.
     
@@ -824,6 +863,7 @@ def get_top_three_pointers(data, top_n=10, division=None):
     data (DataFrame): The game data  
     top_n (int): Number of top three-point shooters to return
     division (str): Optional division filter
+    team (str): Optional team filter
     
     Returns:
     DataFrame: Top three-point shooters with their statistics
@@ -836,6 +876,10 @@ def get_top_three_pointers(data, top_n=10, division=None):
     
     if player_stats.empty:
         return pd.DataFrame()
+    
+    # Filter by team if specified
+    if team:
+        player_stats = player_stats[player_stats['Team'] == team]
     
     # Group by player and calculate three-point totals
     three_point_stats = player_stats.groupby(['PlayerName', 'Team']).agg({
@@ -850,7 +894,7 @@ def get_top_three_pointers(data, top_n=10, division=None):
     # Sort by total three-pointers made and return top N
     return three_point_stats.sort_values('3PMadeShots', ascending=False).head(top_n).reset_index(drop=True)
 
-def get_top_foulers(data, top_n=10, division=None):
+def get_top_foulers(data, top_n=10, division=None, team=None):
     """
     Get players with the most fouls.
     
@@ -858,6 +902,7 @@ def get_top_foulers(data, top_n=10, division=None):
     data (DataFrame): The game data
     top_n (int): Number of top foulers to return
     division (str): Optional division filter
+    team (str): Optional team filter
     
     Returns:
     DataFrame: Top foulers with their statistics including:
@@ -874,6 +919,10 @@ def get_top_foulers(data, top_n=10, division=None):
     
     if player_stats.empty:
         return pd.DataFrame()
+    
+    # Filter by team if specified
+    if team:
+        player_stats = player_stats[player_stats['Team'] == team]
     
     # Group by player and calculate foul totals
     foul_stats = player_stats.groupby(['PlayerName', 'Team']).agg({
@@ -912,26 +961,82 @@ def get_top_foulers(data, top_n=10, division=None):
     
     # Create foul details string
     def create_foul_details(row):
+        """
+        Create visual foul details with colored blocks sorted by severity.
+        
+        Args:
+            row (pandas.Series): A row from the foul statistics DataFrame containing
+                                foul counts for each type (PFouls, P1Fouls, etc.)
+        
+        Returns:
+            str: HTML string representing foul details with colored visual blocks
+                 sorted by severity (most severe first)
+        
+        Foul severity order (most severe first):
+        - GD (Game Disqualification): #8B0000 (dark red)
+        - U3, U2, U1 (Unsportsmanlike): #DC143C, #FF6347, #FF8C69 (red shades)
+        - T1 (Technical): #FF8C00 (dark orange)
+        - P3, P2, P1, P (Personal): #FFD700, #FFA500, #FFB84D, #FFE4B5 (gold/orange shades)
+        
+        Display format:
+        - For counts >= 10: Use bigger blocks (◼) for every 10 fouls and small blocks (■) for remainder
+        - For counts < 10: Use small blocks (■) only
+        """
+        # Define fouls in order of severity (most severe first)
+        foul_types = [
+            ('GD', row['GDFouls'], '#8B0000', 'Game Disqualification'),
+            ('U3', row['U3Fouls'], '#DC143C', 'Unsportsmanlike 3'),
+            ('U2', row['U2Fouls'], '#FF6347', 'Unsportsmanlike 2'),
+            ('U1', row['U1Fouls'], '#FF8C69', 'Unsportsmanlike 1'),
+            ('T1', row['T1Fouls'], '#FF8C00', 'Technical'),
+            ('P3', row['P3Fouls'], '#FFD700', 'Personal 3'),
+            ('P2', row['P2Fouls'], '#FFA500', 'Personal 2'),
+            ('P1', row['P1Fouls'], '#FFB84D', 'Personal 1'),
+            ('P', row['PFouls'], '#FFE4B5', 'Personal'),
+        ]
+        
         details = []
-        if row['PFouls'] > 0:
-            details.append(f"P: {int(row['PFouls'])}")
-        if row['P1Fouls'] > 0:
-            details.append(f"P1: {int(row['P1Fouls'])}")
-        if row['P2Fouls'] > 0:
-            details.append(f"P2: {int(row['P2Fouls'])}")
-        if row['P3Fouls'] > 0:
-            details.append(f"P3: {int(row['P3Fouls'])}")
-        if row['T1Fouls'] > 0:
-            details.append(f"T1: {int(row['T1Fouls'])}")
-        if row['U1Fouls'] > 0:
-            details.append(f"U1: {int(row['U1Fouls'])}")
-        if row['U2Fouls'] > 0:
-            details.append(f"U2: {int(row['U2Fouls'])}")
-        if row['U3Fouls'] > 0:
-            details.append(f"U3: {int(row['U3Fouls'])}")
-        if row['GDFouls'] > 0:
-            details.append(f"GD: {int(row['GDFouls'])}")
-        return ', '.join(details) if details else ''
+        for foul_code, count, color, title in foul_types:
+            if count > 0:
+                count = int(count)
+                
+                # When count >= 10, combine every 10 fouls into one bigger block
+                if count >= 10:
+                    big_blocks = count // 10  # Number of big blocks (each represents 10 fouls)
+                    small_blocks = count % 10  # Remaining fouls as small blocks
+                    
+                    # Limit display to reasonable amount
+                    # Note: The actual total count is always shown in the (count) text, so users
+                    # can see the full number even when the visual display is truncated
+                    if big_blocks > MAX_FOUL_BLOCKS_DISPLAY:
+                        # When truncating, calculate total remaining fouls (not displayed visually)
+                        # Example: 215 fouls = 21 big blocks + 5 small blocks
+                        #   Display: 20 big blocks + "...+15" + "(215)"
+                        #   The "...+15" represents 1 truncated big block (10 fouls) + 5 small blocks
+                        remaining_fouls = (big_blocks - MAX_FOUL_BLOCKS_DISPLAY) * 10 + small_blocks
+                        blocks = '◼' * MAX_FOUL_BLOCKS_DISPLAY + f'...+{remaining_fouls}'
+                    else:
+                        blocks = '◼' * big_blocks + '■' * small_blocks
+                else:
+                    # For counts < 10, just use small blocks
+                    blocks = '■' * count
+                
+                # Escape HTML to prevent XSS (color is a hardcoded constant, no need to escape)
+                escaped_title = html.escape(title)
+                escaped_foul_code = html.escape(foul_code)
+                escaped_blocks = html.escape(blocks)
+                
+                # Create HTML for this foul type
+                foul_html = (
+                    f'<div class="foul-card" title="{escaped_title}">'
+                    f'<span class="foul-label">{escaped_foul_code}:</span>'
+                    f'<span class="foul-blocks" style="color: {color};">{escaped_blocks}</span> '
+                    f'<span class="foul-count">({count})</span>'
+                    f'</div>'
+                )
+                details.append(foul_html)
+        
+        return ''.join(details) if details else '<span class="no-fouls">No fouls</span>'
     
     foul_stats['FoulDetails'] = foul_stats.apply(create_foul_details, axis=1)
     
@@ -1030,19 +1135,25 @@ def get_team_performance_stats(data):
     
     return team_df.sort_values('WinPercentage', ascending=False)
 
-def get_highest_scoring_games(data, top_n=10):
+def get_highest_scoring_games(data, top_n=10, division=None):
     """
     Get games with highest total scores.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of games to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Games with highest scores
     """
     # Create a copy to avoid modifying the original data
     data_copy = data.copy()
+    
+    # Filter by division if specified
+    if division:
+        data_copy = data_copy[data_copy['GameDivisionDisplay'] == division]
+    
     data_copy['TotalScore'] = data_copy['FinalHomeScore'] + data_copy['FinalAwayScore']
     highest_games = data_copy.nlargest(top_n, 'TotalScore')
     return highest_games[['GameId', 'HomeTeamName', 'AwayTeamName', 'FinalHomeScore', 'FinalAwayScore', 'TotalScore', 'GameDivisionDisplay']]
@@ -1416,17 +1527,22 @@ def analyze_game_events(data):
     
     return pd.DataFrame(game_analyses)
 
-def get_most_tie_scores(data, top_n=10):
+def get_most_tie_scores(data, top_n=10, division=None):
     """
     Get games with the most tie scores.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of games to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Games with most tie scores
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     game_analysis = analyze_game_events(data)
     
     if game_analysis.empty:
@@ -1434,17 +1550,22 @@ def get_most_tie_scores(data, top_n=10):
     
     return game_analysis.nlargest(top_n, 'TieScores')
 
-def get_most_lead_changes(data, top_n=10):
+def get_most_lead_changes(data, top_n=10, division=None):
     """
     Get games with the most lead changes.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of games to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Games with most lead changes
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     game_analysis = analyze_game_events(data)
     
     if game_analysis.empty:
@@ -1452,17 +1573,22 @@ def get_most_lead_changes(data, top_n=10):
     
     return game_analysis.nlargest(top_n, 'LeadChanges')
 
-def get_biggest_leads(data, top_n=10):
+def get_biggest_leads(data, top_n=10, division=None):
     """
     Get games with the biggest leads.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of games to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Games with biggest leads
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     game_analysis = analyze_game_events(data)
     
     if game_analysis.empty:
@@ -1470,17 +1596,22 @@ def get_biggest_leads(data, top_n=10):
     
     return game_analysis.nlargest(top_n, 'BiggestLead')
 
-def get_biggest_wins(data, top_n=10):
+def get_biggest_wins(data, top_n=10, division=None):
     """
     Get games with the biggest win margins.
     
     Parameters:
     data (DataFrame): The game data
     top_n (int): Number of games to return
+    division (str): Optional division filter
     
     Returns:
     DataFrame: Games with biggest win margins
     """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
     game_analysis = analyze_game_events(data)
     
     if game_analysis.empty:
@@ -2074,6 +2205,218 @@ def get_referee_game_impact_analysis(data):
         'most_competitive_refs': qualified_refs.nlargest(10, 'CloseGameRate')[['RefereeName', 'GamesRefereed', 'CloseGameRate']]
     }
 
+def _parse_points_from_action(action):
+    """
+    Parse points value from a GameEvents action string.
+    
+    Handles both point additions and deletions, returning positive values for 
+    additions and negative values for deletions.
+    
+    Parameters:
+    action (str): The EventAction string (e.g., '2P Points Added', '3P Points Deleted')
+    
+    Returns:
+    int: Points value (positive for additions, negative for deletions, 0 if not a point event)
+    
+    Examples:
+    - '2P Points Added' -> 2
+    - '3P Points Deleted' -> -3
+    - 'Timeout' -> 0
+    """
+    if '1P Points Added' in action:
+        return 1
+    elif '2P Points Added' in action:
+        return 2
+    elif '3P Points Added' in action:
+        return 3
+    elif '1P Points Deleted' in action:
+        return -1
+    elif '2P Points Deleted' in action:
+        return -2
+    elif '3P Points Deleted' in action:
+        return -3
+    return 0
+
+def calculate_referee_performance_index(data):
+    """
+    Calculate a comprehensive Referee Performance Index (RPI) based on multiple metrics:
+    - Fairness: balance in fouls called for home vs away teams
+    - Consistency: variance in fouls called per game
+    - Game Control: ratio of technical/unsportsmanlike fouls
+    - Experience: number of games officiated
+    
+    Parameters:
+    data (DataFrame): The game data
+    
+    Returns:
+    DataFrame: Referee performance rankings with detailed metrics
+    """
+    import ast
+    import numpy as np
+    
+    if data.empty:
+        return pd.DataFrame()
+    
+    referee_data = []
+    
+    # Process each game to collect referee-specific metrics
+    for _, game in data.iterrows():
+        try:
+            # Parse referee data
+            if isinstance(game['Referres'], str):
+                refs_data = ast.literal_eval(game['Referres'])
+            else:
+                refs_data = game['Referres']
+        except:
+            continue
+            
+        if not isinstance(refs_data, list):
+            continue
+        
+        # Parse game events
+        home_fouls = 0
+        away_fouls = 0
+        technical_fouls = 0  # T1, U1, U2, C1, B1, D2
+        total_fouls = 0
+        
+        try:
+            if isinstance(game['GameEvents'], str):
+                events_data = ast.literal_eval(game['GameEvents'])
+            else:
+                events_data = game['GameEvents']
+            
+            home_team = game['HomeTeamName']
+            away_team = game['AwayTeamName']
+            
+            for event in events_data:
+                if isinstance(event, dict) and 'EventAction' in event:
+                    action = event['EventAction']
+                    
+                    if 'Foul Added' in action:
+                        total_fouls += 1
+                        
+                        # Determine if it's a technical/unsportsmanlike foul
+                        if any(foul_type in action for foul_type in ['T1', 'U1', 'U2', 'C1', 'B1', 'D2']):
+                            technical_fouls += 1
+                        
+                        # Determine which team committed the foul
+                        event_team = event.get('EventTeam', '')
+                        if event_team == home_team:
+                            home_fouls += 1
+                        elif event_team == away_team:
+                            away_fouls += 1
+        except:
+            pass
+        
+        # Calculate game metrics
+        total_score = game['FinalHomeScore'] + game['FinalAwayScore']
+        score_difference = abs(game['FinalHomeScore'] - game['FinalAwayScore'])
+        foul_differential = abs(home_fouls - away_fouls)
+        technical_foul_rate = (technical_fouls / total_fouls * 100) if total_fouls > 0 else 0
+        
+        # Record metrics for each referee in this game
+        for ref in refs_data:
+            if isinstance(ref, dict) and 'Referee Name' in ref:
+                referee_data.append({
+                    'RefereeName': ref['Referee Name'],
+                    'GameId': game['GameId'],
+                    'TotalFouls': total_fouls,
+                    'HomeFouls': home_fouls,
+                    'AwayFouls': away_fouls,
+                    'FoulDifferential': foul_differential,
+                    'TechnicalFouls': technical_fouls,
+                    'TechnicalFoulRate': technical_foul_rate,
+                    'TotalScore': total_score,
+                    'ScoreDifference': score_difference,
+                    'CloseGame': score_difference <= 10
+                })
+    
+    if not referee_data:
+        return pd.DataFrame()
+    
+    ref_df = pd.DataFrame(referee_data)
+    
+    # Aggregate referee statistics
+    ref_summary = ref_df.groupby('RefereeName').agg({
+        'GameId': 'count',
+        'TotalFouls': ['mean', 'std'],
+        'FoulDifferential': ['mean', 'std'],
+        'TechnicalFoulRate': 'mean',
+        'TotalScore': 'mean',
+        'ScoreDifference': 'mean',
+        'CloseGame': 'sum'
+    }).round(2)
+    
+    # Flatten column names
+    ref_summary.columns = ['_'.join(map(str, col)).strip() if isinstance(col, tuple) else str(col) for col in ref_summary.columns]
+    ref_summary = ref_summary.reset_index()
+    
+    # Rename and calculate derived metrics
+    ref_summary['GamesRefereed'] = ref_summary['GameId_count']
+    ref_summary['AvgFoulsPerGame'] = ref_summary['TotalFouls_mean']
+    ref_summary['FoulVariance'] = ref_summary['TotalFouls_std'].fillna(0)
+    ref_summary['AvgFoulDifferential'] = ref_summary['FoulDifferential_mean']
+    ref_summary['FoulDifferentialVariance'] = ref_summary['FoulDifferential_std'].fillna(0)
+    ref_summary['AvgTechnicalFoulRate'] = ref_summary['TechnicalFoulRate_mean']
+    ref_summary['AvgTotalScore'] = ref_summary['TotalScore_mean']
+    ref_summary['AvgScoreDifference'] = ref_summary['ScoreDifference_mean']
+    ref_summary['CloseGamesCount'] = ref_summary['CloseGame_sum']
+    
+    # Filter referees with at least 3 games for meaningful statistics
+    qualified_refs = ref_summary[ref_summary['GamesRefereed'] >= 3].copy()
+    
+    if qualified_refs.empty:
+        return pd.DataFrame()
+    
+    # Calculate normalized scores (0-100 scale, higher is better)
+    
+    # 1. Fairness Score (lower foul differential is better)
+    max_diff = qualified_refs['AvgFoulDifferential'].max()
+    if max_diff > 0:
+        qualified_refs['FairnessScore'] = ((max_diff - qualified_refs['AvgFoulDifferential']) / max_diff * 100).round(1)
+    else:
+        qualified_refs['FairnessScore'] = 100.0
+    
+    # 2. Consistency Score (lower variance is better)
+    max_variance = qualified_refs['FoulVariance'].max()
+    if max_variance > 0:
+        qualified_refs['ConsistencyScore'] = ((max_variance - qualified_refs['FoulVariance']) / max_variance * 100).round(1)
+    else:
+        qualified_refs['ConsistencyScore'] = 100.0
+    
+    # 3. Game Control Score (lower technical foul rate is better, but not zero)
+    # Normalize technical foul rate - ideal is around 5-10%
+    qualified_refs['GameControlScore'] = qualified_refs['AvgTechnicalFoulRate'].apply(
+        lambda x: max(0, 100 - abs(x - 7.5) * 5)  # Penalty increases as we deviate from 7.5%
+    ).round(1)
+    
+    # 4. Experience Score (more games is better, with diminishing returns)
+    max_games = qualified_refs['GamesRefereed'].max()
+    qualified_refs['ExperienceScore'] = (np.log1p(qualified_refs['GamesRefereed']) / np.log1p(max_games) * 100).round(1)
+    
+    # Calculate Composite RPI (weighted average)
+    # Weights: Fairness 30%, Consistency 30%, Game Control 25%, Experience 15%
+    qualified_refs['RPI'] = (
+        qualified_refs['FairnessScore'] * 0.30 +
+        qualified_refs['ConsistencyScore'] * 0.30 +
+        qualified_refs['GameControlScore'] * 0.25 +
+        qualified_refs['ExperienceScore'] * 0.15
+    ).round(1)
+    
+    # Add ranking
+    qualified_refs = qualified_refs.sort_values('RPI', ascending=False)
+    qualified_refs['Rank'] = range(1, len(qualified_refs) + 1)
+    
+    # Select and order columns for output
+    output_columns = [
+        'Rank', 'RefereeName', 'GamesRefereed', 'RPI',
+        'FairnessScore', 'ConsistencyScore', 'GameControlScore', 'ExperienceScore',
+        'AvgFoulsPerGame', 'FoulVariance', 'AvgFoulDifferential', 'FoulDifferentialVariance',
+        'AvgTechnicalFoulRate', 'AvgTotalScore', 'AvgScoreDifference', 'CloseGamesCount'
+    ]
+    
+    return qualified_refs[output_columns].reset_index(drop=True)
+
 def get_top_scorer_by_game(data):
     """
     Get the top scorer for each game.
@@ -2091,8 +2434,8 @@ def get_top_scorer_by_game(data):
     
     for _, game in data.iterrows():
         game_id = game['GameId']
-        home_team = game['HomeTeamName']
-        away_team = game['AwayTeamName']
+        home_team = normalize_team_name_for_display(game['HomeTeamName'])
+        away_team = normalize_team_name_for_display(game['AwayTeamName'])
         home_score = game['FinalHomeScore']
         away_score = game['FinalAwayScore']
         date_time = game['DateTime']
@@ -2118,16 +2461,10 @@ def get_top_scorer_by_game(data):
                         player_name = event['EventActor']
                         team = event.get('EventTeam', '')
                         
-                        # Check for scoring actions
-                        points = 0
-                        if '1P Points Added' in action:
-                            points = 1
-                        elif '2P Points Added' in action:
-                            points = 2
-                        elif '3P Points Added' in action:
-                            points = 3
+                        # Parse points from action (handles both additions and deletions)
+                        points = _parse_points_from_action(action)
                         
-                        if points > 0 and player_name:
+                        if points != 0 and player_name:
                             if player_name not in player_stats:
                                 player_stats[player_name] = {'points': 0, 'team': team}
                             
@@ -2159,107 +2496,520 @@ def get_top_scorer_by_game(data):
         except:
             referee_names = []
         
+        # Calculate hotness for finished games
+        hotness_score = 0
+        hotness_icon = "❄️"
+        if pd.notna(home_score) and pd.notna(away_score):
+            try:
+                if isinstance(game['GameEvents'], str):
+                    events_data = ast.literal_eval(game['GameEvents'])
+                    teams_data = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
+                    score_evolution = _calculate_score_evolution(events_data, home_team, away_team, teams_data)
+                    game_stats = _calculate_game_statistics(score_evolution)
+                    hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'], game_stats.get('close_game_ratio'))
+                    hotness_icon = get_hotness_icon(hotness_score)
+            except:
+                pass
+        
+        # Convert scores to int to avoid float display issues
+        home_score_int = int(home_score) if pd.notna(home_score) else None
+        away_score_int = int(away_score) if pd.notna(away_score) else None
+        top_scorer_points_int = int(top_scorer_points)
+        
         fixtures.append({
             'GameId': game_id,
             'HomeTeam': home_team,
             'AwayTeam': away_team,
-            'HomeScore': home_score,
-            'AwayScore': away_score,
+            'HomeTeamName': home_team,  # Add for consistency with future games
+            'AwayTeamName': away_team,  # Add for consistency with future games
+            'HomeScore': home_score_int,
+            'AwayScore': away_score_int,
             'DateTime': date_time,
             'Division': division,
+            'GameDivisionDisplay': division,  # Add for consistency with future games
             'Location': parse_location_name(location),  # Use the same parsing function
             'TopScorerName': top_scorer_name if top_scorer_name else 'N/A',
-            'TopScorerPoints': top_scorer_points,
+            'TopScorerPoints': top_scorer_points_int,
             'TopScorerTeam': top_scorer_team if top_scorer_team else 'N/A',
             'Referees': referee_names,
-            'IsFinished': pd.notna(home_score) and pd.notna(away_score)
+            'IsFinished': pd.notna(home_score) and pd.notna(away_score),
+            'HotnessScore': hotness_score,
+            'HotnessIcon': hotness_icon
         })
     
-    return pd.DataFrame(fixtures)
+    df = pd.DataFrame(fixtures)
+    
+    # Convert score columns to nullable integer type to avoid float display
+    if not df.empty:
+        for col in ['HomeScore', 'AwayScore', 'TopScorerPoints']:
+            if col in df.columns:
+                df[col] = df[col].astype('Int64')
+    
+    return df
+
+
+def load_future_games_from_gamesdb(gamesdb_path='data/gamesDB.json'):
+    """
+    Load future games from gamesDB.json file.
+    
+    Parameters:
+    gamesdb_path (str): Path to gamesDB.json file
+    
+    Returns:
+    list: List of future game dictionaries
+    """
+    if not os.path.exists(gamesdb_path):
+        return []
+    
+    try:
+        with open(gamesdb_path, 'r', encoding='utf-8-sig') as f:
+            games = json.load(f)
+        
+        # Filter for future games (not started yet)
+        future_games = [g for g in games if g.get('GameStatus') == 'NotStarted']
+        return future_games
+    except Exception as e:
+        print(f"Error loading future games from {gamesdb_path}: {e}")
+        return []
+
+
+def normalize_team_name_for_display(team_name):
+    """
+    Normalize team name for consistent display across finished and future games.
+    Handles common abbreviations like AB, BC, US that should be uppercase.
+    Also normalizes accents to prevent duplicates (e.g., Gréngewald -> Grengewald).
+    
+    Parameters:
+    team_name (str): The team name to normalize
+    
+    Returns:
+    str: Normalized team name
+    """
+    if not team_name:
+        return team_name
+    
+    # Remove accents/diacritics for consistency
+    import unicodedata
+    team_name = ''.join(
+        c for c in unicodedata.normalize('NFD', team_name)
+        if unicodedata.category(c) != 'Mn'
+    )
+    
+    # List of abbreviations that should be all uppercase
+    uppercase_abbreviations = ['AB', 'BC', 'US', 'AS']
+    
+    # Split the name into words
+    words = team_name.split()
+    normalized_words = []
+    
+    for word in words:
+        # Check if this word (uppercase version) is in our abbreviations list
+        if word.upper() in uppercase_abbreviations:
+            normalized_words.append(word.upper())
+        else:
+            # Keep the original capitalization for other words
+            normalized_words.append(word)
+    
+    return ' '.join(normalized_words)
+
+
+def parse_team_names_from_url(game_url):
+    """
+    Extract home and away team names from the game URL.
+    URL pattern: https://www.luxembourg.basketball/match/{id}/{date}/{home-team}/{away-team}/{division}
+    
+    Parameters:
+    game_url (str): The game URL
+    
+    Returns:
+    tuple: (home_team, away_team) or (None, None) if parsing fails
+    """
+    try:
+        # Split URL by '/'
+        parts = game_url.split('/')
+        if len(parts) >= 7:
+            # Get home and away team slugs
+            home_slug = parts[-3]
+            away_slug = parts[-2]
+            
+            # Convert slugs to readable names (replace hyphens with spaces, title case)
+            home_team = ' '.join(word.title() for word in home_slug.split('-'))
+            away_team = ' '.join(word.title() for word in away_slug.split('-'))
+            
+            # Normalize team names to handle abbreviations
+            home_team = normalize_team_name_for_display(home_team)
+            away_team = normalize_team_name_for_display(away_team)
+            
+            return home_team, away_team
+    except Exception as e:
+        print(f"Error parsing team names from URL {game_url}: {e}")
+    
+    return None, None
+
+
+def convert_division_name(division_name):
+    """
+    Convert division name from gamesDB.json format to CSV format.
+    
+    This ensures future games use the same division naming convention as finished games.
+    
+    Examples:
+    - "m-division-1" -> "M-Division 1:"
+    - "m-enovos-leaguetour-qualificatif" -> "M-ENOVOS LEAGUE:Tour qualificatif"
+    - "m-nationale-2tour-qualificatif" -> "M-Nationale 2:Tour qualificatif"
+    
+    Parameters:
+    division_name (str): Division name from gamesDB.json
+    
+    Returns:
+    str: Standardized division name matching CSV format
+    """
+    if not division_name:
+        return division_name
+    
+    # Handle different patterns
+    if division_name.startswith('m-division-'):
+        # Simple division: m-division-1 -> M-Division 1:
+        parts = division_name.split('-')
+        if len(parts) >= 3:
+            division_num = parts[2]
+            return f"M-Division {division_num}:"
+    
+    elif 'enovos-league' in division_name.lower():
+        # ENOVOS LEAGUE: m-enovos-leaguetour-qualificatif -> M-ENOVOS LEAGUE:Tour qualificatif
+        if 'tour' in division_name.lower():
+            try:
+                # Split on 'tour' and handle the suffix
+                idx = division_name.lower().index('tour')
+                suffix = division_name[idx:].replace('-', ' ')
+                # Capitalize 'Tour'
+                suffix = 'T' + suffix[1:]
+                return f"M-ENOVOS LEAGUE:{suffix}"
+            except ValueError:
+                # If 'tour' not found (shouldn't happen due to outer check), use fallback
+                pass
+    
+    elif 'nationale' in division_name.lower():
+        # Nationale: m-nationale-2tour-qualificatif -> M-Nationale 2:Tour qualificatif
+        # Extract number and tour part
+        temp = division_name.replace('m-nationale-', '')
+        # Find where 'tour' starts
+        if 'tour' in temp.lower():
+            try:
+                idx = temp.lower().index('tour')
+                num = temp[:idx]
+                suffix = temp[idx:].replace('-', ' ')
+                # Capitalize 'Tour'
+                suffix = 'T' + suffix[1:]
+                return f"M-Nationale {num}:{suffix}"
+            except ValueError:
+                # If 'tour' not found (shouldn't happen due to outer check), use fallback
+                pass
+    
+    # Fallback: use title case with spaces
+    return division_name.replace('-', ' ').title()
+
+
+def convert_future_game_to_dataframe_format(game):
+    """
+    Convert a future game from gamesDB.json format to DataFrame row format.
+    
+    Parameters:
+    game (dict): Future game from gamesDB.json
+    
+    Returns:
+    dict: Game data in DataFrame format
+    """
+    from datetime import datetime
+    
+    home_team, away_team = parse_team_names_from_url(game.get('GameUrl', ''))
+    
+    # Parse the date from ScheduledGameDate and convert to ISO format
+    game_date = None
+    if 'ScheduledGameDate' in game and isinstance(game['ScheduledGameDate'], dict):
+        date_str = game['ScheduledGameDate'].get('DateTime')
+        if date_str:
+            try:
+                # Parse the date string like "Saturday, November 8, 2025 12:00:00 AM"
+                dt = datetime.strptime(date_str, GAMESDB_DATE_FORMAT)
+                # Convert to ISO format to match finished games: "YYYY-MM-DD HH:MM:SS"
+                game_date = dt.strftime(ISO_DATE_FORMAT)
+            except ValueError as e:
+                # If parsing fails, keep the original date string
+                game_date = date_str
+    
+    # Convert division name to match CSV format
+    division_display = convert_division_name(game.get('GameDivisionName', ''))
+    
+    return {
+        'GameId': game.get('GameId'),
+        'GameLocation': None,  # Not available for future games
+        'GameDivisionDisplay': division_display,
+        'Division': division_display,  # Add for consistency with finished games
+        'GameTeamsShort': f"{home_team} vs {away_team}" if home_team and away_team else None,
+        'GameFinalScore': None,
+        'GameWinner': None,
+        'GameLoser': None,
+        'HomeTeam': home_team,  # Add for consistency with finished games
+        'AwayTeam': away_team,  # Add for consistency with finished games
+        'HomeTeamName': home_team,
+        'AwayTeamName': away_team,
+        'HomeTeamLeaguePoints': None,
+        'AwayTeamLeaguePoints': None,
+        'FinalHomeScore': None,
+        'FinalAwayScore': None,
+        'Referres': None,
+        'DateTime': game_date,
+        'Teams': None,
+        'GameEvents': None,
+        'IsFinished': False,
+        'GameStatus': game.get('GameStatus', 'NotStarted'),
+        'GameUrl': game.get('GameUrl'),
+        'IsFutureGame': True
+    }
+
 
 def get_all_fixtures_data(data, division_filter=None):
     """
     Get all fixtures data with enhanced information for display.
+    Includes both finished games from CSV and future games from gamesDB.json.
     
     Parameters:
     data (DataFrame): The game data
     division_filter (str): Optional filter by division
     
     Returns:
-    DataFrame: Enhanced fixtures data
+    DataFrame: Enhanced fixtures data (finished + future games)
     """
-    # Apply division filter if provided (check for None explicitly to handle empty strings)
+    # Get finished games with enhanced info
     filtered_data = data.copy()
     if division_filter is not None:
         filtered_data = filtered_data[filtered_data['GameDivisionDisplay'] == division_filter]
     
-    return get_top_scorer_by_game(filtered_data)
+    finished_games = get_top_scorer_by_game(filtered_data)
+    
+    # Load and add future games
+    future_games = load_future_games_from_gamesdb()
+    if future_games:
+        future_games_list = [convert_future_game_to_dataframe_format(g) for g in future_games]
+        future_games_df = pd.DataFrame(future_games_list)
+        
+        # Apply division filter to future games if provided
+        if division_filter is not None and not future_games_df.empty:
+            future_games_df = future_games_df[future_games_df['GameDivisionDisplay'] == division_filter]
+        
+        # Combine finished and future games
+        if not future_games_df.empty:
+            all_games = pd.concat([finished_games, future_games_df], ignore_index=True)
+            return all_games
+    
+    return finished_games
 
 
 def get_fixtures_matrix_data(data, division_filter=None):
     """
     Get fixtures data organized as a matrix (team vs team).
+    Includes both finished games and future games from gamesDB.json.
     
     Parameters:
     data (DataFrame): The game data
     division_filter (str): Optional filter by division
     
     Returns:
-    dict: Matrix data with teams as rows/columns and games as cell contents
+    dict: Matrix data with the following keys:
+        - teams (list): List of teams sorted by points (descending), then alphabetically
+        - matrix (dict): Nested dict with teams as keys and lists of games as values
+        - divisions (list): List of available divisions
+        - current_division (str): Currently selected division
+        - team_points (dict): Dictionary mapping team names to their total points
     """
     if data.empty:
-        return {'teams': [], 'matrix': {}, 'divisions': []}
+        return {'teams': [], 'matrix': {}, 'divisions': [], 'team_points': {}}
     
     # Apply division filter if provided
     filtered_data = data.copy()
     if division_filter:
         filtered_data = filtered_data[filtered_data['GameDivisionDisplay'] == division_filter]
     
-    # Get unique teams
-    home_teams = set(filtered_data['HomeTeamName'].dropna())
-    away_teams = set(filtered_data['AwayTeamName'].dropna())
+    # Load and add future games
+    future_games = load_future_games_from_gamesdb()
+    if future_games:
+        future_games_list = [convert_future_game_to_dataframe_format(g) for g in future_games]
+        future_games_df = pd.DataFrame(future_games_list)
+        
+        # Apply division filter to future games if provided
+        if division_filter and not future_games_df.empty:
+            future_games_df = future_games_df[future_games_df['GameDivisionDisplay'] == division_filter]
+        
+        # Combine finished and future games
+        if not future_games_df.empty:
+            filtered_data = pd.concat([filtered_data, future_games_df], ignore_index=True)
+    
+    # Get closest games for each team to determine which games are "next" for which team
+    closest_games = get_closest_games_by_team(data, division_filter)
+    
+    # Get unique teams with normalization
+    home_teams = set(normalize_team_name_for_display(name) for name in filtered_data['HomeTeamName'].dropna())
+    away_teams = set(normalize_team_name_for_display(name) for name in filtered_data['AwayTeamName'].dropna())
     all_teams = sorted(home_teams.union(away_teams))
     
-    # Get unique divisions for the filter dropdown
-    all_divisions = sorted(data['GameDivisionDisplay'].dropna().unique())
+    # Get unique divisions for the filter dropdown (from both finished and future games)
+    all_divisions_finished = set(data['GameDivisionDisplay'].dropna().unique())
+    if future_games:
+        future_divisions = set(convert_division_name(g.get('GameDivisionName', '')) for g in future_games)
+        all_divisions = sorted(all_divisions_finished.union(future_divisions))
+    else:
+        all_divisions = sorted(all_divisions_finished)
     
-    # Initialize matrix
+    # Initialize matrix and team points
     matrix = {}
+    team_points = {}
     for home_team in all_teams:
         matrix[home_team] = {}
+        team_points[home_team] = 0
         for away_team in all_teams:
             matrix[home_team][away_team] = []
     
-    # Populate matrix with games
+    # Populate matrix with games and calculate team points
     for _, game in filtered_data.iterrows():
-        home_team = game['HomeTeamName']
-        away_team = game['AwayTeamName']
+        raw_home = game['HomeTeamName']
+        raw_away = game['AwayTeamName']
         
-        if pd.notna(home_team) and pd.notna(away_team):
+        if pd.notna(raw_home) and pd.notna(raw_away):
+            home_team = normalize_team_name_for_display(raw_home)
+            away_team = normalize_team_name_for_display(raw_away)
             # Parse location to get just the name
             location_name = parse_location_name(game['GameLocation'])
             
+            # Calculate hotness for finished games
+            hotness_score = 0
+            hotness_icon = "❄️"
+            is_finished = pd.notna(game.get('FinalHomeScore')) and pd.notna(game.get('FinalAwayScore'))
+            
+            if is_finished:
+                try:
+                    import ast
+                    events = ast.literal_eval(game['GameEvents']) if isinstance(game['GameEvents'], str) else game['GameEvents']
+                    teams = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
+                    score_evolution = _calculate_score_evolution(events, game['HomeTeamName'], game['AwayTeamName'], teams)
+                    game_stats = _calculate_game_statistics(score_evolution)
+                    hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'], game_stats.get('close_game_ratio'))
+                    hotness_icon = get_hotness_icon(hotness_score)
+                except:
+                    pass
+            
             # Get enhanced game info
+            # Convert scores to int to avoid float display issues
+            home_score_val = game.get('FinalHomeScore')
+            away_score_val = game.get('FinalAwayScore')
+            home_score_int = int(home_score_val) if pd.notna(home_score_val) else None
+            away_score_int = int(away_score_val) if pd.notna(away_score_val) else None
+            
+            # Determine which team(s) this game is the next game for
+            game_id = game['GameId']
+            is_next_for_home = closest_games.get(raw_home) == game_id
+            is_next_for_away = closest_games.get(raw_away) == game_id
+            
             game_info = {
-                'game_id': game['GameId'],
+                'game_id': game_id,
                 'date': game['DateTime'][:16] if pd.notna(game['DateTime']) else 'TBD',
-                'home_score': game['FinalHomeScore'] if pd.notna(game['FinalHomeScore']) else None,
-                'away_score': game['FinalAwayScore'] if pd.notna(game['FinalAwayScore']) else None,
+                'home_score': home_score_int,
+                'away_score': away_score_int,
+                'home_team_raw': raw_home,
+                'away_team_raw': raw_away,
                 'location': location_name,
                 'division': game['GameDivisionDisplay'],
-                'is_finished': pd.notna(game['FinalHomeScore']) and pd.notna(game['FinalAwayScore']),
-                'referees': parse_referees(game['Referres']),
-                'top_scorer': get_game_top_scorer(game)
+                'is_finished': is_finished,
+                'referees': parse_referees(game.get('Referres')) if is_finished else [],
+                'top_scorer': get_game_top_scorer(game) if is_finished else {'name': None, 'points': 0, 'team': None},
+                'hotness_score': hotness_score,
+                'hotness_icon': hotness_icon,
+                'is_future': game.get('IsFutureGame', False),
+                'is_next_for_home': is_next_for_home,
+                'is_next_for_away': is_next_for_away
             }
             
             matrix[home_team][away_team].append(game_info)
+            
+            # Calculate team points for finished games (2 points for win, 1 point for loss)
+            if is_finished and home_score_int is not None and away_score_int is not None:
+                if home_score_int > away_score_int:  # Home team wins
+                    team_points[home_team] += 2
+                    team_points[away_team] += 1
+                elif away_score_int > home_score_int:  # Away team wins
+                    team_points[home_team] += 1
+                    team_points[away_team] += 2
+                # Note: Tied games (rare in basketball) are not awarded points
+    
+    # Sort teams by points (descending), then alphabetically
+    sorted_teams = sorted(all_teams, key=lambda t: (-team_points[t], t))
     
     return {
-        'teams': all_teams,
+        'teams': sorted_teams,
         'matrix': matrix,
         'divisions': all_divisions,
-        'current_division': division_filter or (all_divisions[0] if all_divisions else None)
+        'current_division': division_filter or (all_divisions[0] if all_divisions else None),
+        'team_points': team_points
     }
+
+
+def get_closest_games_by_team(data, division_filter=None):
+    """
+    Identify the closest upcoming game for each team.
+    
+    Parameters:
+    data (DataFrame): The game data
+    division_filter (str): Optional filter by division
+    
+    Returns:
+    dict: Dictionary mapping team names to their closest game_id
+    """
+    from datetime import datetime
+    
+    # Get all fixtures including future games
+    all_fixtures = get_all_fixtures_data(data, division_filter)
+    
+    # Check if IsFutureGame column exists
+    if 'IsFutureGame' not in all_fixtures.columns or all_fixtures.empty:
+        return {}
+    
+    # Filter for future games only
+    future_games = all_fixtures[
+        (all_fixtures['IsFutureGame']) & 
+        (all_fixtures['DateTime'].notna())
+    ].copy()
+    
+    if future_games.empty:
+        return {}
+    
+    # Convert DateTime to datetime objects for comparison
+    future_games['DateTimeParsed'] = pd.to_datetime(future_games['DateTime'], errors='coerce')
+    future_games = future_games[future_games['DateTimeParsed'].notna()]
+    
+    # Get current time
+    now = datetime.now()
+    
+    # Find closest game for each team
+    closest_games = {}
+    
+    for team in pd.concat([future_games['HomeTeamName'], future_games['AwayTeamName']]).unique():
+        if pd.isna(team):
+            continue
+        
+        # Get all future games for this team
+        team_games = future_games[
+            (future_games['HomeTeamName'] == team) | 
+            (future_games['AwayTeamName'] == team)
+        ].copy()
+        
+        if not team_games.empty:
+            # Find the game with the earliest date in the future
+            future_team_games = team_games[team_games['DateTimeParsed'] >= now]
+            if not future_team_games.empty:
+                closest_game = future_team_games.loc[future_team_games['DateTimeParsed'].idxmin()]
+                closest_games[team] = closest_game['GameId']
+    
+    return closest_games
 
 
 def parse_location_name(location_data):
@@ -2343,16 +3093,10 @@ def get_game_top_scorer(game):
                     player_name = event['EventActor']
                     team = event.get('EventTeam', '')
                     
-                    # Check for scoring actions
-                    points = 0
-                    if '1P Points Added' in action:
-                        points = 1
-                    elif '2P Points Added' in action:
-                        points = 2
-                    elif '3P Points Added' in action:
-                        points = 3
+                    # Parse points from action (handles both additions and deletions)
+                    points = _parse_points_from_action(action)
                     
-                    if points > 0 and player_name:
+                    if points != 0 and player_name:
                         if player_name not in player_stats:
                             player_stats[player_name] = {'points': 0, 'team': team}
                         
@@ -2582,6 +3326,40 @@ def get_all_referees_list(data):
     
     return unique_referees
 
+def get_all_games_list(data):
+    """
+    Get a list of all games with key information for autocomplete/search.
+    
+    Parameters:
+    data (DataFrame): The game data
+    
+    Returns:
+    list: List of dictionaries with game details for search
+    """
+    if data.empty:
+        return []
+    
+    # Select relevant columns and create game list
+    games_list = []
+    
+    for idx, row in data.iterrows():
+        game_info = {
+            'GameId': row.get('GameId', ''),
+            'HomeTeam': row.get('HomeTeamName', ''),
+            'AwayTeam': row.get('AwayTeamName', ''),
+            'FinalScore': f"{row.get('FinalHomeScore', 0)}-{row.get('FinalAwayScore', 0)}",
+            'Division': row.get('GameDivisionDisplay', ''),
+            'Date': row.get('DateTime', ''),
+            'Location': row.get('GameLocation', '')
+        }
+        games_list.append(game_info)
+    
+    # Sort by date (most recent first) if date is available
+    if games_list and 'Date' in games_list[0] and games_list[0]['Date']:
+        games_list = sorted(games_list, key=lambda x: x.get('Date', ''), reverse=True)
+    
+    return games_list
+
 def get_player_detail_stats(data, player_name):
     """
     Get comprehensive statistics for a specific player.
@@ -2609,10 +3387,29 @@ def get_player_detail_stats(data, player_name):
     if player_games.empty:
         return None
     
+    # Get most used player number
+    player_number_mode = player_games['PlayerNumber'].mode()
+    if not player_number_mode.empty:
+        player_number = player_number_mode[0]
+    elif len(player_games) > 0:
+        player_number = player_games['PlayerNumber'].iloc[0]
+    else:
+        player_number = 0
+    
+    # Convert to int, handling NaN values
+    try:
+        if pd.isna(player_number):
+            player_number = 0
+        else:
+            player_number = int(player_number)
+    except (ValueError, TypeError):
+        player_number = 0
+    
     # Basic aggregated statistics
     basic_stats = {
         'player_name': player_name,
         'team': player_games['Team'].mode()[0] if not player_games['Team'].mode().empty else player_games['Team'].iloc[0],
+        'player_number': player_number,
         'games_played': len(player_games),
         'total_points': int(player_games['TotalPoints'].sum()),
         'avg_points_per_game': round(player_games['TotalPoints'].mean(), 1),
@@ -2658,6 +3455,28 @@ def get_player_detail_stats(data, player_name):
     
     # Game-by-game breakdown (sorted by date, most recent first)
     game_by_game = player_games.sort_values('GameDate', ascending=False).to_dict('records')
+    
+    # Add hotness score to each game
+    for game_record in game_by_game:
+        game_id = game_record['GameId']
+        game_row = data[data['GameId'] == game_id]
+        if not game_row.empty:
+            game = game_row.iloc[0]
+            # Calculate hotness score for this game
+            try:
+                import ast
+                events = ast.literal_eval(game['GameEvents']) if isinstance(game['GameEvents'], str) else game['GameEvents']
+                teams = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
+                score_evolution = _calculate_score_evolution(events, game['HomeTeamName'], game['AwayTeamName'], teams)
+                game_stats = _calculate_game_statistics(score_evolution)
+                hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'], game_stats.get('close_game_ratio'))
+                hotness_icon = get_hotness_icon(hotness_score)
+                game_record['HotnessScore'] = hotness_score
+                game_record['HotnessIcon'] = hotness_icon
+            except (ValueError, KeyError, TypeError, AttributeError) as e:
+                # If hotness calculation fails, default to cold game
+                game_record['HotnessScore'] = 0
+                game_record['HotnessIcon'] = "❄️"
     
     # Get quarter-by-quarter analysis from game events
     quarter_analysis = _analyze_player_quarters(data, player_name)
@@ -2733,6 +3552,185 @@ def _analyze_player_quarters(data, player_name):
             continue
     
     return quarter_stats
+
+
+def _extract_team_player_stats(team_games, team_name):
+    """
+    Extract comprehensive player statistics for a team from their games.
+    
+    Parameters:
+    team_games (DataFrame): Games filtered for the team
+    team_name (str): Name of the team
+    
+    Returns:
+    dict: Dictionary containing:
+        - all_players: List of all players with comprehensive stats
+        - quarter_by_quarter: Quarter-by-quarter breakdown for each player
+        - performance_evolution: Last 5 games performance for each player
+    """
+    import ast
+    from collections import defaultdict
+    
+    # Initialize data structures
+    player_totals = defaultdict(lambda: {
+        'name': '',
+        'number': 0,
+        'games_played': 0,
+        'total_points': 0,
+        'total_fouls': 0,
+        'total_2p': 0,
+        'total_3p': 0,
+        'total_1p': 0,
+        'starting_five_count': 0,
+        'quarters': defaultdict(lambda: {'points': 0, 'fouls': 0, 'games': 0}),
+        'last_5_games': []
+    })
+    
+    # Process each game
+    for _, game in team_games.iterrows():
+        try:
+            # Parse the Teams data
+            teams_data = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
+            
+            # Find the team's data (home or away)
+            team_data = None
+            is_home = game['HomeTeamName'] == team_name
+            
+            for team in teams_data:
+                if (is_home and team.get('Team Role') == 'Home') or \
+                   (not is_home and team.get('Team Role') == 'Away'):
+                    team_data = team
+                    break
+            
+            if not team_data or 'Players' not in team_data:
+                continue
+            
+            # Parse game events for quarter-by-quarter data
+            game_events = ast.literal_eval(game['GameEvents']) if isinstance(game['GameEvents'], str) else game['GameEvents']
+            
+            # Process each player
+            for player in team_data['Players']:
+                player_name = player.get('Player Name', '')
+                player_number = player.get('Player Number', 0)
+                
+                if not player_name:
+                    continue
+                
+                # Use player name as key
+                key = player_name
+                
+                # Update basic stats
+                player_totals[key]['name'] = player_name
+                player_totals[key]['number'] = player_number
+                player_totals[key]['games_played'] += 1
+                player_totals[key]['total_points'] += player.get('Total Points', 0)
+                player_totals[key]['total_fouls'] += player.get('Total Fouls', 0)
+                player_totals[key]['total_2p'] += player.get('2P Made Shots', 0)
+                player_totals[key]['total_3p'] += player.get('3P Made Shots', 0)
+                player_totals[key]['total_1p'] += player.get('1P Made Shots', 0)
+                
+                if player.get('Starting Five') == 'true':
+                    player_totals[key]['starting_five_count'] += 1
+                
+                # Calculate quarter-by-quarter stats from game events
+                quarter_stats = defaultdict(lambda: {'points': 0, 'fouls': 0})
+                
+                for event in game_events:
+                    if event.get('EventActor') == player_name and event.get('EventTeam') == team_data.get('Team Name Short'):
+                        quarter = event.get('EventQuarter')
+                        action = event.get('EventAction', '')
+                        
+                        # Count points
+                        if 'Points Added' in action:
+                            if '1P' in action:
+                                quarter_stats[quarter]['points'] += 1
+                            elif '2P' in action:
+                                quarter_stats[quarter]['points'] += 2
+                            elif '3P' in action:
+                                quarter_stats[quarter]['points'] += 3
+                        
+                        # Count fouls
+                        if 'Foul Added' in action:
+                            quarter_stats[quarter]['fouls'] += 1
+                
+                # Update quarter totals
+                for quarter in [1, 2, 3, 4]:
+                    if quarter in quarter_stats:
+                        player_totals[key]['quarters'][quarter]['points'] += quarter_stats[quarter]['points']
+                        player_totals[key]['quarters'][quarter]['fouls'] += quarter_stats[quarter]['fouls']
+                        player_totals[key]['quarters'][quarter]['games'] += 1
+                
+                # Add to last 5 games data
+                game_data = {
+                    'game_id': game['GameId'],
+                    'date': game['DateTime'][:10] if game['DateTime'] else 'N/A',
+                    'opponent': game['AwayTeamName'] if is_home else game['HomeTeamName'],
+                    'points': player.get('Total Points', 0),
+                    'fouls': player.get('Total Fouls', 0),
+                    'quarters': dict(quarter_stats)
+                }
+                player_totals[key]['last_5_games'].append(game_data)
+                
+        except (ValueError, KeyError, TypeError) as e:
+            # Skip games with parsing errors (malformed JSON, missing keys, type issues)
+            continue
+    
+    # Convert to final format
+    all_players = []
+    for player_key, stats in player_totals.items():
+        # Keep only last 5 games
+        stats['last_5_games'] = sorted(stats['last_5_games'], 
+                                       key=lambda x: x['date'], 
+                                       reverse=True)[:5]
+        
+        # Calculate averages
+        games = stats['games_played']
+        player_dict = {
+            'name': stats['name'],
+            'number': stats['number'],
+            'games_played': games,
+            'total_points': stats['total_points'],
+            'total_fouls': stats['total_fouls'],
+            'avg_points': round(stats['total_points'] / games, 1) if games > 0 else 0,
+            'avg_fouls': round(stats['total_fouls'] / games, 1) if games > 0 else 0,
+            'total_2p': stats['total_2p'],
+            'total_3p': stats['total_3p'],
+            'total_1p': stats['total_1p'],
+            'starting_percentage': round(stats['starting_five_count'] / games * 100, 1) if games > 0 else 0,
+            'quarters': dict(stats['quarters']),
+            'last_5_games': stats['last_5_games']
+        }
+        all_players.append(player_dict)
+    
+    # Sort by total points descending
+    all_players.sort(key=lambda x: x['total_points'], reverse=True)
+    
+    # Create quarter-by-quarter summary
+    quarter_by_quarter = []
+    for player in all_players:
+        quarters_data = []
+        for q in [1, 2, 3, 4]:
+            quarter_info = player['quarters'].get(q, {'points': 0, 'fouls': 0, 'games': 0})
+            games = quarter_info.get('games', 0)
+            quarters_data.append({
+                'quarter': q,
+                'total_points': quarter_info.get('points', 0),
+                'total_fouls': quarter_info.get('fouls', 0),
+                'avg_points': round(quarter_info.get('points', 0) / games, 1) if games > 0 else 0,
+                'avg_fouls': round(quarter_info.get('fouls', 0) / games, 1) if games > 0 else 0
+            })
+        
+        quarter_by_quarter.append({
+            'name': player['name'],
+            'number': player['number'],
+            'quarters': quarters_data
+        })
+    
+    return {
+        'all_players': all_players,
+        'quarter_by_quarter': quarter_by_quarter,
+        'has_data': len(all_players) > 0
+    }
 
 
 def get_team_detail_stats(data, team_name):
@@ -2839,23 +3837,408 @@ def get_team_detail_stats(data, team_name):
             'date': row['DateTime'][:10] if row['DateTime'] else 'N/A',
             'scored': int(row['TeamScore']),
             'allowed': int(row['OpponentScore']),
+            'margin': int(row['Margin']),
             'cumulative_scored': cumulative_scored,
             'cumulative_allowed': cumulative_allowed,
         })
     
-    # Game by game data
-    game_by_game = team_games.to_dict('records')
+    # Game by game data with hotness calculation
+    game_by_game = []
+    for _, row in team_games.iterrows():
+        game_dict = row.to_dict()
+        
+        # Calculate hotness for finished games
+        hotness_score = 0
+        hotness_icon = "❄️"
+        if pd.notna(row['TeamScore']) and pd.notna(row['OpponentScore']):
+            try:
+                import ast
+                events = ast.literal_eval(row['GameEvents']) if isinstance(row['GameEvents'], str) else row['GameEvents']
+                teams = ast.literal_eval(row['Teams']) if isinstance(row['Teams'], str) else row['Teams']
+                score_evolution = _calculate_score_evolution(events, row['HomeTeamName'], row['AwayTeamName'], teams)
+                game_stats = _calculate_game_statistics(score_evolution)
+                hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'], game_stats.get('close_game_ratio'))
+                hotness_icon = get_hotness_icon(hotness_score)
+            except:
+                pass
+        
+        game_dict['HotnessScore'] = hotness_score
+        game_dict['HotnessIcon'] = hotness_icon
+        game_by_game.append(game_dict)
+    
+    # Extract player statistics for this team
+    player_stats = _extract_team_player_stats(team_games, team_name)
+    
+    # Get next 5 upcoming games for this team
+    next_games = get_team_next_games(team_name, limit=5)
     
     return {
         'basic_stats': basic_stats,
         'game_by_game': game_by_game,
-        'performance_evolution': performance_evolution
+        'performance_evolution': performance_evolution,
+        'player_stats': player_stats,
+        'next_games': next_games
+    }
+
+
+def get_team_next_games(team_name, limit=5, gamesdb_path='data/gamesDB.json'):
+    """
+    Get the next upcoming games for a specific team.
+    
+    Parameters:
+    team_name (str): The name of the team
+    limit (int): Maximum number of games to return (default: 5)
+    gamesdb_path (str): Path to gamesDB.json file
+    
+    Returns:
+    list: List of upcoming game dictionaries with formatted information
+    """
+    from datetime import datetime
+    
+    # Load future games
+    future_games = load_future_games_from_gamesdb(gamesdb_path)
+    if not future_games:
+        return []
+    
+    # Normalize the team name for comparison
+    normalized_team_name = normalize_team_name_for_display(team_name)
+    
+    # Filter games for this team and parse dates
+    team_future_games = []
+    for game in future_games:
+        home_team, away_team = parse_team_names_from_url(game.get('GameUrl', ''))
+        
+        # Check if this team is playing
+        if home_team == normalized_team_name or away_team == normalized_team_name:
+            # Parse the game date
+            game_date = None
+            game_datetime = None
+            if 'ScheduledGameDate' in game and isinstance(game['ScheduledGameDate'], dict):
+                date_str = game['ScheduledGameDate'].get('DateTime')
+                if date_str:
+                    try:
+                        game_datetime = datetime.strptime(date_str, GAMESDB_DATE_FORMAT)
+                        game_date = game_datetime.strftime('%Y-%m-%d')
+                    except (ValueError, TypeError):
+                        pass
+            
+            # Determine if team is home or away
+            is_home = home_team == normalized_team_name
+            opponent = away_team if is_home else home_team
+            
+            # Convert division name
+            division_display = convert_division_name(game.get('GameDivisionName', ''))
+            
+            team_future_games.append({
+                'game_id': game.get('GameId'),
+                'date': game_date,
+                'datetime_obj': game_datetime,
+                'division': division_display,
+                'opponent': opponent,
+                'is_home': is_home,
+                'location': 'Home' if is_home else 'Away',
+                'game_url': game.get('GameUrl')
+            })
+    
+    # Sort by date (earliest first) and limit to requested number
+    # Use a large naive datetime for games without dates to sort them to the end
+    team_future_games.sort(key=lambda x: x['datetime_obj'] if x['datetime_obj'] else datetime(9999, 12, 31))
+    
+    # Remove datetime_obj as it's not JSON serializable
+    for game in team_future_games[:limit]:
+        game.pop('datetime_obj', None)
+    
+    return team_future_games[:limit]
+
+
+def get_team_player_stats_for_future_game(team_name, players_db_path='data/players-database.csv'):
+    """
+    Get player statistics for a team from the players database.
+    Used for future games to show historical player performance.
+    
+    Parameters:
+    team_name (str): Team name to get players for
+    players_db_path (str): Path to the players database CSV
+    
+    Returns:
+    list: List of player dictionaries with statistics
+    """
+    if not os.path.exists(players_db_path):
+        return []
+    
+    try:
+        # Load players database
+        players_df = pd.read_csv(players_db_path, encoding='utf-8-sig')
+        
+        # Normalize team name for matching
+        team_name_normalized = normalize_team_name_for_display(team_name)
+        
+        # Filter players for this team
+        team_players = players_df[players_df['Team'].apply(normalize_team_name_for_display) == team_name_normalized].copy()
+        
+        if team_players.empty:
+            return []
+        
+        # Sort by StartingPercentage (descending) and TotalPoints (descending)
+        team_players = team_players.sort_values(
+            by=['StartingPercentage', 'TotalPoints'], 
+            ascending=[False, False]
+        )
+        
+        # Convert to list of dictionaries
+        players = []
+        for _, player in team_players.iterrows():
+            player_dict = {
+                'Player Name': player['PlayerName'],
+                'Player Number': int(player['PlayerNumber']) if pd.notna(player['PlayerNumber']) else 0,
+                'Total Points': int(player['TotalPoints']) if pd.notna(player['TotalPoints']) else 0,
+                '1P Made Shots': int(player['1PMadeShots']) if pd.notna(player['1PMadeShots']) else 0,
+                '2P Made Shots': int(player['2PMadeShots']) if pd.notna(player['2PMadeShots']) else 0,
+                '3P Made Shots': int(player['3PMadeShots']) if pd.notna(player['3PMadeShots']) else 0,
+                'Total Fouls': int(player['TotalFouls']) if pd.notna(player['TotalFouls']) else 0,
+                'Games Played': int(player['GamesPlayed']) if pd.notna(player['GamesPlayed']) else 0,
+                'Games Started': int(player['GamesStarted']) if pd.notna(player['GamesStarted']) else 0,
+                'Starting Percentage': float(player['StartingPercentage']) if pd.notna(player['StartingPercentage']) else 0.0,
+                'Avg Points Per Game': float(player['AvgPointsPerGame']) if pd.notna(player['AvgPointsPerGame']) else 0.0,
+                'Starting Five': 'false'  # Will be set by predict_starting_five
+            }
+            players.append(player_dict)
+        
+        return players
+    except Exception as e:
+        # Use logging for better error tracking
+        import logging
+        logging.warning(f"Error loading player stats for team {team_name}: {e}")
+        return []
+
+
+def predict_starting_five(players):
+    """
+    Predict the starting five players based on a weighted formula that considers:
+    1. Starting Percentage (primary factor - 70% weight)
+    2. Games Played (experience factor - 20% weight)
+    3. Average Points Per Game (minor factor - 10% weight)
+    
+    The formula creates a composite score that balances historical starting frequency,
+    player experience, and offensive contribution.
+    
+    Parameters:
+    players (list): List of player dictionaries with statistics
+    
+    Returns:
+    list: List of player dictionaries with 'Starting Five' field updated
+    """
+    if not players:
+        return players
+    
+    # Calculate composite score for each player
+    def calculate_player_score(player):
+        """
+        Calculate a weighted score for predicting starting five.
+        
+        Formula:
+        Score = (Starting% * 0.7) + (Normalized Games Played * 0.2) + (Normalized Avg Points * 0.1)
+        
+        This prioritizes players who:
+        - Have high starting percentages (main indicator)
+        - Have played more games (experience and reliability)
+        - Contribute points (offensive value)
+        """
+        starting_pct = player.get('Starting Percentage', 0)
+        games_played = player.get('Games Played', 0)
+        avg_points = player.get('Avg Points Per Game', 0)
+        
+        # Starting percentage is already 0-100, we'll normalize it to 0-1
+        starting_score = starting_pct / 100.0
+        
+        # For normalization, we'll use the max values among all players
+        # This will be calculated after we know all players' values
+        return {
+            'starting_pct': starting_pct,
+            'games_played': games_played,
+            'avg_points': avg_points,
+            'starting_score': starting_score
+        }
+    
+    # Calculate scores for all players
+    player_scores = []
+    max_games = max((p.get('Games Played', 0) for p in players), default=0)
+    max_points = max((p.get('Avg Points Per Game', 0) for p in players), default=0)
+    
+    for player in players:
+        scores = calculate_player_score(player)
+        
+        # Normalize games played (0-1 scale)
+        # If max_games is 0, all players have 0 games, so games_score is 0 for all
+        games_score = scores['games_played'] / max_games if max_games > 0 else 0
+        
+        # Normalize average points (0-1 scale)
+        # If max_points is 0, all players have 0 points, so points_score is 0 for all
+        points_score = scores['avg_points'] / max_points if max_points > 0 else 0
+        
+        # Calculate weighted composite score
+        # 70% starting percentage, 20% games played, 10% points
+        composite_score = (
+            scores['starting_score'] * 0.7 +
+            games_score * 0.2 +
+            points_score * 0.1
+        )
+        
+        player_scores.append({
+            'player': player,
+            'composite_score': composite_score,
+            'starting_pct': scores['starting_pct'],
+            'games_played': scores['games_played'],
+            'avg_points': scores['avg_points']
+        })
+    
+    # Sort by composite score (descending)
+    player_scores.sort(key=lambda x: x['composite_score'], reverse=True)
+    
+    # Mark top 5 as starting five
+    for i, item in enumerate(player_scores):
+        if i < 5:
+            item['player']['Starting Five'] = 'true'
+        else:
+            item['player']['Starting Five'] = 'false'
+    
+    return players
+
+
+def get_future_game_details(game_id, game):
+    """
+    Get comprehensive details for a future game.
+    
+    Parameters:
+    game_id (str): The game ID
+    game (dict): Future game data from gamesDB.json
+    
+    Returns:
+    dict: Dictionary containing future game details with predicted starting lineups
+    """
+    from datetime import datetime
+    
+    home_team, away_team = parse_team_names_from_url(game.get('GameUrl', ''))
+    
+    # Parse the date from ScheduledGameDate
+    game_date = 'TBD'
+    if 'ScheduledGameDate' in game and isinstance(game['ScheduledGameDate'], dict):
+        date_str = game['ScheduledGameDate'].get('DateTime', 'TBD')
+        if date_str != 'TBD':
+            try:
+                dt = datetime.strptime(date_str, GAMESDB_DATE_FORMAT)
+                game_date = dt.strftime(ISO_DATE_FORMAT)
+            except ValueError:
+                game_date = date_str
+    
+    # Convert division name
+    division = convert_division_name(game.get('GameDivisionName', ''))
+    
+    # Build basic info
+    basic_info = {
+        'game_id': game_id,
+        'location': None,  # Not available for future games
+        'division': division,
+        'date_time': game_date,
+        'home_team': home_team,
+        'away_team': away_team,
+        'final_score': 'Upcoming',
+        'home_score': None,
+        'away_score': None,
+        'winner': None,
+        'loser': None,
+        'is_future': True,
+        'game_url': game.get('GameUrl'),
+        'season_id': game.get('SeasonId')
+    }
+    
+    # Get player statistics for both teams
+    home_players = get_team_player_stats_for_future_game(home_team)
+    away_players = get_team_player_stats_for_future_game(away_team)
+    
+    # Predict starting five for each team
+    home_players = predict_starting_five(home_players)
+    away_players = predict_starting_five(away_players)
+    
+    # Calculate team totals (historical averages)
+    def calculate_team_totals(players):
+        if not players:
+            return {
+                'points': 0,
+                '1p': 0,
+                '2p': 0,
+                '3p': 0,
+                'fouls': 0,
+                'avg_points': 0
+            }
+        
+        # Calculate total season stats
+        total_points = sum(p.get('Total Points', 0) for p in players)
+        total_1p = sum(p.get('1P Made Shots', 0) for p in players)
+        total_2p = sum(p.get('2P Made Shots', 0) for p in players)
+        total_3p = sum(p.get('3P Made Shots', 0) for p in players)
+        total_fouls = sum(p.get('Total Fouls', 0) for p in players)
+        
+        # Calculate average points per game (team)
+        # Use the median games_played to avoid outliers affecting the calculation
+        games_played_list = [p.get('Games Played', 0) for p in players if p.get('Games Played', 0) > 0]
+        games_played = max(games_played_list) if games_played_list else 0
+        avg_points = total_points / games_played if games_played > 0 else 0
+        
+        return {
+            'points': total_points,
+            '1p': total_1p,
+            '2p': total_2p,
+            '3p': total_3p,
+            'fouls': total_fouls,
+            'avg_points': round(avg_points, 1),
+            'games_played': games_played
+        }
+    
+    # Build teams data
+    teams_data = [
+        {
+            'name': home_team,
+            'name_short': home_team,
+            'role': 'Home',
+            'result': None,
+            'league_points': None,
+            'total_won_points': None,
+            'total_lost_points': None,
+            'players': home_players,
+            'coach': 'N/A',
+            'timeouts_used': 0,
+            'totals': calculate_team_totals(home_players)
+        },
+        {
+            'name': away_team,
+            'name_short': away_team,
+            'role': 'Away',
+            'result': None,
+            'league_points': None,
+            'total_won_points': None,
+            'total_lost_points': None,
+            'players': away_players,
+            'coach': 'N/A',
+            'timeouts_used': 0,
+            'totals': calculate_team_totals(away_players)
+        }
+    ]
+    
+    return {
+        'basic_info': basic_info,
+        'teams': teams_data,
+        'events': [],
+        'score_evolution': [],
+        'game_stats': None,
+        'referees': []
     }
 
 
 def get_game_details(data, game_id):
     """
     Get comprehensive details for a specific game.
+    Handles both finished games and future games.
     
     Parameters:
     data (DataFrame): The game data
@@ -2874,7 +4257,15 @@ def get_game_details(data, game_id):
     # Convert game_id to string for comparison
     game_id = str(game_id)
     
-    # Find the game
+    # First check if it's a future game
+    future_games = load_future_games_from_gamesdb()
+    if future_games:
+        for game in future_games:
+            if str(game.get('GameId')) == game_id:
+                # Found a future game - use the future game details function
+                return get_future_game_details(game_id, game)
+    
+    # Find the game in finished games
     game_row = data[data['GameId'].astype(str) == game_id]
     
     if game_row.empty:
@@ -2925,6 +4316,12 @@ def get_game_details(data, game_id):
     
     # Calculate advanced game statistics
     game_stats = _calculate_game_statistics(score_evolution)
+    
+    # Calculate hotness score
+    hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'], game_stats.get('close_game_ratio'))
+    hotness_icon = get_hotness_icon(hotness_score)
+    game_stats['hotness_score'] = hotness_score
+    game_stats['hotness_icon'] = hotness_icon
     
     # Calculate timeout and coach information from events
     team_timeouts = {}
@@ -3002,13 +4399,16 @@ def _calculate_score_evolution(events, home_team, away_team, teams=None):
     teams (list): List of team objects with Team Name and Team Name Short
     
     Returns:
-    list: List of score points with quarters, scores, foul counts, and elapsed time
+    list: List of score points with quarters, scores, foul counts, timeouts, and elapsed time
     """
     from datetime import datetime
     
     score_points = []
     home_fouls = 0
     away_fouls = 0
+    last_home_score = 0
+    last_away_score = 0
+    last_quarter = 1
     
     # Extract team short names for matching event teams
     home_team_short = home_team
@@ -3039,21 +4439,37 @@ def _calculate_score_evolution(events, home_team, away_team, teams=None):
         event_action = event.get('EventAction', '').lower()
         event_team = event.get('EventTeam', '')
         
+        # Helper function to check if event belongs to a team
+        def is_team_event(team_full, team_short):
+            return event_team == team_full or event_team == team_short
+        
         # Check if this is a foul event (but not a foul deletion)
         is_foul_added = any(keyword in event_action for keyword in ['foul added', 'faute'])
         is_foul_deleted = 'foul deleted' in event_action
         
         if is_foul_added and not is_foul_deleted:
-            if event_team == home_team_short:
+            if is_team_event(home_team, home_team_short):
                 home_fouls += 1
-            elif event_team == away_team_short:
+            elif is_team_event(away_team, away_team_short):
                 away_fouls += 1
         elif is_foul_deleted:
             # Handle foul deletions by decrementing
-            if event_team == home_team_short and home_fouls > 0:
+            if is_team_event(home_team, home_team_short) and home_fouls > 0:
                 home_fouls -= 1
-            elif event_team == away_team_short and away_fouls > 0:
+            elif is_team_event(away_team, away_team_short) and away_fouls > 0:
                 away_fouls -= 1
+        
+        # Calculate elapsed time in seconds from first event
+        elapsed_seconds = 0
+        if first_event_time and event.get('EventDateTime'):
+            try:
+                event_time = datetime.fromisoformat(event.get('EventDateTime', '').replace('Z', '+00:00'))
+                elapsed_seconds = (event_time - first_event_time).total_seconds()
+            except (ValueError, TypeError, AttributeError):
+                pass
+        
+        # Check for timeout event
+        is_timeout = 'timeout' in event_action
         
         # Track score changes
         if event.get('EventScore'):
@@ -3066,15 +4482,9 @@ def _calculate_score_evolution(events, home_team, away_team, teams=None):
                     parts = score_str.split(':')
                     home_score = int(parts[0].strip())
                     away_score = int(parts[1].strip())
-                    
-                    # Calculate elapsed time in seconds from first event
-                    elapsed_seconds = 0
-                    if first_event_time and event.get('EventDateTime'):
-                        try:
-                            event_time = datetime.fromisoformat(event.get('EventDateTime', '').replace('Z', '+00:00'))
-                            elapsed_seconds = (event_time - first_event_time).total_seconds()
-                        except:
-                            pass
+                    last_home_score = home_score
+                    last_away_score = away_score
+                    last_quarter = quarter
                     
                     score_points.append({
                         'quarter': quarter,
@@ -3084,10 +4494,25 @@ def _calculate_score_evolution(events, home_team, away_team, teams=None):
                         'away_fouls': away_fouls,
                         'time': event.get('EventDateTime', ''),
                         'elapsed_seconds': elapsed_seconds,
-                        'event': event.get('EventAction', '')
+                        'event': event.get('EventAction', ''),
+                        'is_timeout': False
                     })
                 except:
                     pass
+        elif is_timeout:
+            # Add timeout marker with last known score
+            score_points.append({
+                'quarter': event.get('EventQuarter', last_quarter),
+                'home_score': last_home_score,
+                'away_score': last_away_score,
+                'home_fouls': home_fouls,
+                'away_fouls': away_fouls,
+                'time': event.get('EventDateTime', ''),
+                'elapsed_seconds': elapsed_seconds,
+                'event': event.get('EventAction', ''),
+                'is_timeout': True,
+                'timeout_team': event_team
+            })
     
     return score_points
 
@@ -3105,13 +4530,17 @@ def _calculate_game_statistics(score_evolution):
         - lead_changes: Number of times the lead changed
         - home_highest_lead: Highest lead for home team (or None if never led)
         - away_highest_lead: Highest lead for away team (or None if never led)
+        - close_game_ratio: Ratio of game time where score difference <= 5 points
+        - total_game_time: Total game duration in seconds
     """
     if not score_evolution:
         return {
             'tied_scores': 0,
             'lead_changes': 0,
             'home_highest_lead': None,
-            'away_highest_lead': None
+            'away_highest_lead': None,
+            'close_game_ratio': 0.0,
+            'total_game_time': 0
         }
     
     tied_scores = 0
@@ -3120,9 +4549,26 @@ def _calculate_game_statistics(score_evolution):
     away_highest_lead = 0
     previous_leader = None  # 'home' or 'away' (ties are skipped)
     
-    for point in score_evolution:
+    # For close game ratio calculation
+    close_game_time = 0.0
+    previous_elapsed_seconds = 0
+    previous_margin = None
+    
+    for i, point in enumerate(score_evolution):
         home_score = point['home_score']
         away_score = point['away_score']
+        margin = abs(home_score - away_score)
+        elapsed_seconds = point.get('elapsed_seconds', 0)
+        
+        # Calculate time-weighted closeness (score difference <= 5 points)
+        # We use previous_margin because between events, the score was at the previous state
+        if i > 0 and previous_margin is not None:
+            time_delta = elapsed_seconds - previous_elapsed_seconds
+            if time_delta > 0 and previous_margin <= 5:
+                close_game_time += time_delta
+        
+        previous_elapsed_seconds = elapsed_seconds
+        previous_margin = margin
         
         # Count tied scores
         if home_score == away_score:
@@ -3146,10 +4592,425 @@ def _calculate_game_statistics(score_evolution):
             # Update previous_leader only for non-tied states
             previous_leader = current_leader
     
+    # Calculate close game ratio
+    total_game_time = previous_elapsed_seconds if previous_elapsed_seconds > 0 else 0
+    close_game_ratio = close_game_time / total_game_time if total_game_time > 0 else 0.0
+    
     # Return None for highest lead if team never led
     return {
         'tied_scores': tied_scores,
         'lead_changes': lead_changes,
         'home_highest_lead': home_highest_lead if home_highest_lead > 0 else None,
-        'away_highest_lead': away_highest_lead if away_highest_lead > 0 else None
+        'away_highest_lead': away_highest_lead if away_highest_lead > 0 else None,
+        'close_game_ratio': close_game_ratio,
+        'total_game_time': total_game_time
     }
+
+
+def calculate_hotness_score(lead_changes, ties, close_game_ratio=None):
+    """
+    Calculate game hotness score using improved formula that combines game closeness and volatility.
+    
+    New Formula:
+    - Closeness Factor: Percentage of game time where score difference <= 5 points
+    - Volatility Factor: Normalized score from lead changes and ties
+    - Combined: 0.7 * Closeness + 0.3 * Volatility, normalized to 0-100
+    
+    If close_game_ratio is not provided, falls back to old formula for backwards compatibility.
+    
+    Parameters:
+    lead_changes (int): Number of lead changes in the game
+    ties (int): Number of times the score was tied
+    close_game_ratio (float, optional): Ratio of game time where score difference <= 5 (0.0 to 1.0)
+    
+    Returns:
+    int: Hotness score between 0 and 100
+    """
+    # Backwards compatibility: if close_game_ratio is not provided, use old formula
+    if close_game_ratio is None:
+        return min(100, (lead_changes * 3 + ties * 2))
+    
+    # New improved formula
+    # Step 1: Closeness factor (already 0-1 ratio)
+    closeness_factor = close_game_ratio
+    
+    # Step 2: Volatility factor - normalize lead changes and ties
+    # Typical competitive games have 5-15 lead changes and 3-10 ties
+    # We'll normalize using reasonable upper bounds: 20 lead changes, 15 ties
+    volatility_raw = (lead_changes * 3 + ties * 2)
+    volatility_factor = min(1.0, volatility_raw / 75.0)  # 75 = (20*3 + 15*2) for normalization
+    
+    # Step 3: Combine with weights (70% closeness, 30% volatility)
+    closeness_weight = 0.7
+    volatility_weight = 0.3
+    
+    combined_score = (closeness_weight * closeness_factor + volatility_weight * volatility_factor)
+    
+    # Step 4: Scale to 0-100
+    hotness_score = int(combined_score * 100)
+    
+    return min(100, max(0, hotness_score))
+
+
+def get_hotness_icon(hotness_score):
+    """
+    Get the emoji icon(s) representing the game hotness.
+    
+    Ranges:
+    0-20: ❄️ (Cold - snowflake)
+    21-50: 🌡️ (Warm - thermometer)
+    51-80: 🔥 (Hot - single flame)
+    81-100: 🔥🔥 (Thriller - double flame)
+    
+    Parameters:
+    hotness_score (int): The hotness score (0-100)
+    
+    Returns:
+    str: Emoji icon(s) representing the hotness level
+    """
+    if hotness_score <= 20:
+        return "❄️"
+    elif hotness_score <= 50:
+        return "🌡️"
+    elif hotness_score <= 80:
+        return "🔥"
+    else:
+        return "🔥🔥"
+
+
+def get_player_hover_stats(data, player_name):
+    """
+    Get basic statistics for a player to display in hover tooltip.
+    
+    Parameters:
+    data (DataFrame): The game data
+    player_name (str): The name of the player
+    
+    Returns:
+    dict: Dictionary containing:
+        - games_played: Number of games
+        - avg_score: Average points per game
+        - fouls_per_game: Average fouls per game
+        - best_score: Highest score in one game
+        - team: Team name
+        - player_number: Player's number
+        - last_three_scores: List of scores from last 3 games
+    """
+    player_stats = extract_all_player_stats(data)
+    
+    if player_stats.empty:
+        return None
+    
+    # Filter for the specific player
+    player_games = player_stats[player_stats['PlayerName'] == player_name].copy()
+    
+    if player_games.empty:
+        return None
+    
+    # Sort by game date to get most recent games
+    player_games = player_games.sort_values('GameDate')
+    
+    # Get team name (most recent team if player changed teams)
+    team = player_games.iloc[-1]['Team']
+    
+    # Get player number (most recent number)
+    player_number = player_games.iloc[-1]['PlayerNumber']
+    
+    # Get last 3 game scores
+    last_three_scores = player_games.tail(3)['TotalPoints'].tolist()
+    
+    return {
+        'games_played': int(len(player_games)),
+        'avg_score': float(round(player_games['TotalPoints'].mean(), 1)),
+        'fouls_per_game': float(round(player_games['TotalFouls'].mean(), 1)),
+        'best_score': int(player_games['TotalPoints'].max()),
+        'team': str(team),
+        'player_number': int(player_number) if pd.notna(player_number) else None,
+        'last_three_scores': [int(score) for score in last_three_scores]
+    }
+
+
+def get_team_hover_stats(data, team_name):
+    """
+    Get basic statistics for a team to display in hover tooltip.
+    
+    Parameters:
+    data (DataFrame): The game data
+    team_name (str): The name of the team
+    
+    Returns:
+    dict: Dictionary containing:
+        - wins: Number of wins
+        - losses: Number of losses
+        - last_five: List of results for last 5 games (W/L)
+        - position: Current position in division standings
+        - total_teams: Total number of teams in division
+        - division: Division name
+        - top_scorers: List of top 5 scorers ranked by total points (descending) with total_points and avg_points
+    """
+    if data.empty:
+        return None
+    
+    # Filter games for this team
+    team_games = data[
+        (data['HomeTeamName'] == team_name) | 
+        (data['AwayTeamName'] == team_name)
+    ].copy()
+    
+    if team_games.empty:
+        return None
+    
+    # Get division name from first game
+    division = team_games.iloc[0]['GameDivisionDisplay']
+    
+    # Sort by date
+    team_games = team_games.sort_values('DateTime')
+    
+    # Process each game
+    team_games['IsHome'] = team_games['HomeTeamName'] == team_name
+    team_games['TeamScore'] = team_games.apply(
+        lambda row: row['FinalHomeScore'] if row['IsHome'] else row['FinalAwayScore'], 
+        axis=1
+    )
+    team_games['OpponentScore'] = team_games.apply(
+        lambda row: row['FinalAwayScore'] if row['IsHome'] else row['FinalHomeScore'], 
+        axis=1
+    )
+    team_games['Result'] = team_games.apply(
+        lambda row: 'W' if row['TeamScore'] > row['OpponentScore'] else 'L', 
+        axis=1
+    )
+    
+    # Calculate wins and losses
+    wins = len(team_games[team_games['Result'] == 'W'])
+    losses = len(team_games[team_games['Result'] == 'L'])
+    
+    # Get last 5 games
+    last_five = team_games.tail(5)['Result'].tolist()
+    
+    # Calculate position in division standings
+    position = None
+    total_teams = None
+    if division:
+        standings = calculate_standings_by_division(data, division)
+        if not standings.empty:
+            total_teams = len(standings)
+            team_row = standings[standings['Team Name'] == team_name]
+            if not team_row.empty:
+                # Get position (index starts at 1 in standings)
+                position = team_row.index[0]
+    
+    # Get top 5 scorers for this team
+    top_scorers = []
+    player_stats = extract_all_player_stats(data)
+    if not player_stats.empty:
+        team_players = player_stats[player_stats['Team'] == team_name].copy()
+        if not team_players.empty:
+            # Group by player name and calculate total points and average points
+            player_totals = team_players.groupby('PlayerName').agg({
+                'TotalPoints': ['sum', 'mean'],
+                'GameId': 'count'
+            })
+            # Flatten MultiIndex columns for better readability
+            player_totals.columns = ['_'.join(col).strip() if isinstance(col, tuple) else col for col in player_totals.columns.values]
+            player_totals = player_totals.rename(columns={
+                'TotalPoints_sum': 'TotalPoints',
+                'TotalPoints_mean': 'AvgPoints',
+                'GameId_count': 'GamesPlayed'
+            })
+            
+            # Sort by total points descending and get top 5
+            player_totals = player_totals.sort_values('TotalPoints', ascending=False).head(5)
+            
+            for player_name, row in player_totals.iterrows():
+                top_scorers.append({
+                    'name': player_name,
+                    'total_points': int(row['TotalPoints']),
+                    'avg_points': round(row['AvgPoints'], 1)
+                })
+    
+    return {
+        'wins': int(wins) if wins is not None else 0,
+        'losses': int(losses) if losses is not None else 0,
+        'last_five': last_five,
+        'position': int(position) if position is not None else None,
+        'total_teams': int(total_teams) if total_teams is not None else None,
+        'division': str(division) if division is not None else None,
+        'top_scorers': top_scorers
+    }
+
+
+def get_referee_hover_stats(data, referee_name):
+    """
+    Get basic statistics for a referee to display in hover tooltip.
+    
+    Parameters:
+    data (DataFrame): The game data
+    referee_name (str): The name of the referee
+    
+    Returns:
+    dict: Dictionary containing:
+        - games: Number of games
+        - fouls_per_game: Average fouls per game
+    """
+    import ast
+    
+    if data.empty:
+        return None
+    
+    # Find games where this referee officiated
+    referee_games = []
+    for idx, row in data.iterrows():
+        try:
+            referees = ast.literal_eval(row['Referres']) if isinstance(row['Referres'], str) else row['Referres']
+            # Check for both 'RefereeName' and 'Referee Name' keys
+            if referees and any(
+                ref.get('RefereeName') == referee_name or ref.get('Referee Name') == referee_name 
+                for ref in referees
+            ):
+                referee_games.append(row)
+        except:
+            continue
+    
+    if not referee_games:
+        return None
+    
+    # Extract total fouls for each game
+    total_fouls = []
+    for game_row in referee_games:
+        try:
+            teams = ast.literal_eval(game_row['Teams']) if isinstance(game_row['Teams'], str) else game_row['Teams']
+            game_fouls = 0
+            if isinstance(teams, list):
+                for team in teams:
+                    if isinstance(team, dict) and 'Players' in team:
+                        players = team['Players']
+                        if isinstance(players, list):
+                            for player in players:
+                                if isinstance(player, dict):
+                                    # Try both key formats
+                                    fouls = player.get('Total Fouls', player.get('TotalFouls', 0))
+                                    game_fouls += fouls
+            # Append fouls count including zero (legitimate no fouls game)
+            total_fouls.append(game_fouls)
+        except Exception as e:
+            # Continue to next game if there's an error
+            continue
+    
+    avg_fouls = round(sum(total_fouls) / len(total_fouls), 1) if total_fouls else 0
+    
+    return {
+        'games': int(len(referee_games)),
+        'fouls_per_game': float(avg_fouls)
+    }
+
+
+def get_game_hover_stats(data, game_id):
+    """
+    Get basic statistics for a game to display in hover tooltip.
+    Supports both finished games and future games from gamesDB.json.
+    
+    Parameters:
+    data (DataFrame): The game data
+    game_id (str or int): The game ID
+    
+    Returns:
+    dict: Dictionary containing:
+        - result: Final score string or team names for future games
+        - referees: List of referee names (empty for future games)
+        - date_time: Game date and time
+        - lead_changes: Number of lead changes (0 for future games)
+        - ties: Number of times score was tied (0 for future games)
+        - is_future: Boolean indicating if this is a future game
+    """
+    import ast
+    
+    # Convert game_id to string for comparison
+    game_id = str(game_id)
+    
+    # First, try to find the game in finished games
+    game_row = data[data['GameId'].astype(str) == game_id]
+    
+    if not game_row.empty:
+        # Found in finished games - process normally
+        game = game_row.iloc[0]
+        
+        # Parse referees
+        try:
+            referees = ast.literal_eval(game['Referres']) if isinstance(game['Referres'], str) else game['Referres']
+            # Check for both key formats
+            referee_names = [
+                ref.get('RefereeName') or ref.get('Referee Name', 'Unknown') 
+                for ref in referees
+            ] if referees else []
+        except:
+            referee_names = []
+        
+        # Parse events for lead changes and ties
+        try:
+            events = ast.literal_eval(game['GameEvents']) if isinstance(game['GameEvents'], str) else game['GameEvents']
+            teams = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
+            score_evolution = _calculate_score_evolution(events, game['HomeTeamName'], game['AwayTeamName'], teams)
+            game_stats = _calculate_game_statistics(score_evolution)
+            lead_changes = game_stats.get('lead_changes', 0)
+            ties = game_stats.get('tied_scores', 0)
+            close_game_ratio = game_stats.get('close_game_ratio')
+            hotness_score = calculate_hotness_score(lead_changes, ties, close_game_ratio)
+            hotness_icon = get_hotness_icon(hotness_score)
+        except:
+            lead_changes = 0
+            ties = 0
+            hotness_score = 0
+            hotness_icon = "❄️"
+        
+        return {
+            'result': f"{game['HomeTeamName']} {int(game['FinalHomeScore'])} - {int(game['FinalAwayScore'])} {game['AwayTeamName']}",
+            'referees': referee_names,
+            'date_time': game.get('DateTime', 'N/A'),
+            'lead_changes': lead_changes,
+            'ties': ties,
+            'hotness_score': hotness_score,
+            'hotness_icon': hotness_icon,
+            'is_future': False
+        }
+    
+    # Not found in finished games - check future games
+    future_games = load_future_games_from_gamesdb()
+    if future_games:
+        for game in future_games:
+            if str(game.get('GameId')) == game_id:
+                # Found in future games
+                from datetime import datetime
+                
+                home_team, away_team = parse_team_names_from_url(game.get('GameUrl', ''))
+                
+                # Parse the date from ScheduledGameDate and convert to ISO format
+                game_date = 'TBD'
+                if 'ScheduledGameDate' in game and isinstance(game['ScheduledGameDate'], dict):
+                    date_str = game['ScheduledGameDate'].get('DateTime', 'TBD')
+                    if date_str != 'TBD':
+                        try:
+                            # Parse and convert to ISO format to match finished games
+                            dt = datetime.strptime(date_str, GAMESDB_DATE_FORMAT)
+                            game_date = dt.strftime(ISO_DATE_FORMAT)
+                        except ValueError:
+                            # If parsing fails, keep the original
+                            game_date = date_str
+                
+                # Get division name
+                division = convert_division_name(game.get('GameDivisionName', ''))
+                
+                return {
+                    'result': f"{home_team} vs {away_team}",
+                    'referees': [],
+                    'date_time': game_date,
+                    'lead_changes': 0,
+                    'ties': 0,
+                    'hotness_score': 0,
+                    'hotness_icon': "📅",
+                    'is_future': True,
+                    'division': division
+                }
+    
+    # Game not found in either finished or future games
+    return None

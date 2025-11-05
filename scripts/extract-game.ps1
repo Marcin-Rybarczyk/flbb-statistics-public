@@ -1,4 +1,6 @@
 $ROOT = $PSScriptRoot
+$PARENT_ROOT = Split-Path -Path $ROOT -Parent
+$DATA_ROOT = Join-Path -Path $PARENT_ROOT -ChildPath "data"
 
 Add-Type -Path "$ROOT\Net40\HtmlAgilityPack.dll"
 
@@ -16,10 +18,10 @@ if (Test-Path $CONFIG_FILEPATH) {
 if ($configData) {
     $playerMapFilePath = "$ROOT/$($configData.files.playerMap)"
     $eventActionPatternsFilepath = "$ROOT/$($configData.files.eventActionPatterns)"
-    $FULL_GAME_STATS_RAW_DIRECTORY = "$ROOT/$($configData.directories.fullGameStatsRaw)"
-    $FULL_GAME_STATS_OUTPUT_DIRECTORY = "$ROOT/$($configData.directories.fullGameStatsOutput)"
-    $GAMES_DB_FILEPATH = "$ROOT/$($configData.files.gamesDb)"
-    $GAME_SCHEDULE_DB_FILEPATH = "$ROOT/$($configData.files.gameScheduleDb)"
+    $FULL_GAME_STATS_RAW_DIRECTORY = "$DATA_ROOT/$($configData.directories.fullGameStatsRaw)"
+    $FULL_GAME_STATS_OUTPUT_DIRECTORY = "$DATA_ROOT/$($configData.directories.fullGameStatsOutput)"
+    $GAMES_DB_FILEPATH = "$DATA_ROOT/$($configData.files.gamesDb)"
+    $GAME_SCHEDULE_DB_FILEPATH = "$DATA_ROOT/$($configData.files.gameScheduleDb)"
 } else {
     # Default values if config is not available
     $playerMapFilePath = "$ROOT/player-map.json"

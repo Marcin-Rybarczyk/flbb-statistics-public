@@ -1,8 +1,7 @@
-full-game-stats-raw/**
-game-schedule-raw/**
-full-game-stats-output/**
-gamesDB.json
-gameScheduleDB.json
+!data/full-game-stats.csv
+!data/gamesDB.json
+data/**
+archives/**
 google-drive-sync/**
 __pycache__/**
 *.pyc
