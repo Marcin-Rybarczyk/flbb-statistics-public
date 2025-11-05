@@ -124,3 +124,22 @@
         </div>
         {% endif %}
 {% endblock %}
+
+{% block scripts %}
+<script>
+    // Make Last 5 Games badges clickable
+    document.addEventListener('DOMContentLoaded', function() {
+        const gameBadges = document.querySelectorAll('.game-result-badge[data-type="game"]');
+        
+        gameBadges.forEach(badge => {
+            badge.addEventListener('click', function(e) {
+                const gameId = this.dataset.id;
+                if (gameId) {
+                    // Navigate to game detail page
+                    window.location.href = `/game-detail/${gameId}`;
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
