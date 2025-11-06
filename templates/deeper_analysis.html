@@ -409,7 +409,7 @@
                         {% for index, row in referee_impact['referee_impact_summary'].iterrows() %}
                         <tr>
                             <td><strong>{{ loop.index }}</strong></td>
-                            <td><strong>{{ row['RefereeName'] }}</strong></td>
+                            <td><strong><a href="/referee-detail?referee={{ row['RefereeName']|urlencode }}" class="referee-link">{{ row['RefereeName'] }}</a></strong></td>
                             <td>{{ row['GamesRefereed'] }}</td>
                             <td>{{ "%.1f"|format(row['AvgTotalScore']) }}</td>
                             <td>{{ "%.1f"|format(row['AvgFouls']) }}</td>
