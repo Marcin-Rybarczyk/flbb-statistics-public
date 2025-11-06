@@ -197,6 +197,9 @@ def test_real_data_storage(connection_string, database_name):
         print(f"⚠️  {gamesdb_path} not found, skipping real data test")
         return True
     
+    # Save original environment value
+    original_enabled = os.environ.get('MONGODB_ENABLED')
+    
     try:
         with open(gamesdb_path, 'r', encoding='utf-8') as f:
             games_data = json.load(f)
@@ -238,6 +241,12 @@ def test_real_data_storage(connection_string, database_name):
     except Exception as e:
         print(f"❌ Error testing real data: {e}")
         return False
+    finally:
+        # Restore original environment value
+        if original_enabled is None:
+            os.environ.pop('MONGODB_ENABLED', None)
+        else:
+            os.environ['MONGODB_ENABLED'] = original_enabled
     
     return True
 

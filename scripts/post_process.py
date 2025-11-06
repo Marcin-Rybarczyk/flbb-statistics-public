@@ -154,7 +154,7 @@ def create_archive(config):
                 zipf.write(csv_filepath)
             
             # Add database files if they exist
-            games_db = data_root    /    config.get("files", {}).get("gamesDb", "gamesDB.json")
+            games_db = data_root / config.get("files", {}).get("gamesDb", "gamesDB.json")
             if os.path.exists(games_db):
                 print(f"Adding {games_db}...")
                 zipf.write(games_db)

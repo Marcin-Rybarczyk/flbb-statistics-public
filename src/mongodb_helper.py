@@ -22,6 +22,12 @@ import json
 from typing import List, Dict, Optional, Any
 from datetime import datetime
 
+# Constants for configuration
+TRUTHY_VALUES = ['true', '1', 'yes']
+DEFAULT_MONGODB_URI = 'mongodb://localhost:27017/'
+DEFAULT_MONGODB_DATABASE = 'flbb-statistics'
+DEFAULT_CONNECTION_TIMEOUT_MS = 5000
+
 
 def is_mongodb_available():
     """
@@ -45,7 +51,7 @@ def is_mongodb_enabled():
         bool: True if MongoDB is enabled, False otherwise
     """
     # Check environment variable
-    enabled = os.environ.get('MONGODB_ENABLED', 'false').lower() in ['true', '1', 'yes']
+    enabled = os.environ.get('MONGODB_ENABLED', 'false').lower() in TRUTHY_VALUES
     
     # Also check if pymongo is available
     if enabled and not is_mongodb_available():
@@ -81,10 +87,10 @@ class MongoDBHelper:
         
         # Get connection details from environment or use defaults
         self.connection_string = connection_string or os.environ.get(
-            'MONGODB_URI', 'mongodb://localhost:27017/'
+            'MONGODB_URI', DEFAULT_MONGODB_URI
         )
         self.database_name = database_name or os.environ.get(
-            'MONGODB_DATABASE', 'flbb-statistics'
+            'MONGODB_DATABASE', DEFAULT_MONGODB_DATABASE
         )
         
         self.client = None
@@ -102,7 +108,7 @@ class MongoDBHelper:
             # Set a shorter timeout for connection attempts
             self.client = self.pymongo.MongoClient(
                 self.connection_string,
-                serverSelectionTimeoutMS=5000
+                serverSelectionTimeoutMS=DEFAULT_CONNECTION_TIMEOUT_MS
             )
             # Test the connection
             self.client.admin.command('ping')
@@ -366,13 +372,31 @@ class MongoDBHelper:
         
         try:
             collection = self.db[collection_name]
-            # Create index on GameId for fast lookups
-            collection.create_index('GameId', unique=True)
-            # Create index on GameDivisionName for division queries
-            collection.create_index('GameDivisionName')
-            # Create index on SeasonId for season queries
-            collection.create_index('SeasonId')
-            print(f"✅ Indexes created on collection: {collection_name}")
+            
+            # Create indexes with background=True for non-blocking operation
+            # Index on GameId for fast lookups (unique)
+            try:
+                collection.create_index('GameId', unique=True, background=True)
+            except Exception as e:
+                # Index might already exist, which is fine
+                if 'already exists' not in str(e).lower():
+                    print(f"Note: GameId index: {e}")
+            
+            # Index on GameDivisionName for division queries
+            try:
+                collection.create_index('GameDivisionName', background=True)
+            except Exception as e:
+                if 'already exists' not in str(e).lower():
+                    print(f"Note: GameDivisionName index: {e}")
+            
+            # Index on SeasonId for season queries
+            try:
+                collection.create_index('SeasonId', background=True)
+            except Exception as e:
+                if 'already exists' not in str(e).lower():
+                    print(f"Note: SeasonId index: {e}")
+            
+            print(f"✅ Indexes created/verified on collection: {collection_name}")
         except Exception as e:
             print(f"Error creating indexes: {e}")
 
