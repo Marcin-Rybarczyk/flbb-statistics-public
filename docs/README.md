@@ -197,6 +197,7 @@ Comprehensive documentation is available in this directory:
 ### Integration & Setup
 - **[Google Drive Setup](GOOGLE_DRIVE_SECRETS_SETUP.md)** - API configuration guide
 - **[GitHub Actions Usage](GITHUB_ACTIONS_USAGE.md)** - Automation workflows
+- **[MongoDB Integration](MONGODB_INTEGRATION.md)** - Store JSON data in MongoDB
 
 ### Asset Management
 - **[Team Logos Guide](TEAM_LOGOS.md)** - Team logo management

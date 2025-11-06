@@ -62,8 +62,20 @@ if not check_dependencies():
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 # Import our utilities
-from src.utils import create_csv_from_json_data
+from src.utils import create_csv_from_json_data, load_data_from_directories
 from src.google_drive_helper import upload_file_to_drive
+
+# Try to import MongoDB helper (optional dependency)
+try:
+    from src.mongodb_helper import (
+        is_mongodb_enabled, 
+        is_mongodb_available, 
+        store_json_data_to_mongodb
+    )
+    MONGODB_AVAILABLE = True
+except ImportError:
+    MONGODB_AVAILABLE = False
+    print("Note: MongoDB helper not available. MongoDB storage disabled.")
 
 def load_config(config_file="config.json"):
     """Load configuration from JSON file."""
@@ -181,6 +193,73 @@ def upload_to_google_drive(file_path, config):
         print("Note: This might be due to network restrictions or authentication issues")
         return False
 
+def store_to_mongodb(config):
+    """Store JSON data to MongoDB."""
+    print("Storing data to MongoDB...")
+    
+    # Check if MongoDB is available and enabled
+    if not MONGODB_AVAILABLE:
+        print("MongoDB helper not available. Skipping MongoDB storage.")
+        return False
+    
+    if not is_mongodb_available():
+        print("pymongo package not installed. Skipping MongoDB storage.")
+        print("To enable MongoDB: pip install pymongo")
+        return False
+    
+    # Check if MongoDB is enabled in config
+    mongo_config = config.get("mongodb", {})
+    config_enabled = mongo_config.get("enabled", False)
+    
+    # Also check environment variable
+    import os
+    env_enabled = os.environ.get('MONGODB_ENABLED', '').lower() in ['true', '1', 'yes']
+    
+    if not config_enabled and not env_enabled:
+        print("MongoDB storage is disabled in configuration")
+        return False
+    
+    # Load JSON data from output directory
+    output_dir = data_root / config.get("directories", {}).get("fullGameStatsOutput", "full-game-stats-output")
+    
+    if not os.path.exists(output_dir):
+        print(f"Error: Output directory {output_dir} not found")
+        return False
+    
+    print(f"Loading JSON files from {output_dir}...")
+    all_data = load_data_from_directories(output_dir)
+    
+    if not all_data:
+        print("No JSON data found to store")
+        return False
+    
+    print(f"Found {len(all_data)} game records to store")
+    
+    # Get MongoDB configuration
+    connection_string = mongo_config.get("connectionString") or os.environ.get('MONGODB_URI')
+    database_name = mongo_config.get("database") or os.environ.get('MONGODB_DATABASE')
+    collection_name = mongo_config.get("collections", {}).get("games", "games")
+    
+    # Store data to MongoDB
+    try:
+        success = store_json_data_to_mongodb(
+            all_data,
+            connection_string=connection_string,
+            database_name=database_name,
+            collection_name=collection_name
+        )
+        
+        if success:
+            print("✅ Successfully stored data to MongoDB")
+        else:
+            print("⚠️  MongoDB storage completed with some errors")
+        
+        return success
+        
+    except Exception as e:
+        print(f"Error storing data to MongoDB: {e}")
+        return False
+
 def main():
     """Main function."""
     parser = argparse.ArgumentParser(description='Post-process FLBB Statistics data')
@@ -188,6 +267,10 @@ def main():
                        help='Skip CSV generation step')
     parser.add_argument('--skip-upload', action='store_true', 
                        help='Skip Google Drive upload step')
+    parser.add_argument('--skip-mongodb', action='store_true',
+                       help='Skip MongoDB storage step')
+    parser.add_argument('--mongodb-only', action='store_true',
+                       help='Only store data to MongoDB, skip other steps')
     parser.add_argument('--config', default='config.json', 
                        help='Configuration file path')
     parser.add_argument('--archive-only', action='store_true',
@@ -200,20 +283,37 @@ def main():
     
     success = True
     
+    # MongoDB-only mode
+    if args.mongodb_only:
+        print("\n" + "="*60)
+        print("MongoDB-only mode: Storing data to MongoDB")
+        print("="*60 + "\n")
+        if not store_to_mongodb(config):
+            print("MongoDB storage failed")
+            return 1
+        print("\n" + "="*60)
+        print("MongoDB storage completed successfully!")
+        return 0
+    
     # Step 1: Generate CSV from JSON files
     if not args.skip_csv and not args.archive_only:
         if not generate_csv_from_json(config):
             print("CSV generation failed")
             success = False
     
-    # Step 2: Create archive
+    # Step 2: Store to MongoDB (if enabled)
+    if not args.skip_mongodb and not args.archive_only:
+        print("\n" + "="*60)
+        store_to_mongodb(config)  # Don't fail on MongoDB errors
+    
+    # Step 3: Create archive
     print("\n" + "="*60)
     zip_filepath = create_archive(config)
     if not zip_filepath:
         print("Archive creation failed")
         success = False
     
-    # Step 3: Upload to Google Drive
+    # Step 4: Upload to Google Drive
     if zip_filepath and not args.skip_upload and not args.archive_only:
         print("\n" + "="*60)
         if not upload_to_google_drive(zip_filepath, config):
