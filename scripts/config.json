@@ -36,6 +36,16 @@
     "folderId": "1Z4Z3Z2Z1Z0Z9Z8Z7Z6Z5Z4Z3Z2Z1Z0Z9Z8Z7Z6Z5",
     "serviceAccountFile": "flbb-statistics-e9ab0e2a8b4c.json"
   },
+  "mongodb": {
+    "enabled": false,
+    "connectionString": "mongodb://localhost:27017/",
+    "database": "flbb-statistics",
+    "collections": {
+      "games": "games",
+      "players": "players",
+      "teams": "teams"
+    }
+  },
   "website": {
     "title": "FLBB Basketball Statistics",
     "description": "Comprehensive basketball statistics for Luxembourg Basketball Federation",
