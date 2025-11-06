@@ -4656,17 +4656,28 @@ def _calculate_quarter_durations(score_evolution, events):
                 break
     
     # Calculate durations and format
+    total_duration_seconds = 0
     for quarter in quarter_times:
         start = quarter_times[quarter]['start_seconds']
         end = quarter_times[quarter]['end_seconds']
         duration = end - start
         
         quarter_times[quarter]['duration_seconds'] = duration
+        total_duration_seconds += duration
         
         # Format as MM:SS
         minutes = int(duration // 60)
         seconds = int(duration % 60)
         quarter_times[quarter]['duration_formatted'] = f"{minutes}:{seconds:02d}"
+    
+    # Add total duration to the dictionary
+    if quarter_times:
+        total_minutes = int(total_duration_seconds // 60)
+        total_seconds = int(total_duration_seconds % 60)
+        quarter_times['total'] = {
+            'duration_seconds': total_duration_seconds,
+            'duration_formatted': f"{total_minutes}:{total_seconds:02d}"
+        }
     
     return quarter_times
 

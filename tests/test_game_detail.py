@@ -127,9 +127,12 @@ def test_game_details():
         print("   ✗ No quarter duration data found")
         return False
     
-    print(f"   ✓ Found durations for {len(quarter_durations)} quarter(s)")
+    # Separate numeric quarter keys from 'total' key
+    numeric_quarters = sorted([q for q in quarter_durations.keys() if isinstance(q, int)])
+    
+    print(f"   ✓ Found durations for {len(numeric_quarters)} quarter(s)")
     total_duration = 0
-    for quarter in sorted(quarter_durations.keys()):
+    for quarter in numeric_quarters:
         info = quarter_durations[quarter]
         duration_formatted = info.get('duration_formatted', 'N/A')
         duration_seconds = info.get('duration_seconds', 0)
@@ -142,7 +145,17 @@ def test_game_details():
     
     total_mins = int(total_duration // 60)
     total_secs = int(total_duration % 60)
-    print(f"   - Total game time: {total_mins}:{total_secs:02d}")
+    print(f"   - Calculated total game time: {total_mins}:{total_secs:02d}")
+    
+    # Test the new total duration field
+    if 'total' in quarter_durations:
+        total_info = quarter_durations['total']
+        print(f"   - Total from data structure: {total_info.get('duration_formatted', 'N/A')}")
+        print("     ✓ Total duration field added successfully")
+    else:
+        print("   ✗ Total duration field not found in data structure")
+        return False
+    
     print("     ✓ Quarter durations calculated successfully")
     
     print("\n" + "=" * 60)
