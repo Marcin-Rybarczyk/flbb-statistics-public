@@ -789,7 +789,7 @@
                     .replace(/[ñ]/g, 'n')
                     .replace(/[ç]/g, 'c');
                 
-                // Try PNG first (most common)
+                // Try PNG first, will fallback to JPG via onerror handler if PNG doesn't exist
                 return `/logos/${normalized}.png`;
             }
             
@@ -797,7 +797,8 @@
             function getTeamLogoHtml(teamName) {
                 const logoUrl = getTeamLogoUrl(teamName);
                 if (logoUrl) {
-                    return `<img src="${logoUrl}" alt="${teamName} logo" class="team-logo-icon" onerror="this.style.display='none'">`;
+                    // Fallback from PNG to JPG if PNG doesn't exist
+                    return `<img src="${logoUrl}" alt="${teamName} logo" class="team-logo-icon" onerror="if(this.src.endsWith('.png')){this.src=this.src.replace('.png','.jpg');}else{this.style.display='none';}">`;
                 }
                 return '';
             }

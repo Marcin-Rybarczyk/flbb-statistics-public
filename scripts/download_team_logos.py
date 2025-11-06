@@ -254,20 +254,22 @@ def search_team_logo_on_flbb(team_name, session, verbose=False):
         print(f"    Generated team codes: {team_codes}")
     
     # Add patterns with team codes for FLBB-specific theme directory (from issue requirement)
+    # Prioritize PNG over JPG
     for code in team_codes:
         asset_patterns.extend([
-            f"{BASE_URL}/layout/themes/flbb/images/Logos/{code}.jpg",
             f"{BASE_URL}/layout/themes/flbb/images/Logos/{code}.png",
-            f"{BASE_URL}/layout/themes/flbb/images/logos/{code}.jpg",
+            f"{BASE_URL}/layout/themes/flbb/images/Logos/{code}.jpg",
             f"{BASE_URL}/layout/themes/flbb/images/logos/{code}.png",
+            f"{BASE_URL}/layout/themes/flbb/images/logos/{code}.jpg",
         ])
     
     # Add patterns with normalized name for FLBB theme directory
+    # Prioritize PNG over JPG
     asset_patterns.extend([
-        f"{BASE_URL}/layout/themes/flbb/images/Logos/{normalized_name.upper()}.jpg",
         f"{BASE_URL}/layout/themes/flbb/images/Logos/{normalized_name.upper()}.png",
-        f"{BASE_URL}/layout/themes/flbb/images/logos/{normalized_name}.jpg",
+        f"{BASE_URL}/layout/themes/flbb/images/Logos/{normalized_name.upper()}.jpg",
         f"{BASE_URL}/layout/themes/flbb/images/logos/{normalized_name}.png",
+        f"{BASE_URL}/layout/themes/flbb/images/logos/{normalized_name}.jpg",
     ])
     
     # Standard asset directories with normalized name
