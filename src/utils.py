@@ -1643,7 +1643,8 @@ def get_biggest_wins(data, top_n=10, division=None):
 
 def get_longest_duration_games(data, top_n=20, division=None):
     """
-    Get games with the longest duration based on event timestamps.
+    Get games with the longest duration based on quarter durations.
+    Uses the same calculation method as game detail page for consistency.
     
     Parameters:
     data (DataFrame): The game data
@@ -1669,25 +1670,34 @@ def get_longest_duration_games(data, top_n=20, division=None):
     
     for _, game in data_copy.iterrows():
         events_str = game['GameEvents']
+        teams_str = game.get('Teams', '[]')
+        
         if pd.notna(events_str):
             try:
                 events = ast.literal_eval(events_str)
+                # Handle teams_str which could be a string, None, or pandas NA
+                if pd.notna(teams_str) and isinstance(teams_str, str):
+                    teams = ast.literal_eval(teams_str)
+                else:
+                    teams = []
+                
                 if events and len(events) > 0:
-                    # Get all event times (events are already in chronological order as recorded)
-                    event_times = []
-                    for event in events:
-                        if isinstance(event, dict) and 'EventDateTime' in event:
-                            event_times.append(event['EventDateTime'])
+                    # Use the same calculation method as game detail page
+                    # Calculate score evolution and then quarter durations
+                    score_evolution = _calculate_score_evolution(
+                        events, 
+                        game['HomeTeamName'], 
+                        game['AwayTeamName'],
+                        teams
+                    )
+                    quarter_durations = _calculate_quarter_durations(score_evolution, events)
                     
-                    if len(event_times) >= 2:
-                        # Parse first and last event times (as recorded during the game)
-                        first_time = datetime.strptime(event_times[0], '%Y-%m-%d %H:%M:%S')
-                        last_time = datetime.strptime(event_times[-1], '%Y-%m-%d %H:%M:%S')
-                        duration_seconds = (last_time - first_time).total_seconds()
+                    # Get total duration from quarter_durations
+                    if quarter_durations and 'total' in quarter_durations:
+                        total_duration = quarter_durations['total']
+                        duration_seconds = total_duration['duration_seconds']
                         duration_minutes = duration_seconds / 60
-                        
-                        # Format duration as MM:SS
-                        minutes, seconds = divmod(int(duration_seconds), 60)
+                        duration_formatted = total_duration['duration_formatted']
                         
                         game_durations.append({
                             'GameId': game['GameId'],
@@ -1697,7 +1707,7 @@ def get_longest_duration_games(data, top_n=20, division=None):
                             'FinalAwayScore': game['FinalAwayScore'],
                             'GameDivisionDisplay': game['GameDivisionDisplay'],
                             'DurationMinutes': duration_minutes,
-                            'DurationFormatted': f"{minutes}:{seconds:02d}"
+                            'DurationFormatted': duration_formatted
                         })
             except Exception:
                 # Skip games with parsing errors
