@@ -2,7 +2,7 @@ import os
 import re
 import logging
 import unicodedata
-from urllib.parse import unquote
+from urllib.parse import unquote, urlparse
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
 from flask_login import login_required, logout_user, login_user, current_user
 import pandas as pd
@@ -140,6 +140,35 @@ def inject_season_info():
         'can_access_endpoint': can_access_endpoint
     }
 
+# Security utility functions
+def is_safe_url(target):
+    """
+    Validate that a URL is safe for redirect.
+    
+    This prevents open redirect attacks by ensuring:
+    1. The URL is relative (no scheme or netloc)
+    2. The URL starts with '/' (absolute path)
+    3. The URL doesn't start with '//' (protocol-relative URL)
+    
+    Args:
+        target: The URL to validate
+        
+    Returns:
+        bool: True if URL is safe for redirect, False otherwise
+    """
+    if not target:
+        return False
+    
+    # Parse the URL
+    parsed = urlparse(target)
+    
+    # URL must be relative (no scheme or netloc)
+    # and must start with '/' but not '//' to prevent protocol-relative URLs
+    return (not parsed.scheme and 
+            not parsed.netloc and 
+            target.startswith('/') and 
+            not target.startswith('//'))
+
 # Logo utility functions
 def normalize_team_name(team_name):
     """Normalize team name for file naming
@@ -235,9 +264,9 @@ def login():
             login_user(user)
             flash(f'Welcome, {username}!', 'success')
             
-            # Redirect to the page they were trying to access, or home
+            # Safely redirect to the page they were trying to access, or home
             next_page = request.args.get('next')
-            if next_page and next_page.startswith('/'):
+            if next_page and is_safe_url(next_page):
                 return redirect(next_page)
             return redirect(url_for('index'))
         else:

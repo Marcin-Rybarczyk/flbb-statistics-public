@@ -46,7 +46,18 @@ class User(UserMixin):
 
 
 def hash_password(password):
-    """Hash a password using SHA-256"""
+    """
+    Hash a password using SHA-256.
+    
+    Note: SHA-256 is used for simplicity and compatibility. For production use,
+    consider using bcrypt, scrypt, or Argon2 which are specifically designed
+    for password hashing and include built-in salt and iteration counts to
+    protect against brute force attacks.
+    
+    Example with bcrypt:
+        import bcrypt
+        hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+    """
     return hashlib.sha256(password.encode()).hexdigest()
 
 
