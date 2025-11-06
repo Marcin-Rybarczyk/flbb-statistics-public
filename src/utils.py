@@ -1641,6 +1641,74 @@ def get_biggest_wins(data, top_n=10, division=None):
     
     return game_analysis.nlargest(top_n, 'WinMargin')
 
+def get_longest_duration_games(data, top_n=20, division=None):
+    """
+    Get games with the longest duration based on event timestamps.
+    
+    Parameters:
+    data (DataFrame): The game data
+    top_n (int): Number of games to return (default 20)
+    division (str): Optional division filter
+    
+    Returns:
+    DataFrame: Games with longest duration, including duration in minutes
+    """
+    import ast
+    
+    # Create a copy to avoid modifying the original data
+    data_copy = data.copy()
+    
+    # Filter by division if specified
+    if division:
+        data_copy = data_copy[data_copy['GameDivisionDisplay'] == division]
+    
+    if data_copy.empty:
+        return pd.DataFrame()
+    
+    game_durations = []
+    
+    for _, game in data_copy.iterrows():
+        events_str = game['GameEvents']
+        if pd.notna(events_str):
+            try:
+                events = ast.literal_eval(events_str)
+                if events and len(events) > 0:
+                    # Get all event times
+                    event_times = []
+                    for event in events:
+                        if isinstance(event, dict) and 'EventDateTime' in event:
+                            event_times.append(event['EventDateTime'])
+                    
+                    if len(event_times) >= 2:
+                        # Parse first and last event times
+                        first_time = datetime.strptime(event_times[0], '%Y-%m-%d %H:%M:%S')
+                        last_time = datetime.strptime(event_times[-1], '%Y-%m-%d %H:%M:%S')
+                        duration_seconds = (last_time - first_time).total_seconds()
+                        duration_minutes = duration_seconds / 60
+                        
+                        game_durations.append({
+                            'GameId': game['GameId'],
+                            'HomeTeamName': game['HomeTeamName'],
+                            'AwayTeamName': game['AwayTeamName'],
+                            'FinalHomeScore': game['FinalHomeScore'],
+                            'FinalAwayScore': game['FinalAwayScore'],
+                            'GameDivisionDisplay': game['GameDivisionDisplay'],
+                            'DurationMinutes': duration_minutes,
+                            'DurationFormatted': f"{int(duration_minutes)}:{int((duration_minutes % 1) * 60):02d}"
+                        })
+            except Exception:
+                # Skip games with parsing errors
+                continue
+    
+    if not game_durations:
+        return pd.DataFrame()
+    
+    # Create DataFrame and sort by duration
+    duration_df = pd.DataFrame(game_durations)
+    longest_games = duration_df.nlargest(top_n, 'DurationMinutes')
+    
+    return longest_games
+
 # Only load data when functions are called, not at import time
 def create_csv_from_json_data(output_dir, csv_filepath):
     """
