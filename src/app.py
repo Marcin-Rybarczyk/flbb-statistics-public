@@ -1,6 +1,7 @@
 import os
 import re
 import logging
+import unicodedata
 from urllib.parse import unquote
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 import pandas as pd
@@ -136,8 +137,6 @@ def normalize_team_name(team_name):
     Converts accented characters to their base form (é -> e, ä -> a, etc.)
     before removing remaining special characters and converting to lowercase.
     """
-    import unicodedata
-    
     if not team_name:
         return ""
     

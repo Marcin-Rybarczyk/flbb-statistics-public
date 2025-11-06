@@ -10,6 +10,7 @@ import os
 import sys
 import pandas as pd
 import re
+import unicodedata
 from pathlib import Path
 import textwrap
 
@@ -64,8 +65,6 @@ def normalize_team_name(team_name):
     Converts accented characters to their base form (é -> e, ä -> a, etc.)
     before removing remaining special characters and converting to lowercase.
     """
-    import unicodedata
-    
     # First, normalize accents to their base characters
     # NFD = Canonical Decomposition (separates base character from accent)
     # Filter out combining marks (category 'Mn') to remove accents

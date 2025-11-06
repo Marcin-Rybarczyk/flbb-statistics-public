@@ -48,6 +48,7 @@ import pandas as pd
 from urllib.parse import urljoin, quote
 import time
 import re
+import unicodedata
 from pathlib import Path
 
 # Configuration
@@ -92,8 +93,6 @@ def normalize_team_name(team_name):
     Converts accented characters to their base form (é -> e, ä -> a, etc.)
     before removing remaining special characters and converting to lowercase.
     """
-    import unicodedata
-    
     # First, normalize accents to their base characters
     # NFD = Canonical Decomposition (separates base character from accent)
     # Filter out combining marks (category 'Mn') to remove accents
@@ -109,8 +108,6 @@ def normalize_team_name(team_name):
 
 def generate_team_codes(team_name):
     """Generate possible team codes/abbreviations for logo URLs"""
-    import unicodedata
-    
     codes = []
     
     # First normalize accents to their base characters
