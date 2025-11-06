@@ -131,10 +131,26 @@ def inject_season_info():
 
 # Logo utility functions
 def normalize_team_name(team_name):
-    """Normalize team name for file naming"""
+    """Normalize team name for file naming
+    
+    Converts accented characters to their base form (é -> e, ä -> a, etc.)
+    before removing remaining special characters and converting to lowercase.
+    """
+    import unicodedata
+    
     if not team_name:
         return ""
-    normalized = re.sub(r'[^a-zA-Z0-9\s]', '', str(team_name))
+    
+    # First, normalize accents to their base characters
+    # NFD = Canonical Decomposition (separates base character from accent)
+    # Filter out combining marks (category 'Mn') to remove accents
+    normalized = ''.join(
+        c for c in unicodedata.normalize('NFD', str(team_name))
+        if unicodedata.category(c) != 'Mn'
+    )
+    
+    # Then remove any remaining special characters
+    normalized = re.sub(r'[^a-zA-Z0-9\s]', '', normalized)
     normalized = normalized.lower().replace(' ', '-')
     return normalized
 
