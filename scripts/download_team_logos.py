@@ -48,6 +48,7 @@ import pandas as pd
 from urllib.parse import urljoin, quote
 import time
 import re
+import unicodedata
 from pathlib import Path
 
 # Configuration
@@ -87,9 +88,21 @@ def get_unique_teams():
         return []
 
 def normalize_team_name(team_name):
-    """Normalize team name for file naming and URL construction"""
-    # Remove special characters and convert to lowercase
-    normalized = re.sub(r'[^a-zA-Z0-9\s]', '', team_name)
+    """Normalize team name for file naming and URL construction
+    
+    Converts accented characters to their base form (é -> e, ä -> a, etc.)
+    before removing remaining special characters and converting to lowercase.
+    """
+    # First, normalize accents to their base characters
+    # NFD = Canonical Decomposition (separates base character from accent)
+    # Filter out combining marks (category 'Mn') to remove accents
+    normalized = ''.join(
+        c for c in unicodedata.normalize('NFD', team_name)
+        if unicodedata.category(c) != 'Mn'
+    )
+    
+    # Then remove any remaining special characters
+    normalized = re.sub(r'[^a-zA-Z0-9\s]', '', normalized)
     normalized = normalized.lower().replace(' ', '-')
     return normalized
 
@@ -97,8 +110,14 @@ def generate_team_codes(team_name):
     """Generate possible team codes/abbreviations for logo URLs"""
     codes = []
     
+    # First normalize accents to their base characters
+    normalized_name = ''.join(
+        c for c in unicodedata.normalize('NFD', team_name)
+        if unicodedata.category(c) != 'Mn'
+    )
+    
     # Clean team name for processing
-    clean_name = re.sub(r'[^a-zA-Z0-9\s]', '', team_name)
+    clean_name = re.sub(r'[^a-zA-Z0-9\s]', '', normalized_name)
     words = clean_name.split()
     
     # Strategy 1: First letter of each significant word
