@@ -328,7 +328,6 @@
         /* Future game styling */
         .future-game {
             background-color: rgba(102, 126, 234, 0.1);
-            font-style: italic;
         }
 
         .filter-section {
@@ -611,7 +610,12 @@
                         <td>
                             {% if row.get('IsFinished') and row.get('TopScorerName') and row['TopScorerName'] != 'N/A' %}
                                 <div class="top-scorer">
-                                    {{ row['TopScorerName'] }}
+                                    <a href="{{ url_for('player_detail', player=row['TopScorerName']) }}" 
+                                       class="hoverable-item" 
+                                       data-type="player" 
+                                       data-id="{{ row['TopScorerName'] }}">
+                                        {{ row['TopScorerName'] }}
+                                    </a>
                                     {% if row['TopScorerPoints'] > 0 %}
                                         ({{ row['TopScorerPoints'] }}pts)
                                     {% endif %}
