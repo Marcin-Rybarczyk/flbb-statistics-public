@@ -120,6 +120,44 @@ def test_game_details():
             print(f"   - Game time range: {start_time:.1f} to {end_time:.1f} minutes")
             print("     ✓ Chart will use proper time boundaries")
     
+    # Test quarter durations (New Feature)
+    print("\n8. Validating quarter durations (New Feature)...")
+    quarter_durations = details.get('quarter_durations', {})
+    if not quarter_durations:
+        print("   ✗ No quarter duration data found")
+        return False
+    
+    # Separate numeric quarter keys from 'total' key
+    numeric_quarters = sorted([q for q in quarter_durations.keys() if isinstance(q, int)])
+    
+    print(f"   ✓ Found durations for {len(numeric_quarters)} quarter(s)")
+    total_duration = 0
+    for quarter in numeric_quarters:
+        info = quarter_durations[quarter]
+        duration_formatted = info.get('duration_formatted', 'N/A')
+        duration_seconds = info.get('duration_seconds', 0)
+        print(f"   - Quarter {quarter}: {duration_formatted} ({duration_seconds:.1f} seconds)")
+        total_duration += duration_seconds
+        
+        # Validate duration is reasonable (between 5 and 40 minutes)
+        if duration_seconds < 300 or duration_seconds > 2400:
+            print(f"     ⚠ Warning: Unusual quarter duration")
+    
+    total_mins = int(total_duration // 60)
+    total_secs = int(total_duration % 60)
+    print(f"   - Calculated total game time: {total_mins}:{total_secs:02d}")
+    
+    # Test the new total duration field
+    if 'total' in quarter_durations:
+        total_info = quarter_durations['total']
+        print(f"   - Total from data structure: {total_info.get('duration_formatted', 'N/A')}")
+        print("     ✓ Total duration field added successfully")
+    else:
+        print("   ✗ Total duration field not found in data structure")
+        return False
+    
+    print("     ✓ Quarter durations calculated successfully")
+    
     print("\n" + "=" * 60)
     print("✓ All game details tests passed!")
     print("=" * 60)

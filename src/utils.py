@@ -1641,6 +1641,87 @@ def get_biggest_wins(data, top_n=10, division=None):
     
     return game_analysis.nlargest(top_n, 'WinMargin')
 
+def get_longest_duration_games(data, top_n=20, division=None):
+    """
+    Get games with the longest duration based on quarter durations.
+    Uses the same calculation method as game detail page for consistency.
+    
+    Parameters:
+    data (DataFrame): The game data
+    top_n (int): Number of games to return (default 20)
+    division (str): Optional division filter
+    
+    Returns:
+    DataFrame: Games with longest duration, including duration in minutes
+    """
+    import ast
+    
+    # Create a copy to avoid modifying the original data
+    data_copy = data.copy()
+    
+    # Filter by division if specified
+    if division:
+        data_copy = data_copy[data_copy['GameDivisionDisplay'] == division]
+    
+    if data_copy.empty:
+        return pd.DataFrame()
+    
+    game_durations = []
+    
+    for _, game in data_copy.iterrows():
+        events_str = game['GameEvents']
+        teams_str = game.get('Teams', '[]')
+        
+        if pd.notna(events_str):
+            try:
+                events = ast.literal_eval(events_str)
+                # Handle teams_str which could be a string, None, or pandas NA
+                if pd.notna(teams_str) and isinstance(teams_str, str):
+                    teams = ast.literal_eval(teams_str)
+                else:
+                    teams = []
+                
+                if events and len(events) > 0:
+                    # Use the same calculation method as game detail page
+                    # Calculate score evolution and then quarter durations
+                    score_evolution = _calculate_score_evolution(
+                        events, 
+                        game['HomeTeamName'], 
+                        game['AwayTeamName'],
+                        teams
+                    )
+                    quarter_durations = _calculate_quarter_durations(score_evolution, events)
+                    
+                    # Get total duration from quarter_durations
+                    if quarter_durations and 'total' in quarter_durations:
+                        total_duration = quarter_durations['total']
+                        duration_seconds = total_duration['duration_seconds']
+                        duration_minutes = duration_seconds / 60
+                        duration_formatted = total_duration['duration_formatted']
+                        
+                        game_durations.append({
+                            'GameId': game['GameId'],
+                            'HomeTeamName': game['HomeTeamName'],
+                            'AwayTeamName': game['AwayTeamName'],
+                            'FinalHomeScore': game['FinalHomeScore'],
+                            'FinalAwayScore': game['FinalAwayScore'],
+                            'GameDivisionDisplay': game['GameDivisionDisplay'],
+                            'DurationMinutes': duration_minutes,
+                            'DurationFormatted': duration_formatted
+                        })
+            except Exception:
+                # Skip games with parsing errors
+                continue
+    
+    if not game_durations:
+        return pd.DataFrame()
+    
+    # Create DataFrame and sort by duration
+    duration_df = pd.DataFrame(game_durations)
+    longest_games = duration_df.nlargest(top_n, 'DurationMinutes')
+    
+    return longest_games
+
 # Only load data when functions are called, not at import time
 def create_csv_from_json_data(output_dir, csv_filepath):
     """
@@ -4367,6 +4448,9 @@ def get_game_details(data, game_id):
     # Calculate score evolution from events
     score_evolution = _calculate_score_evolution(events, game['HomeTeamName'], game['AwayTeamName'], teams)
     
+    # Calculate quarter durations
+    quarter_durations = _calculate_quarter_durations(score_evolution, events)
+    
     # Calculate advanced game statistics
     game_stats = _calculate_game_statistics(score_evolution)
     
@@ -4437,6 +4521,7 @@ def get_game_details(data, game_id):
         'events': sorted_events,
         'score_evolution': score_evolution,
         'game_stats': game_stats,
+        'quarter_durations': quarter_durations,
         'referees': referees
     }
 
@@ -4568,6 +4653,114 @@ def _calculate_score_evolution(events, home_team, away_team, teams=None):
             })
     
     return score_points
+
+
+def _calculate_quarter_durations(score_evolution, events):
+    """
+    Calculate the duration of each quarter based on game events.
+    
+    Rules:
+    1. Beginning of each quarter starts with any game event in that quarter (foul, score, timeout)
+    2. End of quarter is when any event from next quarter occurs
+    3. For the last quarter, it ends when "End of game signal" occurs
+    
+    Parameters:
+    score_evolution (list): List of score points throughout the game
+    events (list): List of all game events
+    
+    Returns:
+    dict: Dictionary mapping quarter number to duration info:
+        {
+            1: {'start_seconds': X, 'end_seconds': Y, 'duration_seconds': Z, 'duration_formatted': 'MM:SS'},
+            ...
+        }
+    """
+    if not score_evolution:
+        return {}
+    
+    from datetime import datetime
+    
+    # Sort events chronologically
+    sorted_events = sorted(events, key=lambda x: x.get('EventDateTime', ''))
+    
+    # Find first event time for calculating elapsed time
+    first_event_time = None
+    for e in sorted_events:
+        if e.get('EventDateTime'):
+            try:
+                first_event_time = datetime.fromisoformat(e.get('EventDateTime', '').replace('Z', '+00:00'))
+                break
+            except:
+                pass
+    
+    # Group events by quarter and track timing
+    quarter_times = {}
+    
+    # First pass: Get start and end times from score_evolution
+    for point in score_evolution:
+        quarter = point.get('quarter', 0)
+        elapsed = point.get('elapsed_seconds', 0)
+        
+        if quarter not in quarter_times:
+            quarter_times[quarter] = {
+                'start_seconds': elapsed,
+                'end_seconds': elapsed
+            }
+        else:
+            # Update end time to latest event in this quarter
+            quarter_times[quarter]['end_seconds'] = elapsed
+    
+    # Second pass: Adjust end times based on next quarter's start
+    # End of quarter is when next quarter's first event occurs
+    sorted_quarters = sorted(quarter_times.keys())
+    for i, quarter in enumerate(sorted_quarters):
+        if i < len(sorted_quarters) - 1:
+            # Not the last quarter - end is when next quarter starts
+            next_quarter = sorted_quarters[i + 1]
+            quarter_times[quarter]['end_seconds'] = quarter_times[next_quarter]['start_seconds']
+    
+    # For the last quarter, check if there's an "End of game signal" event
+    if sorted_quarters and sorted_events and first_event_time:
+        last_quarter = sorted_quarters[-1]
+        for event in reversed(sorted_events):  # Check from end (already sorted)
+            action = event.get('EventAction', '').lower()
+            if 'end of game' in action or 'signal end' in action:
+                # Found end of game signal - use its timestamp
+                event_time = event.get('EventDateTime', '')
+                if event_time:
+                    try:
+                        end_time = datetime.fromisoformat(event_time.replace('Z', '+00:00'))
+                        elapsed_seconds = (end_time - first_event_time).total_seconds()
+                        quarter_times[last_quarter]['end_seconds'] = elapsed_seconds
+                    except:
+                        pass
+                break
+    
+    # Calculate durations and format
+    total_duration_seconds = 0
+    for quarter in quarter_times:
+        start = quarter_times[quarter]['start_seconds']
+        end = quarter_times[quarter]['end_seconds']
+        duration = end - start
+        
+        quarter_times[quarter]['duration_seconds'] = duration
+        total_duration_seconds += duration
+        
+        # Format as MM:SS
+        minutes = int(duration // 60)
+        seconds = int(duration % 60)
+        quarter_times[quarter]['duration_formatted'] = f"{minutes}:{seconds:02d}"
+    
+    # Add total duration to the dictionary
+    if quarter_times:
+        total_minutes = int(total_duration_seconds // 60)
+        total_seconds = int(total_duration_seconds % 60)
+        quarter_times['total'] = {
+            'duration_seconds': total_duration_seconds,
+            'duration_formatted': f"{total_minutes}:{total_seconds:02d}"
+        }
+    
+    return quarter_times
 
 
 def _calculate_game_statistics(score_evolution):

@@ -10,7 +10,8 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
                    get_top_scorers, get_highest_single_game_score, get_top_three_pointers, 
                    get_top_foulers, get_referee_statistics, get_referee_fouls_per_game,
                    get_referees_least_fouls_per_game, get_biggest_wins, get_biggest_leads,
-                   get_most_tie_scores, get_most_lead_changes, get_player_shooting_efficiency,
+                   get_most_tie_scores, get_most_lead_changes, get_longest_duration_games,
+                   get_player_shooting_efficiency,
                    get_starting_five_vs_bench_stats, get_double_digit_scorers, get_consistent_scorers,
                    get_player_game_impact_analysis, get_player_foul_impact_analysis,
                    get_best_player_combinations, get_referee_game_impact_analysis, get_all_fixtures_data,
@@ -248,6 +249,7 @@ def statistics():
     biggest_leads = get_biggest_leads(data, 10, division=selected_division)
     most_ties = get_most_tie_scores(data, 10, division=selected_division)
     most_lead_changes = get_most_lead_changes(data, 10, division=selected_division)
+    longest_duration_games = get_longest_duration_games(data, 20, division=selected_division)
     
     return render_template('statistics.html', 
                          highest_games=highest_games,
@@ -255,6 +257,7 @@ def statistics():
                          biggest_leads=biggest_leads,
                          most_ties=most_ties,
                          most_lead_changes=most_lead_changes,
+                         longest_duration_games=longest_duration_games,
                          divisions=divisions,
                          selected_division=selected_division,
                          data_source_info=data_source_info)

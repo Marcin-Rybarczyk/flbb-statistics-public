@@ -340,6 +340,29 @@
         </div>
         {% endif %}
 
+        <!-- Quarter Durations -->
+        {% if game.quarter_durations %}
+        <div class="info-card" style="margin-top: 20px;">
+            <h3>⏱️ Quarter Durations</h3>
+            <div class="stats-grid">
+                {% for quarter in [1, 2, 3, 4] %}
+                    {% if game.quarter_durations[quarter] %}
+                    <div class="stat-item">
+                        <div class="stat-label">Quarter {{ quarter }}</div>
+                        <div class="stat-value">{{ game.quarter_durations[quarter].duration_formatted }}</div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+                {% if game.quarter_durations['total'] %}
+                <div class="stat-item">
+                    <div class="stat-label">Total Duration</div>
+                    <div class="stat-value" style="color: #27ae60; font-weight: bold;">{{ game.quarter_durations['total'].duration_formatted }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Player Statistics -->
         <div class="section">
             {% if game.basic_info.is_future %}

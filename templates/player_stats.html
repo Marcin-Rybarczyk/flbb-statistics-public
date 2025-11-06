@@ -230,23 +230,23 @@
                 <div class="table-container"><table>
                     <thead>
                         <tr>
-                            <th>Rank</th>
-                            <th>Player</th>
-                            <th>Team</th>
-                            <th>Games</th>
-                            <th>Total Points</th>
-                            <th>Avg Points/Game</th>
+                            <th class="col-essential">Rank</th>
+                            <th class="col-essential">Player</th>
+                            <th class="col-important">Team</th>
+                            <th class="col-optional">Games</th>
+                            <th class="col-essential">Total Points</th>
+                            <th class="col-important">Avg Points/Game</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for index, row in top_scorers.iterrows() %}
                         <tr>
-                            <td>{{ loop.index }}</td>
-                            <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
-                            <td>{{ team_button(row['Team']) }}</td>
-                            <td>{{ row['GamesPlayed'] }}</td>
-                            <td><strong>{{ row['TotalPoints'] }}</strong></td>
-                            <td>{{ "%.1f"|format(row['AvgPointsPerGame']) }}</td>
+                            <td class="col-essential">{{ loop.index }}</td>
+                            <td class="col-essential"><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
+                            <td class="col-important">{{ team_button(row['Team']) }}</td>
+                            <td class="col-optional">{{ row['GamesPlayed'] }}</td>
+                            <td class="col-essential"><strong>{{ row['TotalPoints'] }}</strong></td>
+                            <td class="col-important">{{ "%.1f"|format(row['AvgPointsPerGame']) }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -261,23 +261,23 @@
                 <div class="table-container"><table>
                     <thead>
                         <tr>
-                            <th>Rank</th>
-                            <th>Player</th>
-                            <th>Team</th>
-                            <th>Total 3-Pointers</th>
-                            <th>Games</th>
-                            <th>3-Pointers per Game</th>
+                            <th class="col-essential">Rank</th>
+                            <th class="col-essential">Player</th>
+                            <th class="col-important">Team</th>
+                            <th class="col-essential">Total 3-Pointers</th>
+                            <th class="col-optional">Games</th>
+                            <th class="col-important">3-Pointers per Game</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for index, row in top_three_pointers.iterrows() %}
                         <tr>
-                            <td>{{ loop.index }}</td>
-                            <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
-                            <td>{{ team_button(row['Team']) }}</td>
-                            <td><strong>{{ row['3PMadeShots'] }}</strong></td>
-                            <td>{{ row['GamesPlayed'] }}</td>
-                            <td>{{ "%.1f"|format(row['AvgThreePointsPerGame']) }}</td>
+                            <td class="col-essential">{{ loop.index }}</td>
+                            <td class="col-essential"><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
+                            <td class="col-important">{{ team_button(row['Team']) }}</td>
+                            <td class="col-essential"><strong>{{ row['3PMadeShots'] }}</strong></td>
+                            <td class="col-optional">{{ row['GamesPlayed'] }}</td>
+                            <td class="col-important">{{ "%.1f"|format(row['AvgThreePointsPerGame']) }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -292,27 +292,27 @@
                 <div class="table-container"><table>
                     <thead>
                         <tr>
-                            <th>Rank</th>
-                            <th>Player</th>
-                            <th>Team</th>
-                            <th>Total Fouls</th>
-                            <th>Foul Details</th>
-                            <th>Weighted Total Fouls</th>
-                            <th>Games</th>
-                            <th>Fouls per Game</th>
+                            <th class="col-essential">Rank</th>
+                            <th class="col-essential">Player</th>
+                            <th class="col-important">Team</th>
+                            <th class="col-essential">Total Fouls</th>
+                            <th class="col-extra">Foul Details</th>
+                            <th class="col-optional">Weighted Total Fouls</th>
+                            <th class="col-optional">Games</th>
+                            <th class="col-important">Fouls per Game</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for index, row in top_foulers.iterrows() %}
                         <tr>
-                            <td>{{ loop.index }}</td>
-                            <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
-                            <td>{{ team_button(row['Team']) }}</td>
-                            <td><strong>{{ row['TotalFouls'] }}</strong></td>
-                            <td class="foul-details-cell">{{ row['FoulDetails']|safe }}</td>
-                            <td><strong>{{ row['WeightedTotalFouls']|int }}</strong></td>
-                            <td>{{ row['GamesPlayed'] }}</td>
-                            <td>{{ "%.1f"|format(row['AvgFoulsPerGame']) }}</td>
+                            <td class="col-essential">{{ loop.index }}</td>
+                            <td class="col-essential"><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
+                            <td class="col-important">{{ team_button(row['Team']) }}</td>
+                            <td class="col-essential"><strong>{{ row['TotalFouls'] }}</strong></td>
+                            <td class="foul-details-cell col-extra">{{ row['FoulDetails']|safe }}</td>
+                            <td class="col-optional"><strong>{{ row['WeightedTotalFouls']|int }}</strong></td>
+                            <td class="col-optional">{{ row['GamesPlayed'] }}</td>
+                            <td class="col-important">{{ "%.1f"|format(row['AvgFoulsPerGame']) }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
