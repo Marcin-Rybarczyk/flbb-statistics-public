@@ -610,11 +610,10 @@
                         <td>
                             {% if row.get('IsFinished') and row.get('TopScorerName') and row['TopScorerName'] != 'N/A' %}
                                 <div class="top-scorer">
-                                    <a href="/player-detail?player={{ row['TopScorerName'] | urlencode }}" 
+                                    <a href="{{ url_for('player_detail', player=row['TopScorerName']) }}" 
                                        class="hoverable-item" 
                                        data-type="player" 
-                                       data-id="{{ row['TopScorerName'] }}"
-                                       style="color: inherit; text-decoration: none; cursor: pointer;">
+                                       data-id="{{ row['TopScorerName'] }}">
                                         {{ row['TopScorerName'] }}
                                     </a>
                                     {% if row['TopScorerPoints'] > 0 %}
