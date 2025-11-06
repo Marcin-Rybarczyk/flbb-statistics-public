@@ -66,7 +66,9 @@ def test_player_database_structure():
         'PlayerName', 'Team', 'PlayerNumber', 'GamesPlayed', 'GamesStarted',
         'StartingPercentage', 'TotalPoints', 'AvgPointsPerGame',
         '1PMadeShots', '2PMadeShots', '3PMadeShots', 'TotalFieldGoalsMade',
-        'AvgShotsPerGame', 'PointsPerShot', 'TotalFouls', 'AvgFoulsPerGame',
+        'AvgShotsPerGame', 'PointsPerShot',
+        'FTAttempts', 'FTMakes', 'FTPercentage',
+        'TotalFouls', 'AvgFoulsPerGame',
         'PFouls', 'P1Fouls', 'P2Fouls', 'P3Fouls'
     ]
     
@@ -154,6 +156,39 @@ def test_player_database_data_integrity():
         return False
     
     print("✅ PASS: Total field goals calculated correctly")
+    
+    # Test 6: FT percentage should be between 0 and 100 (for players with attempts)
+    players_with_ft = players_db[players_db['FTAttempts'] > 0]
+    if not players_with_ft.empty:
+        invalid_ft_pct = players_with_ft[
+            (players_with_ft['FTPercentage'] < 0) | 
+            (players_with_ft['FTPercentage'] > 100)
+        ]
+        if len(invalid_ft_pct) > 0:
+            print(f"❌ FAIL: Found {len(invalid_ft_pct)} players with invalid FT percentage")
+            return False
+        
+        print("✅ PASS: All FT percentages are valid (0-100%)")
+        
+        # Test 7: FT percentage calculation
+        calculated_ft_pct = ((players_with_ft['FTMakes'] / players_with_ft['FTAttempts']) * 100).round(1)
+        diff = abs(calculated_ft_pct - players_with_ft['FTPercentage'])
+        
+        if (diff > 0.2).any():  # Allow small floating point differences
+            print(f"❌ FAIL: FT percentage calculation is incorrect")
+            return False
+        
+        print("✅ PASS: FT percentage calculated correctly")
+    else:
+        print("⚠️  SKIP: No players with FT attempts found")
+    
+    # Test 8: FT makes should not exceed FT attempts
+    invalid_ft = players_db[players_db['FTMakes'] > players_db['FTAttempts']]
+    if len(invalid_ft) > 0:
+        print(f"❌ FAIL: Found {len(invalid_ft)} players with more FT makes than attempts")
+        return False
+    
+    print("✅ PASS: FT makes <= FT attempts for all players")
     
     return True
 

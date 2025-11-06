@@ -363,6 +363,102 @@ def calculate_standings_by_division(data, division_name):
     division_filtered_data = data[data['GameDivisionDisplay'] == division_name]
     return calculate_standings(division_filtered_data)
 
+def calculate_ft_stats_from_events(game_events):
+    """
+    Calculate free throw attempts and makes for each player based on game events.
+    
+    According to the requirements:
+    - Any foul with FT (P1, P2, P3 fouls) is counted as number of attempts
+    - Number of following 1P scores counts as successful attempts
+    - Any other event occurring after 1P score ends the shot attempts
+    - FT without defined shooter (all missed) are tracked separately
+    
+    Parameters:
+    game_events: List of game events or string representation of list
+    
+    Returns:
+    dict: Dictionary mapping player names to their FT stats
+          {player_name: {'attempts': int, 'makes': int}}
+          Special key 'TEAM_MISSED_FTS' for unattributed missed free throws
+    """
+    ft_stats = {}
+    
+    try:
+        if isinstance(game_events, str):
+            import ast
+            events = ast.literal_eval(game_events)
+        else:
+            events = game_events
+    except (ValueError, TypeError, SyntaxError):
+        return ft_stats
+    
+    if not isinstance(events, list):
+        return ft_stats
+    
+    i = 0
+    while i < len(events):
+        event = events[i]
+        action = event.get('EventAction', '')
+        
+        # Check for shooting fouls (P1, P2, P3)
+        if action in ['P1 Foul Added', 'P2 Foul Added', 'P3 Foul Added']:
+            foul_team = event.get('EventTeam', '')
+            
+            # Determine number of FT attempts based on foul type
+            if action == 'P1 Foul Added':
+                expected_attempts = 1
+            elif action == 'P2 Foul Added':
+                expected_attempts = 2
+            elif action == 'P3 Foul Added':
+                expected_attempts = 3
+            else:
+                expected_attempts = 0
+            
+            # Look ahead for 1P points (opponent team gets FT)
+            j = i + 1
+            ft_shooter = None
+            ft_makes = 0
+            
+            while j < len(events):
+                next_event = events[j]
+                next_action = next_event.get('EventAction', '')
+                next_team = next_event.get('EventTeam', '')
+                next_actor = next_event.get('EventActor', '')
+                
+                # 1P points by opponent team (the team that didn't commit the foul)
+                if next_action == '1P Points Added' and next_team != foul_team:
+                    if ft_shooter is None:
+                        ft_shooter = next_actor
+                    # Count makes only if same shooter
+                    if next_actor == ft_shooter:
+                        ft_makes += 1
+                    j += 1
+                # Skip some events that don't end FT sequence
+                elif next_action in ['Player in', 'Player in deleted', '1P Points Deleted']:
+                    j += 1
+                else:
+                    # Any other event ends the FT sequence
+                    break
+            
+            # Record FT stats
+            if expected_attempts > 0:
+                if ft_shooter:
+                    # Shooter identified - attribute to player
+                    if ft_shooter not in ft_stats:
+                        ft_stats[ft_shooter] = {'attempts': 0, 'makes': 0}
+                    ft_stats[ft_shooter]['attempts'] += expected_attempts
+                    # Cap makes at expected attempts (can't make more than you attempt)
+                    ft_stats[ft_shooter]['makes'] += min(ft_makes, expected_attempts)
+                elif ft_makes == 0:
+                    # No shooter identified and all missed - track as team missed FTs
+                    if 'TEAM_MISSED_FTS' not in ft_stats:
+                        ft_stats['TEAM_MISSED_FTS'] = {'attempts': 0, 'makes': 0}
+                    ft_stats['TEAM_MISSED_FTS']['attempts'] += expected_attempts
+        
+        i += 1
+    
+    return ft_stats
+
 def extract_all_player_stats(data):
     """
     Extract all player statistics from the nested Teams data.
@@ -384,6 +480,9 @@ def extract_all_player_stats(data):
         game_division = game.get('GameDivisionDisplay', 'Unknown')
         home_team = game.get('HomeTeamName', 'Unknown')
         away_team = game.get('AwayTeamName', 'Unknown')
+        
+        # Calculate FT stats from game events
+        game_ft_stats = calculate_ft_stats_from_events(game.get('GameEvents', []))
         
         # Parse Teams data (it's stored as string representation of list)
         try:
@@ -415,12 +514,21 @@ def extract_all_player_stats(data):
             for player in team.get('Players', []):
                 if not isinstance(player, dict):
                     continue
+                
+                player_name = player.get('Player Name', 'Unknown')
+                
+                # Get FT stats for this player from game events
+                ft_attempts = 0
+                ft_makes = 0
+                if player_name in game_ft_stats:
+                    ft_attempts = game_ft_stats[player_name]['attempts']
+                    ft_makes = game_ft_stats[player_name]['makes']
                     
                 player_record = {
                     'GameId': game_id,
                     'GameDate': game_date,
                     'GameDivision': game_division,
-                    'PlayerName': player.get('Player Name', 'Unknown'),
+                    'PlayerName': player_name,
                     'PlayerNumber': player.get('Player Number', 0),
                     'Team': team_name,
                     'OpponentTeam': opponent_team,
@@ -428,6 +536,8 @@ def extract_all_player_stats(data):
                     '1PMadeShots': player.get('1P Made Shots', 0),
                     '2PMadeShots': player.get('2P Made Shots', 0),
                     '3PMadeShots': player.get('3P Made Shots', 0),
+                    'FTAttempts': ft_attempts,
+                    'FTMakes': ft_makes,
                     'TotalFouls': player.get('Total Fouls', 0),
                     'PFouls': player.get('P Fouls', 0),
                     'P1Fouls': player.get('P1 Fouls', 0),
@@ -474,6 +584,8 @@ def create_players_database(data, output_filepath=None):
         '1PMadeShots': 'sum',
         '2PMadeShots': 'sum',
         '3PMadeShots': 'sum',
+        'FTAttempts': 'sum',
+        'FTMakes': 'sum',
         'TotalFouls': 'sum',
         'PFouls': 'sum',
         'P1Fouls': 'sum',
@@ -504,6 +616,13 @@ def create_players_database(data, output_filepath=None):
     players_db['AvgShotsPerGame'] = (players_db['TotalFieldGoalsMade'] / players_db['GamesPlayed']).round(2)
     players_db['StartingPercentage'] = ((players_db['GamesStarted'] / players_db['GamesPlayed']) * 100).round(1)
     
+    # Calculate FT percentage
+    players_db['FTPercentage'] = 0.0
+    ft_mask = players_db['FTAttempts'] > 0
+    players_db.loc[ft_mask, 'FTPercentage'] = (
+        (players_db.loc[ft_mask, 'FTMakes'] / players_db.loc[ft_mask, 'FTAttempts']) * 100
+    ).round(1)
+    
     # Calculate points per shot (efficiency metric)
     # Set to 0 for players with no field goals made (more accurate than division by 1)
     players_db['PointsPerShot'] = 0.0
@@ -521,6 +640,7 @@ def create_players_database(data, output_filepath=None):
         'TotalPoints', 'AvgPointsPerGame', 
         '1PMadeShots', '2PMadeShots', '3PMadeShots', 'TotalFieldGoalsMade', 
         'AvgShotsPerGame', 'PointsPerShot',
+        'FTAttempts', 'FTMakes', 'FTPercentage',
         'TotalFouls', 'AvgFoulsPerGame', 'PFouls', 'P1Fouls', 'P2Fouls', 'P3Fouls', 'T1Fouls', 'U1Fouls', 'U2Fouls', 'U3Fouls', 'GDFouls'
     ]
     
@@ -613,11 +733,12 @@ def get_highest_single_game_score(data, top_n=10, division=None, team=None):
 
 def get_player_shooting_efficiency(data, top_n=20, division=None, team=None):
     """
-    Get player free throw statistics (leaders by total free throws made).
+    Get player free throw statistics including FT percentage.
     
-    Note: This function name is kept for backward compatibility, but it now shows
-    free throw production instead of shooting efficiency, since per-player shot
-    attempts data is not available in the dataset.
+    This function shows comprehensive free throw statistics:
+    - Total FT attempts and makes
+    - FT percentage
+    - Average FT per game
     
     Parameters:
     data (DataFrame): The game data
@@ -626,7 +747,7 @@ def get_player_shooting_efficiency(data, top_n=20, division=None, team=None):
     team (str): Optional team filter
     
     Returns:
-    DataFrame: Players with free throw statistics
+    DataFrame: Players with free throw statistics including FT%
     """
     # Filter by division if specified
     if division:
@@ -643,6 +764,8 @@ def get_player_shooting_efficiency(data, top_n=20, division=None, team=None):
     
     # Group by player and calculate free throw stats
     ft_stats = player_stats.groupby(['PlayerName', 'Team']).agg({
+        'FTAttempts': 'sum',
+        'FTMakes': 'sum',
         '1PMadeShots': 'sum',
         'TotalPoints': 'sum',
         'GameId': 'count'  # Games played
@@ -650,8 +773,15 @@ def get_player_shooting_efficiency(data, top_n=20, division=None, team=None):
     
     ft_stats.rename(columns={
         'GameId': 'GamesPlayed',
-        '1PMadeShots': 'TotalFreeThrowsMade'
+        '1PMadeShots': 'TotalFreeThrowsMade'  # Keep for backward compatibility
     }, inplace=True)
+    
+    # Calculate FT percentage
+    ft_stats['FTPercentage'] = 0.0
+    ft_mask = ft_stats['FTAttempts'] > 0
+    ft_stats.loc[ft_mask, 'FTPercentage'] = (
+        (ft_stats.loc[ft_mask, 'FTMakes'] / ft_stats.loc[ft_mask, 'FTAttempts']) * 100
+    ).round(1)
     
     # Calculate average free throws per game
     ft_stats['AvgFreeThrowsPerGame'] = (ft_stats['TotalFreeThrowsMade'] / 
@@ -659,10 +789,10 @@ def get_player_shooting_efficiency(data, top_n=20, division=None, team=None):
     ft_stats['AvgPointsPerGame'] = (ft_stats['TotalPoints'] / 
                                     ft_stats['GamesPlayed']).round(1)
     
-    # Filter players with at least 5 games and at least 5 total free throws made
+    # Filter players with at least 5 games and at least 5 total free throw attempts
     ft_stats = ft_stats[
         (ft_stats['GamesPlayed'] >= 5) & 
-        (ft_stats['TotalFreeThrowsMade'] >= 5)
+        (ft_stats['FTAttempts'] >= 5)
     ]
     
     return ft_stats.sort_values('TotalFreeThrowsMade', ascending=False).head(top_n).reset_index(drop=True)
@@ -3544,6 +3674,9 @@ def get_player_detail_stats(data, player_name):
         'total_2p_made': int(player_games['2PMadeShots'].sum()),
         'total_3p_made': int(player_games['3PMadeShots'].sum()),
         'total_field_goals': int(player_games['1PMadeShots'].sum() + player_games['2PMadeShots'].sum() + player_games['3PMadeShots'].sum()),
+        'ft_attempts': int(player_games['FTAttempts'].sum()),
+        'ft_makes': int(player_games['FTMakes'].sum()),
+        'ft_percentage': round((player_games['FTMakes'].sum() / player_games['FTAttempts'].sum() * 100), 1) if player_games['FTAttempts'].sum() > 0 else 0.0,
         'total_fouls': int(player_games['TotalFouls'].sum()),
         'avg_fouls_per_game': round(player_games['TotalFouls'].mean(), 1),
         'p_fouls': int(player_games['PFouls'].sum()),
@@ -3581,10 +3714,17 @@ def get_player_detail_stats(data, player_name):
     # Game-by-game breakdown (sorted by date, most recent first)
     game_by_game = player_games.sort_values('GameDate', ascending=False).to_dict('records')
     
-    # Add hotness score to each game
+    # Add hotness score and FT percentage to each game
     for game_record in game_by_game:
         game_id = game_record['GameId']
         game_row = data[data['GameId'] == game_id]
+        
+        # Calculate FT percentage for this game
+        if game_record['FTAttempts'] > 0:
+            game_record['FTPercentage'] = round((game_record['FTMakes'] / game_record['FTAttempts']) * 100, 1)
+        else:
+            game_record['FTPercentage'] = 0.0
+        
         if not game_row.empty:
             game = game_row.iloc[0]
             # Calculate hotness score for this game
