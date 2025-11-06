@@ -69,37 +69,37 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Rank</th>
-                            <th>Team Name</th>
-                            <th>Games</th>
-                            <th>Wins</th>
-                            <th>Losses</th>
-                            <th>Points For</th>
-                            <th>Points Against</th>
-                            <th>Points Diff</th>
-                            <th>League Points</th>
-                            <th>Last 5</th>
+                            <th class="col-essential">Rank</th>
+                            <th class="col-essential">Team Name</th>
+                            <th class="col-important">Games</th>
+                            <th class="col-essential">Wins</th>
+                            <th class="col-essential">Losses</th>
+                            <th class="col-optional">Points For</th>
+                            <th class="col-optional">Points Against</th>
+                            <th class="col-important">Points Diff</th>
+                            <th class="col-important">League Points</th>
+                            <th class="col-extra">Last 5</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for index, row in standings.iterrows() %}
                         <tr>
-                            <td>{{ loop.index }}</td>
-                            <td>
+                            <td class="col-essential">{{ loop.index }}</td>
+                            <td class="col-essential">
                                 {% set team_logo_url = get_team_logo_url(row['Team Name']) %}
                                 {% if team_logo_url %}
                                     <img src="{{ team_logo_url }}" alt="{{ row['Team Name'] }} logo" class="team-logo" style="width: 24px; height: 24px; object-fit: contain; vertical-align: middle; margin-right: 8px;">
                                 {% endif %}
                                 <a href="/team-detail?team={{ row['Team Name']|urlencode }}" class="team-link">{{ row['Team Name'] }}</a>
                             </td>
-                            <td>{{ row['Games'] }}</td>
-                            <td>{{ row['W'] }}</td>
-                            <td>{{ row['L'] }}</td>
-                            <td>{{ row['F'] }}</td>
-                            <td>{{ row['A'] }}</td>
-                            <td>{{ row['Points Diff'] }}</td>
-                            <td>{{ row['Points'] }}</td>
-                            <td class="last-five-cell">
+                            <td class="col-important">{{ row['Games'] }}</td>
+                            <td class="col-essential">{{ row['W'] }}</td>
+                            <td class="col-essential">{{ row['L'] }}</td>
+                            <td class="col-optional">{{ row['F'] }}</td>
+                            <td class="col-optional">{{ row['A'] }}</td>
+                            <td class="col-important">{{ row['Points Diff'] }}</td>
+                            <td class="col-important">{{ row['Points'] }}</td>
+                            <td class="last-five-cell col-extra">
                                 {% if row['Last 5 Games'] %}
                                     {% for game in row['Last 5 Games'] %}
                                         <span class="game-result-badge hoverable-item {{ 'win-badge' if game['result'] == 'W' else 'loss-badge' }}" 
