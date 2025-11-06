@@ -3,7 +3,8 @@ import re
 import logging
 import unicodedata
 from urllib.parse import unquote
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
+from flask_login import login_required, logout_user, login_user, current_user
 import pandas as pd
 from src.utils import (calculate_standings_by_division, get_highest_scoring_games, 
                    load_game_data, get_top_players_by_score, get_team_performance_stats,
@@ -22,6 +23,9 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
                    get_player_hover_stats, get_team_hover_stats, get_referee_hover_stats, get_game_hover_stats,
                    calculate_referee_performance_index, get_closest_games_by_team)
 from src.version import get_version_info
+from src.auth import (init_login_manager, verify_credentials, User, 
+                      requires_auth_level, get_user_auth_level, can_access_endpoint,
+                      AUTH_LEVEL_GUEST, AUTH_LEVEL_USER, AUTH_LEVEL_ADMIN)
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
 
@@ -105,6 +109,9 @@ if not os.environ.get('SECRET_KEY'):
 else:
     app.secret_key = os.environ.get('SECRET_KEY')
 
+# Initialize Flask-Login
+login_manager = init_login_manager(app)
+
 # Context processor to make season info available to all templates
 @app.context_processor
 def inject_season_info():
@@ -128,7 +135,9 @@ def inject_season_info():
         'website_config': website_config,
         'version_info': version_info,
         'user_prefs': user_prefs,
-        'mydevil_stats_code': mydevil_stats_code
+        'mydevil_stats_code': mydevil_stats_code,
+        'current_user': current_user,
+        'can_access_endpoint': can_access_endpoint
     }
 
 # Logo utility functions
@@ -207,6 +216,45 @@ else:
     divisions = []
     teams = []
 
+# Authentication routes
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Login page and authentication handler"""
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        
+        if not username or not password:
+            flash('Please provide both username and password.', 'error')
+            return render_template('login.html')
+        
+        is_valid, is_admin = verify_credentials(username, password)
+        
+        if is_valid:
+            user = User(username, is_admin=is_admin)
+            login_user(user)
+            flash(f'Welcome, {username}!', 'success')
+            
+            # Redirect to the page they were trying to access, or home
+            next_page = request.args.get('next')
+            if next_page and next_page.startswith('/'):
+                return redirect(next_page)
+            return redirect(url_for('index'))
+        else:
+            flash('Invalid username or password.', 'error')
+    
+    return render_template('login.html')
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    """Logout the current user"""
+    logout_user()
+    flash('You have been logged out.', 'success')
+    return redirect(url_for('index'))
+
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     """Home page with navigation tiles"""
@@ -232,6 +280,7 @@ def standings():
                          data_source_info=data_source_info)
 
 @app.route('/statistics', methods=['GET', 'POST'])
+@requires_auth_level(AUTH_LEVEL_USER)
 def statistics():
     """Game Statistics page with division filtering"""
     if data.empty:
@@ -263,6 +312,7 @@ def statistics():
                          data_source_info=data_source_info)
 
 @app.route('/team-stats', methods=['GET', 'POST'])
+@requires_auth_level(AUTH_LEVEL_USER)
 def team_stats():
     """Complete team statistics page with division filter"""
     if data.empty:
@@ -287,6 +337,7 @@ def team_stats():
                          data_source_info=data_source_info)
 
 @app.route('/team-detail')
+@requires_auth_level(AUTH_LEVEL_USER)
 def team_detail():
     """Individual team detail page with comprehensive statistics"""
     if data.empty:
@@ -312,6 +363,7 @@ def team_detail():
                          data_source_info=data_source_info)
 
 @app.route('/player-stats', methods=['GET', 'POST'])
+@requires_auth_level(AUTH_LEVEL_USER)
 def player_stats():
     """Dedicated player statistics page"""
     if data.empty:
@@ -349,6 +401,7 @@ def player_stats():
                          data_source_info=data_source_info)
 
 @app.route('/player-detail')
+@requires_auth_level(AUTH_LEVEL_USER)
 def player_detail():
     """Individual player detail page with search and comprehensive statistics"""
     if data.empty:
@@ -372,6 +425,7 @@ def player_detail():
                          data_source_info=data_source_info)
 
 @app.route('/referee-stats')
+@requires_auth_level(AUTH_LEVEL_USER)
 def referee_stats():
     """Dedicated referee statistics page"""
     if data.empty:
@@ -392,6 +446,7 @@ def referee_stats():
                          data_source_info=data_source_info)
 
 @app.route('/referee-detail')
+@requires_auth_level(AUTH_LEVEL_USER)
 def referee_detail():
     """Individual referee detail page with search and comprehensive statistics"""
     if data.empty:
@@ -415,6 +470,7 @@ def referee_detail():
                          data_source_info=data_source_info)
 
 @app.route('/referee-performance-index')
+@requires_auth_level(AUTH_LEVEL_USER)
 def referee_performance_index():
     """Referee Performance Index (RPI) page with comprehensive rankings"""
     if data.empty:
@@ -456,6 +512,7 @@ def referee_performance_index():
                          data_source_info=data_source_info)
 
 @app.route('/deeper-analysis')
+@requires_auth_level(AUTH_LEVEL_USER)
 def deeper_analysis():
     """Deep game analysis page with advanced metrics"""
     if data.empty:
@@ -536,6 +593,7 @@ def fixtures():
                          closest_games=closest_games)
 
 @app.route('/game-detail/<game_id>')
+@requires_auth_level(AUTH_LEVEL_USER)
 def game_detail(game_id):
     """Game detail page showing comprehensive information about a specific game"""
     if data.empty:
@@ -552,6 +610,7 @@ def game_detail(game_id):
                          data_source_info=data_source_info)
 
 @app.route('/game-details')
+@requires_auth_level(AUTH_LEVEL_USER)
 def game_details_search():
     """Game details search page with searchable functionality similar to player detail"""
     if data.empty:
@@ -575,6 +634,7 @@ def game_details_search():
                          data_source_info=data_source_info)
 
 @app.route('/preferences', methods=['GET', 'POST'])
+@requires_auth_level(AUTH_LEVEL_USER)
 def preferences():
     """User preferences page for setting default filters"""
     if request.method == 'POST':
@@ -611,6 +671,7 @@ def preferences():
                          data_source_info=data_source_info)
 
 @app.route('/admin')
+@requires_auth_level(AUTH_LEVEL_ADMIN)
 def admin():
     """Administration page with data statistics"""
     import os
@@ -706,6 +767,7 @@ def admin():
                          available_archives=available_archives)
 
 @app.route('/admin/import-season', methods=['POST'])
+@requires_auth_level(AUTH_LEVEL_ADMIN)
 def import_season_data():
     """Handle season archive import"""
     import os

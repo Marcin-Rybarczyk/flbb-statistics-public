@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Login - FLBB Statistics{% endblock %}
+
+{% block content %}
+<div class="stats-section">
+    <h2>Login</h2>
+    
+    {% if get_flashed_messages() %}
+        {% for category, message in get_flashed_messages(with_categories=true) %}
+            <div class="alert alert-{{ category }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <div style="max-width: 400px; margin: 40px auto;">
+        <form method="POST" action="{{ url_for('login') }}" style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+            <div style="margin-bottom: 20px;">
+                <label for="username" style="display: block; margin-bottom: 5px; font-weight: 600; color: #2c3e50;">Username:</label>
+                <input type="text" id="username" name="username" required 
+                       style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 1em; transition: border-color 0.3s;"
+                       onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'">
+            </div>
+            
+            <div style="margin-bottom: 25px;">
+                <label for="password" style="display: block; margin-bottom: 5px; font-weight: 600; color: #2c3e50;">Password:</label>
+                <input type="password" id="password" name="password" required 
+                       style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 1em; transition: border-color 0.3s;"
+                       onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'">
+            </div>
+            
+            <button type="submit" 
+                    style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 5px; font-size: 1.1em; font-weight: 600; cursor: pointer; transition: transform 0.3s;"
+                    onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                Login
+            </button>
+        </form>
+        
+        <div style="text-align: center; margin-top: 20px; color: #7f8c8d;">
+            <p>Guests can access <a href="{{ url_for('standings') }}" style="color: #667eea;">Standings</a> and <a href="{{ url_for('fixtures') }}" style="color: #667eea;">Fixtures</a> without logging in.</p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .alert {
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+        font-weight: 500;
+    }
+    
+    .alert-success {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+    }
+    
+    .alert-error {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+    }
+    
+    input:focus {
+        outline: none;
+    }
+</style>
+{% endblock %}

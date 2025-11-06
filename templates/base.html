@@ -968,7 +968,17 @@
             </div>
             {% endif %}
             <div class="user-prefs-button-container">
-                <a href="/preferences" class="user-prefs-button">⚙️ User Preferences</a>
+                {% if current_user.is_authenticated %}
+                    <span style="margin-right: 15px; color: #2c3e50; font-weight: 600;">
+                        👤 {{ current_user.username }}
+                        {% if current_user.is_admin %}
+                            <span style="color: #e74c3c; font-size: 0.85em;">(Admin)</span>
+                        {% endif %}
+                    </span>
+                    <a href="{{ url_for('logout') }}" class="user-prefs-button">🚪 Logout</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="user-prefs-button">🔑 Login</a>
+                {% endif %}
             </div>
             <h1>{% block page_title %}🏀 {{ website_config.title }}{% endblock %}</h1>
             <p>{% block page_description %}{{ website_config.description }}{% endblock %}</p>
@@ -987,17 +997,39 @@
             <a href="/" {% if request and request.endpoint == 'index' %}class="active"{% endif %}>🏠 Home</a>
             <a href="/standings" {% if request and request.endpoint == 'standings' %}class="active"{% endif %}>🏆 Standings</a>
             <a href="/fixtures" {% if request and request.endpoint == 'fixtures' %}class="active"{% endif %}>📅 Fixtures</a>
+            {% if can_access_endpoint('statistics') %}
             <a href="/statistics" {% if request and request.endpoint == 'statistics' %}class="active"{% endif %}>🎮 Game Stats</a>
+            {% endif %}
+            {% if can_access_endpoint('player_stats') %}
             <a href="/player-stats" {% if request and request.endpoint == 'player_stats' %}class="active"{% endif %}>👤 Player Stats</a>
+            {% endif %}
+            {% if can_access_endpoint('player_detail') %}
             <a href="/player-detail" {% if request and request.endpoint == 'player_detail' %}class="active"{% endif %}>🔍 Player Detail</a>
+            {% endif %}
+            {% if can_access_endpoint('team_stats') %}
             <a href="/team-stats" {% if request and request.endpoint == 'team_stats' %}class="active"{% endif %}>🏀 Team Stats</a>
+            {% endif %}
+            {% if can_access_endpoint('team_detail') %}
             <a href="/team-detail" {% if request and request.endpoint == 'team_detail' %}class="active"{% endif %}>🔍 Team Detail</a>
+            {% endif %}
+            {% if can_access_endpoint('game_details_search') %}
             <a href="/game-details" {% if request and request.endpoint == 'game_details_search' %}class="active"{% endif %}>🏀 Game Details</a>
+            {% endif %}
+            {% if can_access_endpoint('referee_stats') %}
             <a href="/referee-stats" {% if request and request.endpoint == 'referee_stats' %}class="active"{% endif %}>👨‍⚖️ Referee Stats</a>
+            {% endif %}
+            {% if can_access_endpoint('referee_detail') %}
             <a href="/referee-detail" {% if request and request.endpoint == 'referee_detail' %}class="active"{% endif %}>🔍 Referee Detail</a>
+            {% endif %}
+            {% if can_access_endpoint('deeper_analysis') %}
             <a href="/deeper-analysis" {% if request and request.endpoint == 'deeper_analysis' %}class="active"{% endif %}>🔍 Deep Analysis</a>
+            {% endif %}
+            {% if can_access_endpoint('preferences') %}
             <a href="/preferences" {% if request and request.endpoint == 'preferences' %}class="active"{% endif %}>⚙️ Preferences</a>
+            {% endif %}
+            {% if can_access_endpoint('admin') %}
             <a href="/admin" {% if request and request.endpoint == 'admin' %}class="active"{% endif %}>🔐 Admin</a>
+            {% endif %}
         </div>
 
         {% if error %}
