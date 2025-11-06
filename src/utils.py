@@ -1686,6 +1686,9 @@ def get_longest_duration_games(data, top_n=20, division=None):
                         duration_seconds = (last_time - first_time).total_seconds()
                         duration_minutes = duration_seconds / 60
                         
+                        # Format duration as MM:SS
+                        minutes, seconds = divmod(int(duration_seconds), 60)
+                        
                         game_durations.append({
                             'GameId': game['GameId'],
                             'HomeTeamName': game['HomeTeamName'],
@@ -1694,7 +1697,7 @@ def get_longest_duration_games(data, top_n=20, division=None):
                             'FinalAwayScore': game['FinalAwayScore'],
                             'GameDivisionDisplay': game['GameDivisionDisplay'],
                             'DurationMinutes': duration_minutes,
-                            'DurationFormatted': f"{int(duration_minutes)}:{int((duration_minutes % 1) * 60):02d}"
+                            'DurationFormatted': f"{minutes}:{seconds:02d}"
                         })
             except Exception:
                 # Skip games with parsing errors
