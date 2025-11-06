@@ -1675,7 +1675,11 @@ def get_longest_duration_games(data, top_n=20, division=None):
         if pd.notna(events_str):
             try:
                 events = ast.literal_eval(events_str)
-                teams = ast.literal_eval(teams_str) if isinstance(teams_str, str) else teams_str
+                # Handle teams_str which could be a string, None, or pandas NA
+                if pd.notna(teams_str) and isinstance(teams_str, str):
+                    teams = ast.literal_eval(teams_str)
+                else:
+                    teams = []
                 
                 if events and len(events) > 0:
                     # Use the same calculation method as game detail page
