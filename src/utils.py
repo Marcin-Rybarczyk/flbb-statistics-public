@@ -389,7 +389,7 @@ def calculate_ft_stats_from_events(game_events):
             events = ast.literal_eval(game_events)
         else:
             events = game_events
-    except:
+    except (ValueError, TypeError, SyntaxError):
         return ft_stats
     
     if not isinstance(events, list):
@@ -3714,10 +3714,17 @@ def get_player_detail_stats(data, player_name):
     # Game-by-game breakdown (sorted by date, most recent first)
     game_by_game = player_games.sort_values('GameDate', ascending=False).to_dict('records')
     
-    # Add hotness score to each game
+    # Add hotness score and FT percentage to each game
     for game_record in game_by_game:
         game_id = game_record['GameId']
         game_row = data[data['GameId'] == game_id]
+        
+        # Calculate FT percentage for this game
+        if game_record['FTAttempts'] > 0:
+            game_record['FTPercentage'] = round((game_record['FTMakes'] / game_record['FTAttempts']) * 100, 1)
+        else:
+            game_record['FTPercentage'] = 0.0
+        
         if not game_row.empty:
             game = game_row.iloc[0]
             # Calculate hotness score for this game

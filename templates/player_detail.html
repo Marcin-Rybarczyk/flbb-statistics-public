@@ -564,7 +564,7 @@
                         <td>{{ game['2PMadeShots'] }}</td>
                         <td>{{ game['3PMadeShots'] }}</td>
                         <td>{{ game.FTMakes }}/{{ game.FTAttempts }}</td>
-                        <td>{% if game.FTAttempts > 0 %}{{ "%.0f"|format((game.FTMakes / game.FTAttempts) * 100) }}%{% else %}-{% endif %}</td>
+                        <td>{% if game.FTAttempts > 0 %}{{ "%.0f"|format(game.FTPercentage) }}%{% else %}-{% endif %}</td>
                         <td><strong>{{ game.TotalFouls }}</strong></td>
                         <td>{{ game.PFouls }}</td>
                         <td>{{ game.P1Fouls }}</td>
