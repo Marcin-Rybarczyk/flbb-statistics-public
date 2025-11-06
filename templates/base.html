@@ -941,6 +941,9 @@
             const tables = document.querySelectorAll('table');
             
             tables.forEach(table => {
+                // Skip tables with 'matrix-table' class (fixtures matrix should not be sortable)
+                if (table.classList.contains('matrix-table')) return;
+                
                 const thead = table.querySelector('thead');
                 if (!thead) return; // Skip tables without thead
                 
@@ -1350,7 +1353,7 @@
                     } else if (type === 'game') {
                         // Check if this is a future game
                         if (data.is_future) {
-                            // Future game - show different information
+                            // Future game - show comparison layout with team names as headers and stats in middle
                             const refereesHtml = data.referees && data.referees.length > 0 ? data.referees.join(', ') : 'TBD';
                             
                             // Format home team streak
@@ -1382,64 +1385,53 @@
                                 : 'N/A';
                             
                             content = `
-                                <h4>📅 ${data.result}</h4>
-                                <div class="stat-row">
-                                    <span class="stat-label">Date & Time:</span>
-                                    <span class="stat-value">${data.date_time}</span>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.1);">
+                                    <div style="font-weight: 600; color: #2980b9; flex: 1; text-align: center;">${data.home_team || 'Home Team'}</div>
+                                    <div style="font-weight: 600; color: #e67e22; flex: 1; text-align: center;">${data.away_team || 'Away Team'}</div>
                                 </div>
-                                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1);">
-                                    <div style="font-weight: 600; color: #2980b9; margin-bottom: 4px;">${data.home_team || 'Home Team'}</div>
-                                    <div class="stat-row">
-                                        <span class="stat-label">Position:</span>
-                                        <span class="stat-value">${homePosition}</span>
-                                    </div>
-                                    <div class="stat-row">
-                                        <span class="stat-label">Last 5:</span>
-                                        <span class="stat-value">${homeStreakHtml}</span>
-                                    </div>
+                                <div style="display: flex; align-items: center; margin: 4px 0;">
+                                    <div style="flex: 1; text-align: center;">${homePosition}</div>
+                                    <div style="flex: 1; text-align: center; font-weight: 600; color: #7f8c8d;">Position</div>
+                                    <div style="flex: 1; text-align: center;">${awayPosition}</div>
                                 </div>
-                                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1);">
-                                    <div style="font-weight: 600; color: #e67e22; margin-bottom: 4px;">${data.away_team || 'Away Team'}</div>
-                                    <div class="stat-row">
-                                        <span class="stat-label">Position:</span>
-                                        <span class="stat-value">${awayPosition}</span>
-                                    </div>
-                                    <div class="stat-row">
-                                        <span class="stat-label">Last 5:</span>
-                                        <span class="stat-value">${awayStreakHtml}</span>
-                                    </div>
+                                <div style="display: flex; align-items: center; margin: 4px 0;">
+                                    <div style="flex: 1; text-align: center;">${homeStreakHtml}</div>
+                                    <div style="flex: 1; text-align: center; font-weight: 600; color: #7f8c8d;">Last 5</div>
+                                    <div style="flex: 1; text-align: center;">${awayStreakHtml}</div>
                                 </div>
-                                <div class="stat-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1);">
-                                    <span class="stat-label">Referees:</span>
-                                    <span class="stat-value" style="font-size: 0.85em;">${refereesHtml}</span>
+                                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1); text-align: center;">
+                                    <div style="font-weight: 600; color: #667eea; margin-bottom: 4px;">📅 ${data.date_time}</div>
+                                </div>
+                                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1); text-align: center;">
+                                    <div style="font-weight: 600; color: #7f8c8d; font-size: 0.9em;">Referees</div>
+                                    <div style="font-size: 0.85em;">${refereesHtml}</div>
                                 </div>
                             `;
                         } else {
-                            // Finished game - show original information
+                            // Finished game - show with team names as title and center-aligned shared statistics
                             const refereesHtml = data.referees && data.referees.length > 0 ? data.referees.join(', ') : 'N/A';
                             content = `
-                                <h4>🏀 Game ${id}</h4>
-                                <div class="stat-row">
-                                    <span class="stat-label">Result:</span>
-                                    <span class="stat-value" style="font-size: 0.85em;">${data.result}</span>
-                                </div>
+                                <h4>🏀 ${data.result}</h4>
                                 <div class="stat-row">
                                     <span class="stat-label">Date:</span>
                                     <span class="stat-value">${data.date_time}</span>
                                 </div>
-                                <div class="stat-row">
-                                    <span class="stat-label">Game Hotness:</span>
-                                    <span class="stat-value" style="font-size: 1.5em;" title="Hotness Score: ${data.hotness_score}/100">${data.hotness_icon}</span>
+                                <div style="display: flex; align-items: center; margin: 8px 0; padding: 8px 0; border-top: 1px solid rgba(0,0,0,0.1); border-bottom: 1px solid rgba(0,0,0,0.1);">
+                                    <div style="flex: 1; text-align: right; padding-right: 8px;">Game Hotness</div>
+                                    <div style="flex: 0 0 auto; text-align: center; font-size: 1.5em; padding: 0 8px;" title="Hotness Score: ${data.hotness_score}/100">${data.hotness_icon}</div>
+                                    <div style="flex: 1;"></div>
                                 </div>
-                                <div class="stat-row">
-                                    <span class="stat-label">Lead Changes:</span>
-                                    <span class="stat-value">${data.lead_changes}</span>
+                                <div style="display: flex; align-items: center; margin: 4px 0;">
+                                    <div style="flex: 1; text-align: right; padding-right: 8px;">Lead Changes</div>
+                                    <div style="flex: 0 0 auto; text-align: center; font-weight: 600; padding: 0 8px; min-width: 40px;">${data.lead_changes}</div>
+                                    <div style="flex: 1;"></div>
                                 </div>
-                                <div class="stat-row">
-                                    <span class="stat-label">Tied Scores:</span>
-                                    <span class="stat-value">${data.ties}</span>
+                                <div style="display: flex; align-items: center; margin: 4px 0;">
+                                    <div style="flex: 1; text-align: right; padding-right: 8px;">Tied Scores</div>
+                                    <div style="flex: 0 0 auto; text-align: center; font-weight: 600; padding: 0 8px; min-width: 40px;">${data.ties}</div>
+                                    <div style="flex: 1;"></div>
                                 </div>
-                                <div class="stat-row">
+                                <div class="stat-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1);">
                                     <span class="stat-label">Referees:</span>
                                     <span class="stat-value" style="font-size: 0.85em;">${refereesHtml}</span>
                                 </div>
