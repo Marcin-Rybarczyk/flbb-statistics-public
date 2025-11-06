@@ -353,6 +353,12 @@
                     </div>
                     {% endif %}
                 {% endfor %}
+                {% if game.quarter_durations['total'] %}
+                <div class="stat-item">
+                    <div class="stat-label">Total Duration</div>
+                    <div class="stat-value" style="color: #27ae60; font-weight: bold;">{{ game.quarter_durations['total'].duration_formatted }}</div>
+                </div>
+                {% endif %}
             </div>
         </div>
         {% endif %}
