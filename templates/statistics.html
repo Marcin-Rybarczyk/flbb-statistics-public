@@ -397,7 +397,7 @@
                         <th>Home Team</th>
                         <th>Away Team</th>
                         <th>Score</th>
-                        <th>Duration</th>
+                        <th>Duration (min:sec)</th>
                         <th>Division</th>
                     </tr>
                 </thead>
@@ -421,7 +421,7 @@
                             <a href="/team-detail?team={{ row['AwayTeamName'] | urlencode }}" class="team-link hoverable-item" data-type="team" data-id="{{ row['AwayTeamName'] }}">{{ row['AwayTeamName'] }}</a>
                         </td>
                         <td>{{ row['FinalHomeScore'] }} - {{ row['FinalAwayScore'] }}</td>
-                        <td><strong>{{ row['DurationFormatted'] }}</strong> min</td>
+                        <td><strong>{{ row['DurationFormatted'] }}</strong></td>
                         <td><span class="division-name hoverable-item" data-type="division" data-id="{{ row['GameDivisionDisplay'] }}">{{ row['GameDivisionDisplay'] }}</span></td>
                     </tr>
                     {% endfor %}

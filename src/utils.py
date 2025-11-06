@@ -1673,14 +1673,14 @@ def get_longest_duration_games(data, top_n=20, division=None):
             try:
                 events = ast.literal_eval(events_str)
                 if events and len(events) > 0:
-                    # Get all event times
+                    # Get all event times (events are already in chronological order as recorded)
                     event_times = []
                     for event in events:
                         if isinstance(event, dict) and 'EventDateTime' in event:
                             event_times.append(event['EventDateTime'])
                     
                     if len(event_times) >= 2:
-                        # Parse first and last event times
+                        # Parse first and last event times (as recorded during the game)
                         first_time = datetime.strptime(event_times[0], '%Y-%m-%d %H:%M:%S')
                         last_time = datetime.strptime(event_times[-1], '%Y-%m-%d %H:%M:%S')
                         duration_seconds = (last_time - first_time).total_seconds()
