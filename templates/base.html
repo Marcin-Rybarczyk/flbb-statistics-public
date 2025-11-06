@@ -386,6 +386,13 @@
             display: none;
         }
 
+        /* Column Priority Classes for Mobile Responsive Tables */
+        /* Priority levels: essential (always show), important (hide on small mobile), optional (hide on mobile), extra (hide on mobile and tablet) */
+        .col-essential { /* Always visible - rank, name, key metrics */ }
+        .col-important { /* Hide on very small screens only */ }
+        .col-optional { /* Hide on mobile */ }
+        .col-extra { /* Hide on mobile and tablet */ }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .container {
@@ -454,49 +461,74 @@
                 min-width: 100%;
             }
             
+            /* Hide optional and extra columns on mobile */
+            th.col-optional,
+            td.col-optional,
+            th.col-extra,
+            td.col-extra {
+                display: none;
+            }
+            
             /* Responsive Tables */
             .table-container {
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
                 margin: 15px -15px;
                 padding: 0 15px;
+                border-radius: 8px;
             }
 
             table {
-                font-size: 0.8em;
-                min-width: 100%;
-                display: block;
-                overflow-x: auto;
-                white-space: nowrap;
+                font-size: 0.85em;
+                width: 100%;
+                display: table;
+                border-collapse: collapse;
             }
 
-            thead, tbody, tr {
-                display: table;
-                width: 100%;
-                table-layout: fixed;
+            thead, tbody {
+                display: table-row-group;
+            }
+
+            tr {
+                display: table-row;
             }
             
             th, td {
-                padding: 10px 6px;
+                display: table-cell;
+                padding: 10px 8px;
                 font-size: 0.9em;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                hyphens: auto;
             }
 
             th {
-                font-size: 0.75em;
-                padding: 12px 6px;
+                font-size: 0.7em;
+                padding: 12px 8px;
+                white-space: normal;
             }
 
-            /* Make first column (rank/name) sticky on mobile for better UX */
+            /* Make first two columns sticky on mobile for better UX */
             th:first-child,
             td:first-child {
                 position: sticky;
                 left: 0;
-                background: inherit;
-                z-index: 1;
+                background: white;
+                z-index: 3;
+                box-shadow: 2px 0 5px rgba(0,0,0,0.05);
             }
 
             th:first-child {
                 background: linear-gradient(135deg, #667eea, #764ba2);
+                z-index: 4;
+            }
+
+            tr:nth-child(even) td:first-child {
+                background-color: #f8f9fa;
+            }
+
+            tr:hover td:first-child {
+                background-color: rgba(102, 126, 234, 0.1);
             }
             
             .preferences-indicator {
@@ -564,6 +596,62 @@
             }
         }
 
+        /* Very small mobile phones (portrait) */
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.3em;
+            }
+
+            .header p {
+                font-size: 0.85em;
+            }
+
+            /* Hide important columns on very small screens */
+            th.col-important,
+            td.col-important {
+                display: none;
+            }
+
+            table {
+                font-size: 0.75em;
+            }
+
+            th, td {
+                padding: 8px 5px;
+                font-size: 0.85em;
+            }
+
+            th {
+                font-size: 0.65em;
+                padding: 10px 5px;
+            }
+
+            .stat-card p {
+                font-size: 1.5em;
+            }
+
+            .stat-card h3 {
+                font-size: 0.95em;
+            }
+        }
+
+        /* Mobile landscape mode - show more columns but make text smaller */
+        @media (max-width: 768px) and (orientation: landscape) {
+            /* Show important columns in landscape */
+            th.col-important,
+            td.col-important {
+                display: table-cell;
+            }
+
+            table {
+                font-size: 0.75em;
+            }
+
+            th, td {
+                padding: 8px 5px;
+            }
+        }
+
         /* Tablet size adjustments */
         @media (min-width: 769px) and (max-width: 1024px) {
             .container {
@@ -576,8 +664,18 @@
                 font-size: 0.9em;
             }
 
+            /* Hide only extra columns on tablet */
+            th.col-extra,
+            td.col-extra {
+                display: none;
+            }
+
             table {
-                font-size: 0.95em;
+                font-size: 0.9em;
+            }
+
+            th, td {
+                padding: 10px 8px;
             }
         }
 
