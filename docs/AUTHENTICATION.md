@@ -136,12 +136,56 @@ The system automatically:
 
 ## Security Considerations
 
-1. **Change Default Credentials:** Always change the default admin credentials in production
-2. **Use Strong Passwords:** Enforce strong password policies for all users
-3. **Secure Password Storage:** Passwords are hashed using SHA-256 (consider using stronger algorithms like bcrypt for production)
-4. **HTTPS:** Always use HTTPS in production to protect credentials in transit
-5. **Session Management:** Set a secure SECRET_KEY for session encryption
-6. **Environment Variables:** Never commit credentials to version control; use environment variables
+### Critical Security Notes
+
+1. **Change Default Credentials:** 
+   - **CRITICAL:** Always change the default admin credentials (`admin`/`admin`) in production
+   - Consider requiring explicit configuration and failing to start if not properly set
+
+2. **Password Hashing:**
+   - Current implementation uses SHA-256 for simplicity
+   - **For Production:** Use bcrypt, scrypt, or Argon2 which include:
+     - Built-in salt generation
+     - Configurable iteration counts
+     - Protection against rainbow table attacks
+   - Example with bcrypt:
+     ```python
+     import bcrypt
+     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+     verified = bcrypt.checkpw(password.encode(), hashed)
+     ```
+
+3. **CSRF Protection:**
+   - Consider adding Flask-WTF CSRF tokens to login forms in production
+   - This prevents cross-site request forgery attacks
+
+4. **Open Redirect Protection:**
+   - ✅ Implemented: `is_safe_url()` validates redirect URLs
+   - Prevents attacks using protocol-relative URLs (`//evil.com`)
+   - Only allows relative paths starting with `/`
+
+5. **HTTPS:**
+   - Always use HTTPS in production to protect credentials in transit
+   - Prevents man-in-the-middle attacks
+
+6. **Session Management:**
+   - Set a secure SECRET_KEY for session encryption
+   - Generate with: `python3 -c "import secrets; print(secrets.token_hex(32))"`
+   - Use environment variables, never commit to version control
+
+7. **Strong Passwords:**
+   - Enforce strong password policies for all users
+   - Minimum length, complexity requirements
+   - Consider password strength meters
+
+### Additional Security Recommendations
+
+- **Rate Limiting:** Consider adding rate limiting to prevent brute force attacks
+- **Account Lockout:** Implement account lockout after N failed login attempts  
+- **Audit Logging:** Log all authentication and authorization events
+- **Session Timeout:** Configure appropriate session timeouts
+- **Password Expiration:** Consider requiring periodic password changes
+- **Two-Factor Authentication:** Add 2FA support for additional security
 
 ## Testing
 
