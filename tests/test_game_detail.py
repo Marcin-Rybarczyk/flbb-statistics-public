@@ -120,6 +120,31 @@ def test_game_details():
             print(f"   - Game time range: {start_time:.1f} to {end_time:.1f} minutes")
             print("     ✓ Chart will use proper time boundaries")
     
+    # Test quarter durations (New Feature)
+    print("\n8. Validating quarter durations (New Feature)...")
+    quarter_durations = details.get('quarter_durations', {})
+    if not quarter_durations:
+        print("   ✗ No quarter duration data found")
+        return False
+    
+    print(f"   ✓ Found durations for {len(quarter_durations)} quarter(s)")
+    total_duration = 0
+    for quarter in sorted(quarter_durations.keys()):
+        info = quarter_durations[quarter]
+        duration_formatted = info.get('duration_formatted', 'N/A')
+        duration_seconds = info.get('duration_seconds', 0)
+        print(f"   - Quarter {quarter}: {duration_formatted} ({duration_seconds:.1f} seconds)")
+        total_duration += duration_seconds
+        
+        # Validate duration is reasonable (between 5 and 40 minutes)
+        if duration_seconds < 300 or duration_seconds > 2400:
+            print(f"     ⚠ Warning: Unusual quarter duration")
+    
+    total_mins = int(total_duration // 60)
+    total_secs = int(total_duration % 60)
+    print(f"   - Total game time: {total_mins}:{total_secs:02d}")
+    print("     ✓ Quarter durations calculated successfully")
+    
     print("\n" + "=" * 60)
     print("✓ All game details tests passed!")
     print("=" * 60)
