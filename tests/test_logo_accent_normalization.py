@@ -6,8 +6,6 @@ This test ensures that team names with accented characters (é, ä, etc.)
 are correctly normalized for logo file lookups. The normalization should
 convert accented characters to their base form (é -> e, ä -> a) rather
 than removing them entirely.
-
-Issue: https://github.com/Marcin-Rybarczyk/flbb-statistics-public/issues/XXX
 """
 
 import sys
