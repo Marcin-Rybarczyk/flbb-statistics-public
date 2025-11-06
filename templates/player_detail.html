@@ -373,6 +373,10 @@
                     <span class="stat-label-compact">3-Point Shots</span>
                     <span class="stat-value-compact">{{ player_stats.basic_stats.total_3p_made }} ({{ "%.1f"|format(player_stats.basic_stats.total_3p_made / player_stats.basic_stats.games_played) if player_stats.basic_stats.games_played > 0 else "0.0" }}/game)</span>
                 </div>
+                <div class="stat-row-compact">
+                    <span class="stat-label-compact">Free Throws</span>
+                    <span class="stat-value-compact">{{ player_stats.basic_stats.ft_makes }}/{{ player_stats.basic_stats.ft_attempts }} <strong>({{ "%.1f"|format(player_stats.basic_stats.ft_percentage) }}%)</strong></span>
+                </div>
                 <div class="highlight-stat">
                     <div class="stat-row-compact" style="border-bottom: none;">
                         <span class="stat-label-compact"><strong>Total Field Goals</strong></span>
@@ -502,6 +506,8 @@
                         <th>1P</th>
                         <th>2P</th>
                         <th>3P</th>
+                        <th>FT</th>
+                        <th>FT%</th>
                         <th>Fouls</th>
                         <th>P</th>
                         <th>P1</th>
@@ -557,6 +563,8 @@
                         <td>{{ game['1PMadeShots'] }}</td>
                         <td>{{ game['2PMadeShots'] }}</td>
                         <td>{{ game['3PMadeShots'] }}</td>
+                        <td>{{ game.FTMakes }}/{{ game.FTAttempts }}</td>
+                        <td>{% if game.FTAttempts > 0 %}{{ "%.0f"|format((game.FTMakes / game.FTAttempts) * 100) }}%{% else %}-{% endif %}</td>
                         <td><strong>{{ game.TotalFouls }}</strong></td>
                         <td>{{ game.PFouls }}</td>
                         <td>{{ game.P1Fouls }}</td>

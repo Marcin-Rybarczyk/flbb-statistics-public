@@ -363,14 +363,16 @@
         <div id="shooting-efficiency" class="tab-content">
             <div class="stats-section">
                 <h2>Free Throw Leaders</h2>
-                <p><em>Players ranked by total free throws made (minimum 5 games and 5 free throws)</em></p>
+                <p><em>Players ranked by total free throws made (minimum 5 games and 5 attempts)</em></p>
                 <div class="table-container"><table>
                     <thead>
                         <tr>
                             <th>Rank</th>
                             <th>Player</th>
                             <th>Team</th>
-                            <th>Total FT Made</th>
+                            <th>FT Made</th>
+                            <th>FT Attempts</th>
+                            <th>FT %</th>
                             <th>Games Played</th>
                             <th>Avg FT/Game</th>
                         </tr>
@@ -382,7 +384,9 @@
                             <td>{{ loop.index }}</td>
                             <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
                             <td>{{ team_button(row['Team']) }}</td>
-                            <td><strong>{{ row['TotalFreeThrowsMade'] }}</strong></td>
+                            <td><strong>{{ row['FTMakes'] }}</strong></td>
+                            <td>{{ row['FTAttempts'] }}</td>
+                            <td><strong>{{ "%.1f"|format(row['FTPercentage']) }}%</strong></td>
                             <td>{{ row['GamesPlayed'] }}</td>
                             <td>{{ "%.2f"|format(row['AvgFreeThrowsPerGame']) }}</td>
                         </tr>
@@ -803,7 +807,7 @@
         <div id="shooting-efficiency" class="tab-content">
             <div class="stats-section">
                 <h2>Free Throw Leaders</h2>
-                <p><em>Players ranked by total free throws made (minimum 5 games and 5 free throws)</em></p>
+                <p><em>Players ranked by total free throws made (minimum 5 games and 5 attempts)</em></p>
                 {% if shooting_efficiency is not none and not shooting_efficiency.empty %}
                 <div class="table-container"><table>
                     <thead>
@@ -811,7 +815,9 @@
                             <th>Rank</th>
                             <th>Player</th>
                             <th>Team</th>
-                            <th>Total FT Made</th>
+                            <th>FT Made</th>
+                            <th>FT Att.</th>
+                            <th>FT %</th>
                             <th>Games</th>
                             <th>Avg FT/Game</th>
                         </tr>
@@ -822,7 +828,9 @@
                             <td>{{ loop.index }}</td>
                             <td><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['PlayerName'] }}</a></td>
                             <td>{{ row['Team'] }}</td>
-                            <td><strong>{{ row['TotalFreeThrowsMade'] }}</strong></td>
+                            <td><strong>{{ row['FTMakes'] }}</strong></td>
+                            <td>{{ row['FTAttempts'] }}</td>
+                            <td><strong>{{ "%.1f"|format(row['FTPercentage']) }}%</strong></td>
                             <td>{{ row['GamesPlayed'] }}</td>
                             <td>{{ "%.2f"|format(row['AvgFreeThrowsPerGame']) }}</td>
                         </tr>
