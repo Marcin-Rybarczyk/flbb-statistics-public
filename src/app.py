@@ -1,5 +1,6 @@
 import os
 import re
+import logging
 from urllib.parse import unquote
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 import pandas as pd
@@ -25,6 +26,74 @@ app = Flask(__name__, template_folder='../templates', static_folder='../logos', 
 # Valid theme options for the application
 VALID_THEMES = ['default', 'ocean', 'sunset', 'forest', 'minimal', 'cherry']
 
+# Configure logging for tracking code validation
+logger = logging.getLogger(__name__)
+
+def validate_tracking_code(code):
+    """
+    Validate tracking code from environment variable for basic security.
+    
+    This function performs basic validation to ensure the tracking code:
+    - Is not excessively long (prevents DoS)
+    - Contains properly formatted script tags
+    - Doesn't contain obvious malicious patterns
+    
+    Note: This is not a comprehensive XSS prevention mechanism. The tracking code
+    should only be set from trusted sources (e.g., MyDevil panel). Never allow
+    user input to set this value.
+    
+    Args:
+        code (str): The tracking code to validate
+        
+    Returns:
+        str: The validated code, or empty string if invalid
+    """
+    if not code or not isinstance(code, str):
+        return ''
+    
+    # Check length (tracking codes shouldn't be huge)
+    if len(code) > 10000:  # 10KB max
+        logger.warning("MYDEVIL_STATS_CODE exceeds maximum length (10KB), ignoring")
+        return ''
+    
+    # Validate script tag format - should have both opening and closing tags
+    if '<script' not in code.lower():
+        logger.warning("MYDEVIL_STATS_CODE doesn't contain <script> tag, ignoring")
+        return ''
+    
+    if '</script>' not in code.lower():
+        logger.warning("MYDEVIL_STATS_CODE doesn't contain closing </script> tag, ignoring")
+        return ''
+    
+    # Check for dangerous patterns that could indicate XSS attempts
+    # Note: This is a basic blocklist, not a comprehensive security mechanism
+    dangerous_patterns = [
+        'javascript:',      # javascript: protocol
+        'data:',            # data: protocol
+        'vbscript:',        # vbscript: protocol
+        'onerror=',         # event handlers
+        'onload=',
+        'onclick=',
+        'onmouseover=',
+        'onfocus=',
+        'onblur=',
+        'onchange=',
+        'onsubmit=',
+        '<iframe',          # iframe injection
+        'document.cookie',  # cookie theft
+        'eval(',            # code execution
+        'expression(',      # IE CSS expressions
+    ]
+    code_lower = code.lower()
+    for pattern in dangerous_patterns:
+        if pattern in code_lower:
+            logger.warning(
+                f"MYDEVIL_STATS_CODE contains potentially dangerous pattern '{pattern}', ignoring"
+            )
+            return ''
+    
+    return code
+
 # Set secret key for session management
 # In production, SECRET_KEY should be set via environment variable
 # For development, generate a random key if not set
@@ -49,11 +118,15 @@ def inject_season_info():
         'theme': session.get('preferred_theme', 'default')
     }
     
+    # Get MyDevil statistics tracking code from environment variable and validate it
+    mydevil_stats_code = validate_tracking_code(os.environ.get('MYDEVIL_STATS_CODE', ''))
+    
     return {
         'season_info': season_info,
         'website_config': website_config,
         'version_info': version_info,
-        'user_prefs': user_prefs
+        'user_prefs': user_prefs,
+        'mydevil_stats_code': mydevil_stats_code
     }
 
 # Logo utility functions

@@ -6,6 +6,7 @@ import zipfile
 import tempfile
 from datetime import datetime
 import html
+import unicodedata
 
 
 FULL_GAME_STATS_OUTPUT_DIR = "full-game-stats-output"
@@ -241,12 +242,19 @@ def calculate_standings(df):
     standings = defaultdict(lambda: {
         'Games': 0, 'W': 0, 'L': 0, 'F': 0, 'A': 0, 'Points': 0
     })
+    
+    # Track game results for last 5 games calculation
+    team_games = defaultdict(list)
 
-    for _, row in df.iterrows():
+    # Sort by DateTime to ensure games are processed in chronological order
+    df_sorted = df.sort_values('DateTime') if 'DateTime' in df.columns else df
+
+    for _, row in df_sorted.iterrows():
         home_team = row['HomeTeamName']
         away_team = row['AwayTeamName']
         home_score = row['FinalHomeScore']
         away_score = row['FinalAwayScore']
+        game_id = row.get('GameId', '')
 
         standings[home_team]['Games'] += 1
         standings[away_team]['Games'] += 1
@@ -262,16 +270,30 @@ def calculate_standings(df):
             standings[away_team]['L'] += 1
             standings[home_team]['Points'] += 2
             standings[away_team]['Points'] += 1
+            # Track game result for last 5 games
+            team_games[home_team].append({'result': 'W', 'game_id': game_id})
+            team_games[away_team].append({'result': 'L', 'game_id': game_id})
         else:  # Away team wins
             standings[home_team]['L'] += 1
             standings[away_team]['W'] += 1
             standings[home_team]['Points'] += 1
             standings[away_team]['Points'] += 2
+            # Track game result for last 5 games
+            team_games[home_team].append({'result': 'L', 'game_id': game_id})
+            team_games[away_team].append({'result': 'W', 'game_id': game_id})
 
     # Convert to a DataFrame
     standings_df = pd.DataFrame.from_dict(standings, orient='index').reset_index()
     standings_df.rename(columns={'index': 'Team Name'}, inplace=True)
     standings_df['Points Diff'] = standings_df['F'] - standings_df['A']
+    
+    # Add Last 5 Games column
+    last_five_games = []
+    for team_name in standings_df['Team Name']:
+        games = team_games[team_name][-5:]  # Get last 5 games
+        games = list(reversed(games))  # Reverse to show most recent first
+        last_five_games.append(games)
+    standings_df['Last 5 Games'] = last_five_games
 
     # Sort by Points, then Points Diff
     standings_df.sort_values(by=['Points', 'Points Diff'], ascending=[False, False], inplace=True)
@@ -2573,6 +2595,29 @@ def load_future_games_from_gamesdb(gamesdb_path='data/gamesDB.json'):
         return []
 
 
+def normalize_team_name_for_matching(team_name):
+    """
+    Normalize team name for matching/comparison purposes.
+    Removes accents/diacritics to ensure consistent matching regardless of how
+    the name was encoded/decoded in URLs.
+    
+    Parameters:
+    team_name (str): The team name to normalize
+    
+    Returns:
+    str: Normalized team name (without accents)
+    """
+    if not team_name:
+        return team_name
+    
+    # Remove accents/diacritics for consistency
+    normalized = ''.join(
+        c for c in unicodedata.normalize('NFD', str(team_name))
+        if unicodedata.category(c) != 'Mn'
+    )
+    return normalized
+
+
 def normalize_team_name_for_display(team_name):
     """
     Normalize team name for consistent display across finished and future games.
@@ -2589,7 +2634,6 @@ def normalize_team_name_for_display(team_name):
         return team_name
     
     # Remove accents/diacritics for consistency
-    import unicodedata
     team_name = ''.join(
         c for c in unicodedata.normalize('NFD', team_name)
         if unicodedata.category(c) != 'Mn'
@@ -3750,10 +3794,13 @@ def get_team_detail_stats(data, team_name):
     if data.empty:
         return None
     
-    # Filter games for this team
+    # Normalize team name for matching
+    normalized_team_name = normalize_team_name_for_matching(team_name)
+    
+    # Filter games for this team (normalize data team names for comparison)
     team_games = data[
-        (data['HomeTeamName'] == team_name) | 
-        (data['AwayTeamName'] == team_name)
+        (data['HomeTeamName'].apply(normalize_team_name_for_matching) == normalized_team_name) | 
+        (data['AwayTeamName'].apply(normalize_team_name_for_matching) == normalized_team_name)
     ].copy()
     
     if team_games.empty:
@@ -3763,7 +3810,7 @@ def get_team_detail_stats(data, team_name):
     team_games = team_games.sort_values('DateTime')
     
     # Process each game
-    team_games['IsHome'] = team_games['HomeTeamName'] == team_name
+    team_games['IsHome'] = team_games['HomeTeamName'].apply(normalize_team_name_for_matching) == normalized_team_name
     team_games['TeamScore'] = team_games.apply(
         lambda row: row['FinalHomeScore'] if row['IsHome'] else row['FinalAwayScore'], 
         axis=1
@@ -3929,9 +3976,15 @@ def get_team_next_games(team_name, limit=5, gamesdb_path='data/gamesDB.json'):
             # Convert division name
             division_display = convert_division_name(game.get('GameDivisionName', ''))
             
+            # Extract time from datetime if available
+            game_time = None
+            if game_datetime:
+                game_time = game_datetime.strftime('%H:%M')
+            
             team_future_games.append({
                 'game_id': game.get('GameId'),
                 'date': game_date,
+                'time': game_time,
                 'datetime_obj': game_datetime,
                 'division': division_display,
                 'opponent': opponent,
@@ -4747,14 +4800,18 @@ def get_team_hover_stats(data, team_name):
         - total_teams: Total number of teams in division
         - division: Division name
         - top_scorers: List of top 5 scorers ranked by total points (descending) with total_points and avg_points
+        - next_game: Dictionary with next game info (opponent, opponent_position, opponent_total_teams, date, time, is_home, location) or None
     """
     if data.empty:
         return None
     
-    # Filter games for this team
+    # Normalize team name for matching
+    normalized_team_name = normalize_team_name_for_matching(team_name)
+    
+    # Filter games for this team (normalize data team names for comparison)
     team_games = data[
-        (data['HomeTeamName'] == team_name) | 
-        (data['AwayTeamName'] == team_name)
+        (data['HomeTeamName'].apply(normalize_team_name_for_matching) == normalized_team_name) | 
+        (data['AwayTeamName'].apply(normalize_team_name_for_matching) == normalized_team_name)
     ].copy()
     
     if team_games.empty:
@@ -4767,7 +4824,7 @@ def get_team_hover_stats(data, team_name):
     team_games = team_games.sort_values('DateTime')
     
     # Process each game
-    team_games['IsHome'] = team_games['HomeTeamName'] == team_name
+    team_games['IsHome'] = team_games['HomeTeamName'].apply(normalize_team_name_for_matching) == normalized_team_name
     team_games['TeamScore'] = team_games.apply(
         lambda row: row['FinalHomeScore'] if row['IsHome'] else row['FinalAwayScore'], 
         axis=1
@@ -4795,7 +4852,8 @@ def get_team_hover_stats(data, team_name):
         standings = calculate_standings_by_division(data, division)
         if not standings.empty:
             total_teams = len(standings)
-            team_row = standings[standings['Team Name'] == team_name]
+            # Normalize team names in standings for comparison
+            team_row = standings[standings['Team Name'].apply(normalize_team_name_for_matching) == normalized_team_name]
             if not team_row.empty:
                 # Get position (index starts at 1 in standings)
                 position = team_row.index[0]
@@ -4804,7 +4862,8 @@ def get_team_hover_stats(data, team_name):
     top_scorers = []
     player_stats = extract_all_player_stats(data)
     if not player_stats.empty:
-        team_players = player_stats[player_stats['Team'] == team_name].copy()
+        # Normalize team names in player stats for comparison
+        team_players = player_stats[player_stats['Team'].apply(normalize_team_name_for_matching) == normalized_team_name].copy()
         if not team_players.empty:
             # Group by player name and calculate total points and average points
             player_totals = team_players.groupby('PlayerName').agg({
@@ -4829,6 +4888,42 @@ def get_team_hover_stats(data, team_name):
                     'avg_points': round(row['AvgPoints'], 1)
                 })
     
+    # Get next game information
+    next_game_info = None
+    try:
+        next_games = get_team_next_games(team_name, limit=1)
+        if next_games and len(next_games) > 0:
+            next_game = next_games[0]
+            opponent = next_game.get('opponent')
+            
+            # Get opponent's position in standings if available
+            opponent_position = None
+            opponent_total_teams = None
+            if opponent and division:
+                standings = calculate_standings_by_division(data, division)
+                if not standings.empty:
+                    # Normalize opponent name for comparison
+                    normalized_opponent = normalize_team_name_for_matching(opponent)
+                    opponent_row = standings[standings['Team Name'].apply(normalize_team_name_for_matching) == normalized_opponent]
+                    if not opponent_row.empty:
+                        opponent_position = opponent_row.index[0]
+                        opponent_total_teams = len(standings)
+            
+            next_game_info = {
+                'opponent': opponent,
+                'opponent_position': int(opponent_position) if opponent_position is not None else None,
+                'opponent_total_teams': int(opponent_total_teams) if opponent_total_teams is not None else None,
+                'date': next_game.get('date'),
+                'time': next_game.get('time'),
+                'is_home': next_game.get('is_home'),
+                'location': next_game.get('location')
+            }
+    except Exception as e:
+        # If there's any error getting next game info, just skip it
+        # This ensures the hover box still displays other information even if next game lookup fails
+        # (e.g., if gamesDB.json is missing or opponent team name doesn't match standings)
+        pass
+    
     return {
         'wins': int(wins) if wins is not None else 0,
         'losses': int(losses) if losses is not None else 0,
@@ -4836,7 +4931,8 @@ def get_team_hover_stats(data, team_name):
         'position': int(position) if position is not None else None,
         'total_teams': int(total_teams) if total_teams is not None else None,
         'division': str(division) if division is not None else None,
-        'top_scorers': top_scorers
+        'top_scorers': top_scorers,
+        'next_game': next_game_info
     }
 
 
@@ -4902,6 +4998,81 @@ def get_referee_hover_stats(data, referee_name):
     return {
         'games': int(len(referee_games)),
         'fouls_per_game': float(avg_fouls)
+    }
+
+
+def _get_team_position_and_streak(data, team_name, division):
+    """
+    Helper function to get team position and last 5 game streak.
+    
+    Parameters:
+    data (DataFrame): The game data
+    team_name (str): The name of the team
+    division (str): The division name
+    
+    Returns:
+    dict: Dictionary containing:
+        - position: Current position in division standings (None if not found)
+        - total_teams: Total number of teams in division (None if not found)
+        - last_five: List of results for last 5 games (W/L), empty list if no games
+    """
+    if data.empty or not team_name:
+        return {
+            'position': None,
+            'total_teams': None,
+            'last_five': []
+        }
+    
+    # Normalize team name for matching
+    normalized_team_name = normalize_team_name_for_matching(team_name)
+    
+    # Filter games for this team (normalize data team names for comparison)
+    team_games = data[
+        (data['HomeTeamName'].apply(normalize_team_name_for_matching) == normalized_team_name) | 
+        (data['AwayTeamName'].apply(normalize_team_name_for_matching) == normalized_team_name)
+    ].copy()
+    
+    # Get last 5 games streak
+    last_five = []
+    if not team_games.empty:
+        # Sort by date
+        team_games = team_games.sort_values('DateTime')
+        
+        # Process each game
+        team_games['IsHome'] = team_games['HomeTeamName'].apply(normalize_team_name_for_matching) == normalized_team_name
+        team_games['TeamScore'] = team_games.apply(
+            lambda row: row['FinalHomeScore'] if row['IsHome'] else row['FinalAwayScore'], 
+            axis=1
+        )
+        team_games['OpponentScore'] = team_games.apply(
+            lambda row: row['FinalAwayScore'] if row['IsHome'] else row['FinalHomeScore'], 
+            axis=1
+        )
+        team_games['Result'] = team_games.apply(
+            lambda row: 'W' if row['TeamScore'] > row['OpponentScore'] else 'L', 
+            axis=1
+        )
+        
+        # Get last 5 games
+        last_five = team_games.tail(5)['Result'].tolist()
+    
+    # Calculate position in division standings
+    position = None
+    total_teams = None
+    if division:
+        standings = calculate_standings_by_division(data, division)
+        if not standings.empty:
+            total_teams = int(len(standings))
+            # Normalize team names in standings for comparison
+            team_row = standings[standings['Team Name'].apply(normalize_team_name_for_matching) == normalized_team_name]
+            if not team_row.empty:
+                # Get position (standings index starts at 1)
+                position = int(team_row.index[0])
+    
+    return {
+        'position': position,
+        'total_teams': total_teams,
+        'last_five': last_five
     }
 
 
@@ -5000,16 +5171,36 @@ def get_game_hover_stats(data, game_id):
                 # Get division name
                 division = convert_division_name(game.get('GameDivisionName', ''))
                 
+                # Get position and streak for both teams
+                home_team_info = _get_team_position_and_streak(data, home_team, division)
+                away_team_info = _get_team_position_and_streak(data, away_team, division)
+                
+                # Get referees if available (currently not in gamesDB.json for future games)
+                referees = []
+                if 'Referees' in game and game['Referees']:
+                    try:
+                        referee_names = [
+                            ref.get('RefereeName') or ref.get('Referee Name', 'TBD') 
+                            for ref in game['Referees']
+                        ] if isinstance(game['Referees'], list) else []
+                        referees = referee_names
+                    except:
+                        referees = []
+                
                 return {
                     'result': f"{home_team} vs {away_team}",
-                    'referees': [],
+                    'referees': referees,
                     'date_time': game_date,
-                    'lead_changes': 0,
-                    'ties': 0,
-                    'hotness_score': 0,
-                    'hotness_icon': "📅",
                     'is_future': True,
-                    'division': division
+                    'division': division,
+                    'home_team': home_team,
+                    'away_team': away_team,
+                    'home_position': home_team_info['position'],
+                    'home_total_teams': home_team_info['total_teams'],
+                    'home_last_five': home_team_info['last_five'],
+                    'away_position': away_team_info['position'],
+                    'away_total_teams': away_team_info['total_teams'],
+                    'away_last_five': away_team_info['last_five']
                 }
     
     # Game not found in either finished or future games

@@ -635,6 +635,9 @@
             text-decoration: none;
             font-weight: bold;
             transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .player-link:hover, .team-link:hover, .game-link:hover, .referee-link:hover {
@@ -643,6 +646,40 @@
             text-decoration: none;
             padding: 2px 4px;
             border-radius: 3px;
+        }
+
+        /* Icons for clickable entity links */
+        .player-link::before {
+            content: "👤";
+            font-size: 0.9em;
+            display: inline-block;
+        }
+
+        .game-link::before {
+            content: "🏀";
+            font-size: 0.9em;
+            display: inline-block;
+        }
+
+        .referee-link::before {
+            content: "👨‍⚖️";
+            font-size: 0.9em;
+            display: inline-block;
+        }
+
+        /* Team link with optional logo */
+        .team-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .team-logo-icon {
+            width: 20px;
+            height: 20px;
+            object-fit: contain;
+            border-radius: 3px;
+            vertical-align: middle;
         }
 
         /* For team buttons styled as links */
@@ -795,6 +832,20 @@
         /* Ensure hoverable items have cursor pointer */
         .hoverable-item {
             cursor: pointer;
+        }
+
+        /* Division names styling */
+        .division-name {
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            display: inline-block;
+        }
+
+        .division-name:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
         }
 
         {% block extra_styles %}{% endblock %}
@@ -1206,6 +1257,43 @@
                             `<span class="streak ${result === 'W' ? 'win' : 'loss'}">${result}</span>`
                         ).join('');
                         
+                        // Format next game
+                        let nextGameHtml = '';
+                        if (data.next_game && data.next_game.opponent) {
+                            const nextGame = data.next_game;
+                            let opponentText = nextGame.opponent;
+                            
+                            // Add opponent position if available
+                            if (nextGame.opponent_position && nextGame.opponent_total_teams) {
+                                opponentText += ` (${nextGame.opponent_position}/${nextGame.opponent_total_teams})`;
+                            }
+                            
+                            // Format date and time
+                            let dateTimeText = '';
+                            if (nextGame.date) {
+                                dateTimeText = nextGame.date;
+                                if (nextGame.time) {
+                                    dateTimeText += ` at ${nextGame.time}`;
+                                }
+                            }
+                            
+                            // Add home/away indicator
+                            const locationIcon = nextGame.is_home ? '🏠' : '✈️';
+                            const locationText = nextGame.is_home ? 'vs' : 'at';
+                            
+                            nextGameHtml = '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1);">';
+                            nextGameHtml += '<div style="font-weight: 600; color: #667eea; margin-bottom: 6px;">Next Game:</div>';
+                            nextGameHtml += `<div style="font-size: 0.85em; padding: 2px 0;">
+                                <span>${locationIcon} ${locationText} <strong>${opponentText}</strong></span>
+                            </div>`;
+                            if (dateTimeText) {
+                                nextGameHtml += `<div style="font-size: 0.8em; color: #6c757d; padding: 2px 0;">
+                                    <span>📅 ${dateTimeText}</span>
+                                </div>`;
+                            }
+                            nextGameHtml += '</div>';
+                        }
+                        
                         // Format top scorers
                         let topScorersHtml = '';
                         if (data.top_scorers && data.top_scorers.length > 0) {
@@ -1244,6 +1332,7 @@
                                 <span class="stat-label">Last 5 Games:</span>
                                 <span class="stat-value">${streakHtml}</span>
                             </div>
+                            ${nextGameHtml}
                             ${topScorersHtml}
                         `;
                     } else if (type === 'referee') {
@@ -1259,34 +1348,103 @@
                             </div>
                         `;
                     } else if (type === 'game') {
-                        const refereesHtml = data.referees.join(', ') || 'N/A';
-                        content = `
-                            <h4>🏀 Game ${id}</h4>
-                            <div class="stat-row">
-                                <span class="stat-label">Result:</span>
-                                <span class="stat-value" style="font-size: 0.85em;">${data.result}</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="stat-label">Date:</span>
-                                <span class="stat-value">${data.date_time}</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="stat-label">Game Hotness:</span>
-                                <span class="stat-value" style="font-size: 1.5em;" title="Hotness Score: ${data.hotness_score}/100">${data.hotness_icon}</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="stat-label">Lead Changes:</span>
-                                <span class="stat-value">${data.lead_changes}</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="stat-label">Tied Scores:</span>
-                                <span class="stat-value">${data.ties}</span>
-                            </div>
-                            <div class="stat-row">
-                                <span class="stat-label">Referees:</span>
-                                <span class="stat-value" style="font-size: 0.85em;">${refereesHtml}</span>
-                            </div>
-                        `;
+                        // Check if this is a future game
+                        if (data.is_future) {
+                            // Future game - show different information
+                            const refereesHtml = data.referees && data.referees.length > 0 ? data.referees.join(', ') : 'TBD';
+                            
+                            // Format home team streak
+                            let homeStreakHtml = '';
+                            if (data.home_last_five && data.home_last_five.length > 0) {
+                                homeStreakHtml = data.home_last_five.map(result => 
+                                    `<span class="streak ${result === 'W' ? 'win' : 'loss'}">${result}</span>`
+                                ).join('');
+                            } else {
+                                homeStreakHtml = 'N/A';
+                            }
+                            
+                            // Format away team streak
+                            let awayStreakHtml = '';
+                            if (data.away_last_five && data.away_last_five.length > 0) {
+                                awayStreakHtml = data.away_last_five.map(result => 
+                                    `<span class="streak ${result === 'W' ? 'win' : 'loss'}">${result}</span>`
+                                ).join('');
+                            } else {
+                                awayStreakHtml = 'N/A';
+                            }
+                            
+                            // Format positions
+                            const homePosition = data.home_position && data.home_total_teams 
+                                ? `${data.home_position} / ${data.home_total_teams}` 
+                                : 'N/A';
+                            const awayPosition = data.away_position && data.away_total_teams 
+                                ? `${data.away_position} / ${data.away_total_teams}` 
+                                : 'N/A';
+                            
+                            content = `
+                                <h4>📅 ${data.result}</h4>
+                                <div class="stat-row">
+                                    <span class="stat-label">Date & Time:</span>
+                                    <span class="stat-value">${data.date_time}</span>
+                                </div>
+                                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1);">
+                                    <div style="font-weight: 600; color: #2980b9; margin-bottom: 4px;">${data.home_team || 'Home Team'}</div>
+                                    <div class="stat-row">
+                                        <span class="stat-label">Position:</span>
+                                        <span class="stat-value">${homePosition}</span>
+                                    </div>
+                                    <div class="stat-row">
+                                        <span class="stat-label">Last 5:</span>
+                                        <span class="stat-value">${homeStreakHtml}</span>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1);">
+                                    <div style="font-weight: 600; color: #e67e22; margin-bottom: 4px;">${data.away_team || 'Away Team'}</div>
+                                    <div class="stat-row">
+                                        <span class="stat-label">Position:</span>
+                                        <span class="stat-value">${awayPosition}</span>
+                                    </div>
+                                    <div class="stat-row">
+                                        <span class="stat-label">Last 5:</span>
+                                        <span class="stat-value">${awayStreakHtml}</span>
+                                    </div>
+                                </div>
+                                <div class="stat-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1);">
+                                    <span class="stat-label">Referees:</span>
+                                    <span class="stat-value" style="font-size: 0.85em;">${refereesHtml}</span>
+                                </div>
+                            `;
+                        } else {
+                            // Finished game - show original information
+                            const refereesHtml = data.referees && data.referees.length > 0 ? data.referees.join(', ') : 'N/A';
+                            content = `
+                                <h4>🏀 Game ${id}</h4>
+                                <div class="stat-row">
+                                    <span class="stat-label">Result:</span>
+                                    <span class="stat-value" style="font-size: 0.85em;">${data.result}</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Date:</span>
+                                    <span class="stat-value">${data.date_time}</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Game Hotness:</span>
+                                    <span class="stat-value" style="font-size: 1.5em;" title="Hotness Score: ${data.hotness_score}/100">${data.hotness_icon}</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Lead Changes:</span>
+                                    <span class="stat-value">${data.lead_changes}</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Tied Scores:</span>
+                                    <span class="stat-value">${data.ties}</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Referees:</span>
+                                    <span class="stat-value" style="font-size: 0.85em;">${refereesHtml}</span>
+                                </div>
+                            `;
+                        }
                     }
 
                     tooltip.innerHTML = content;
@@ -1334,6 +1492,27 @@
                             <i>🔍</i>Open Game Details
                         </div>
                     `;
+                } else if (type === 'division') {
+                    menuHtml = `
+                        <div class="context-menu-item" data-action="standings" data-type="division" data-id="${id}">
+                            <i>🏆</i>Open Standing
+                        </div>
+                        <div class="context-menu-item" data-action="fixtures" data-type="division" data-id="${id}">
+                            <i>📅</i>Open Fixtures
+                        </div>
+                        <div class="context-menu-item" data-action="statistics" data-type="division" data-id="${id}">
+                            <i>🎮</i>Open Game Stats
+                        </div>
+                        <div class="context-menu-item" data-action="player-stats" data-type="division" data-id="${id}">
+                            <i>👤</i>Open Player Stats
+                        </div>
+                        <div class="context-menu-item" data-action="team-stats" data-type="division" data-id="${id}">
+                            <i>🏆</i>Open Team Stats
+                        </div>
+                        <div class="context-menu-item" data-action="deeper-analysis" data-type="division" data-id="${id}">
+                            <i>📊</i>Open Deep Analysis
+                        </div>
+                    `;
                 }
 
                 contextMenu.innerHTML = menuHtml;
@@ -1374,6 +1553,22 @@
                                 window.location.href = `/referee-detail?referee=${encodeURIComponent(menuId)}`;
                             } else if (menuType === 'game') {
                                 window.location.href = `/game-detail/${menuId}`;
+                            }
+                        } else if (menuType === 'division') {
+                            // Handle division-specific actions
+                            const divisionParam = encodeURIComponent(menuId);
+                            if (action === 'standings') {
+                                window.location.href = `/standings?division=${divisionParam}`;
+                            } else if (action === 'fixtures') {
+                                window.location.href = `/fixtures?division=${divisionParam}`;
+                            } else if (action === 'statistics') {
+                                window.location.href = `/statistics?division=${divisionParam}`;
+                            } else if (action === 'player-stats') {
+                                window.location.href = `/player-stats?division=${divisionParam}`;
+                            } else if (action === 'team-stats') {
+                                window.location.href = `/team-stats?division=${divisionParam}`;
+                            } else if (action === 'deeper-analysis') {
+                                window.location.href = `/deeper-analysis?division=${divisionParam}`;
                             }
                         }
                         
@@ -1553,5 +1748,12 @@
     </script>
 
     {% block scripts %}{% endblock %}
+
+    <!-- MyDevil.net statistics tracking code -->
+    <!-- Note: This code is pre-validated for security before insertion -->
+    <!-- See validate_tracking_code() in app.py for validation details -->
+    {% if mydevil_stats_code %}
+    {{ mydevil_stats_code|safe }}
+    {% endif %}
 </body>
 </html>
