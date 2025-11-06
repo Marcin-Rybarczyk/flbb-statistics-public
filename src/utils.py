@@ -447,7 +447,8 @@ def calculate_ft_stats_from_events(game_events):
                     if ft_shooter not in ft_stats:
                         ft_stats[ft_shooter] = {'attempts': 0, 'makes': 0}
                     ft_stats[ft_shooter]['attempts'] += expected_attempts
-                    ft_stats[ft_shooter]['makes'] += ft_makes
+                    # Cap makes at expected attempts (can't make more than you attempt)
+                    ft_stats[ft_shooter]['makes'] += min(ft_makes, expected_attempts)
                 elif ft_makes == 0:
                     # No shooter identified and all missed - track as team missed FTs
                     if 'TEAM_MISSED_FTS' not in ft_stats:
