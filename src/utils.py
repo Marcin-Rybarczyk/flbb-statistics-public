@@ -5078,9 +5078,10 @@ def get_player_hover_stats(data, player_name):
         - avg_score: Average points per game
         - fouls_per_game: Average fouls per game
         - best_score: Highest score in one game
-        - team: Team name
+        - team: Team name (most recent team if player changed teams)
         - player_number: Player's number
         - last_three_scores: List of scores from last 3 games
+        - teams_played_for: List of dictionaries with team breakdown (team name, games count, avg score)
     """
     player_stats = extract_all_player_stats(data)
     
@@ -5105,6 +5106,19 @@ def get_player_hover_stats(data, player_name):
     # Get last 3 game scores
     last_three_scores = player_games.tail(3)['TotalPoints'].tolist()
     
+    # Calculate team breakdown - group by team and get stats
+    teams_breakdown = []
+    for team_name in player_games['Team'].unique():
+        team_games = player_games[player_games['Team'] == team_name]
+        teams_breakdown.append({
+            'team': str(team_name),
+            'games': int(len(team_games)),
+            'avg_score': float(round(team_games['TotalPoints'].mean(), 1))
+        })
+    
+    # Sort by number of games (descending)
+    teams_breakdown.sort(key=lambda x: x['games'], reverse=True)
+    
     return {
         'games_played': int(len(player_games)),
         'avg_score': float(round(player_games['TotalPoints'].mean(), 1)),
@@ -5112,7 +5126,8 @@ def get_player_hover_stats(data, player_name):
         'best_score': int(player_games['TotalPoints'].max()),
         'team': str(team),
         'player_number': int(player_number) if pd.notna(player_number) else None,
-        'last_three_scores': [int(score) for score in last_three_scores]
+        'last_three_scores': [int(score) for score in last_three_scores],
+        'teams_played_for': teams_breakdown
     }
 
 
