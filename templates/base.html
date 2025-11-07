@@ -1322,6 +1322,21 @@
                             lastThreeHtml = 'N/A';
                         }
                         
+                        // Format teams breakdown if player played for multiple teams
+                        let teamsBreakdownHtml = '';
+                        if (data.teams_played_for && data.teams_played_for.length > 1) {
+                            teamsBreakdownHtml = '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1);">';
+                            teamsBreakdownHtml += '<div style="font-weight: 600; color: #667eea; margin-bottom: 6px;">Teams Played For:</div>';
+                            data.teams_played_for.forEach((teamInfo) => {
+                                teamsBreakdownHtml += `<div style="display: flex; justify-content: space-between; padding: 2px 0; font-size: 0.85em;">
+                                    <span style="flex: 2;">${teamInfo.team}</span>
+                                    <span style="flex: 0 0 auto; color: #6c757d; margin: 0 4px;">${teamInfo.games} games</span>
+                                    <span style="flex: 0 0 auto; font-weight: 600; color: #667eea;">${teamInfo.avg_score} avg</span>
+                                </div>`;
+                            });
+                            teamsBreakdownHtml += '</div>';
+                        }
+                        
                         content = `
                             <h4>🏀 ${id}</h4>
                             <div class="stat-row">
@@ -1352,6 +1367,7 @@
                                 <span class="stat-label">Last 3 Games:</span>
                                 <span class="stat-value">${lastThreeHtml}</span>
                             </div>
+                            ${teamsBreakdownHtml}
                         `;
                     } else if (type === 'team') {
                         const streakHtml = data.last_five.map(result => 
