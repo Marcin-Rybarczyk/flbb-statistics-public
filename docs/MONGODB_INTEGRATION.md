@@ -48,6 +48,24 @@ Install MongoDB Community Edition on your system:
 2. Create a free cluster (M0 - 512 MB storage)
 3. Get your connection string from the Atlas dashboard
 
+**Option 3: MyDevil.net (Polish Hosting)**
+
+If you use MyDevil.net hosting, you can use their MongoDB service:
+
+1. Access MongoDB via SSH tunnel to your MyDevil.net server
+2. See **[MyDevil.net MongoDB Setup Guide](MONGODB_MYDEVIL_SETUP.md)** for complete instructions
+3. Use the `.env.mydevil.example` template for configuration
+
+Quick setup for MyDevil.net:
+```bash
+# Create SSH tunnel (in separate terminal)
+ssh -L 27017:localhost:27017 username@server.mydevil.net
+
+# Use the provided environment template
+cp .env.mydevil.example .env
+# Edit .env with your settings
+```
+
 ### Install Python Package
 
 ```bash
