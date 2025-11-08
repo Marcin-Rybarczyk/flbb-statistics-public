@@ -30,13 +30,16 @@ This project provides in-depth analysis and visualization of basketball statisti
 
 ### 🤖 Automation & Integration
 - **Automated Data Collection** - Daily scraping from FLBB website via PowerShell
+- **MongoDB Integration** - Optional MongoDB support for data storage and retrieval (NEW!)
 - **Google Drive Integration** - Automatic backup and file management
 - **GitHub Actions Workflows** - 5+ automated workflows for deployment and data processing
 - **Season Archive System** - Import and manage historical season data
 - **Version Tracking** - Automated version management with Git integration
+- **Flexible Data Sources** - Choose between CSV files, MongoDB, or auto mode with fallback
 
 ### 🚀 Deployment Ready
 - **Multi-Platform Support** - Deploy to Render.com, Railway.app, GitHub Pages, or MyDevil.net
+- **MongoDB Support** - Optional MongoDB Atlas cloud database integration
 - **Production WSGI** - Ready for production with Gunicorn
 - **Environment Configuration** - Flexible configuration via environment variables
 - **Static Site Generation** - Create static versions for GitHub Pages deployment
@@ -50,11 +53,13 @@ flbb-statistics/
 │   ├── utils.py                     # Data processing and statistics utilities (48+ functions)
 │   ├── wsgi.py                      # Production WSGI configuration
 │   ├── version.py                   # Version tracking and management
+│   ├── mongodb_helper.py            # MongoDB integration utilities (NEW!)
 │   └── google_drive_helper.py       # Google Drive integration
 ├── 📂 scripts/                      # Data collection and processing scripts
 │   ├── download-controller.ps1      # Main data collection script (PowerShell)
 │   ├── extract-game.ps1             # Data extraction and JSON conversion (PowerShell)
 │   ├── post_process.py              # Post-processing automation (Python)
+│   ├── export_csv_to_mongodb.py     # CSV to MongoDB migration tool (NEW!)
 │   ├── check_version_api.py         # API version checking utility
 │   ├── create_team_logos.py         # Team logo creation utility
 │   ├── download_team_logos.py       # Team logo download automation
@@ -75,6 +80,7 @@ flbb-statistics/
 ├── 📂 docs/                         # Comprehensive documentation
 │   ├── README.md                    # Documentation overview
 │   ├── README_DEPLOYMENT.md         # Complete deployment instructions
+│   ├── MONGODB_INTEGRATION.md       # MongoDB setup and usage guide (NEW!)
 │   ├── GOOGLE_DRIVE_SECRETS_SETUP.md # Google Drive API setup guide
 │   ├── GITHUB_ACTIONS_USAGE.md      # Automation workflows documentation
 │   ├── CSV_GENERATION_WORKFLOW.md   # Data processing pipeline guide
@@ -85,6 +91,8 @@ flbb-statistics/
 │   └── RACING_C_README.md           # Racing C team specific documentation
 ├── 📂 tests/                        # Testing and validation
 │   ├── test_local_flask.py          # Local development and testing script
+│   ├── test_mongodb.py              # MongoDB integration tests
+│   ├── test_mongodb_data_source.py  # MongoDB data source tests (NEW!)
 │   ├── test_google_drive.py         # Google Drive integration tests
 │   ├── test_player_database.py      # Player database tests
 │   ├── test_team_detail_scores.py   # Team detail score validation
@@ -157,6 +165,37 @@ flbb-statistics/
 python3 tests/test_local_flask.py --test-only
 ```
 
+### MongoDB Data Source (Optional)
+
+**NEW**: Use MongoDB as a data source for better scalability and query performance.
+
+**Quick Setup:**
+```bash
+# 1. Enable MongoDB
+export MONGODB_ENABLED=true
+export MONGODB_URI=mongodb://localhost:27017/
+export MONGODB_DATABASE=flbb-statistics
+
+# 2. Export CSV data to MongoDB
+python scripts/export_csv_to_mongodb.py
+
+# 3. Configure data source
+export DATA_SOURCE=auto  # Try MongoDB, fallback to CSV
+
+# 4. Run app
+python tests/test_local_flask.py
+```
+
+**For detailed setup and migration guide:**
+- See **[MONGODB_DATA_SOURCE_GUIDE.md](MONGODB_DATA_SOURCE_GUIDE.md)** - Quick start guide
+- See **[MongoDB Integration Guide](docs/MONGODB_INTEGRATION.md)** - Complete documentation
+
+**Benefits:**
+- ✅ Cloud storage with MongoDB Atlas (free tier available)
+- ✅ Better query performance with indexing
+- ✅ Flexible data queries by division, team, season, etc.
+- ✅ Auto fallback to CSV if MongoDB unavailable
+
 ## 🌐 Deployment Options
 
 ### Quick Deployment
@@ -190,6 +229,8 @@ Comprehensive documentation is available in the `docs/` directory:
 
 ### Integration & Setup
 - **[Google Drive Setup](docs/GOOGLE_DRIVE_SECRETS_SETUP.md)** - API configuration guide
+- **[MongoDB Integration](docs/MONGODB_INTEGRATION.md)** - MongoDB setup and usage (NEW!)
+- **[MongoDB Data Source Guide](MONGODB_DATA_SOURCE_GUIDE.md)** - Quick start for MongoDB (NEW!)
 - **[GitHub Actions Usage](docs/GITHUB_ACTIONS_USAGE.md)** - Automation workflows
 - **[MongoDB Integration](docs/MONGODB_INTEGRATION.md)** - Store JSON data in MongoDB
 
