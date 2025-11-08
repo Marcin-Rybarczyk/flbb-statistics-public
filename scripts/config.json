@@ -36,6 +36,10 @@
     "folderId": "1Z4Z3Z2Z1Z0Z9Z8Z7Z6Z5Z4Z3Z2Z1Z0Z9Z8Z7Z6Z5",
     "serviceAccountFile": "flbb-statistics-e9ab0e2a8b4c.json"
   },
+  "dataSourcePreference": {
+    "preference": "auto",
+    "_comment": "Controls where Flask app loads data from. Options: 'csv' (CSV files only), 'mongodb' (MongoDB only), 'auto' (try MongoDB, fallback to CSV)"
+  },
   "mongodb": {
     "enabled": false,
     "connectionString": "mongodb://localhost:27017/",

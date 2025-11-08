@@ -29,9 +29,15 @@ CONFIG_FILEPATH = "data/config.json"
 DEFAULT_CONFIG_FILEPATH = "config.json"
 SCRIPTS_CONFIG_FILEPATH = "scripts/config.json"
 
+# Data source configuration constants
+DATA_SOURCE_CSV = 'csv'
+DATA_SOURCE_MONGODB = 'mongodb'
+DATA_SOURCE_AUTO = 'auto'
+VALID_DATA_SOURCES = [DATA_SOURCE_CSV, DATA_SOURCE_MONGODB, DATA_SOURCE_AUTO]
+
 # Global variables to track data source and last update
 _data_source_info = {
-    'source': 'unknown',  # 'new_data', 'backup_csv', 'none'
+    'source': 'unknown',  # 'new_data', 'backup_csv', 'mongodb', 'none'
     'last_update': None,
     'source_description': 'Unknown data source'
 }
@@ -1891,13 +1897,147 @@ def create_csv_from_json_data(output_dir, csv_filepath):
         print(f"Error creating CSV: {e}")
         return False
 
-def load_game_data():
+def get_data_source_preference():
     """
-    Load game data prioritizing new data over repository backup.
-    For live website, use only new data downloaded. Repository data used only as backup.
+    Get the preferred data source from environment variable or configuration.
+    
+    Returns:
+    str: One of 'csv', 'mongodb', or 'auto' (default)
+    """
+    # Check environment variable first
+    env_source = os.environ.get('DATA_SOURCE', '').lower()
+    if env_source in VALID_DATA_SOURCES:
+        return env_source
+    
+    # Check configuration file
+    try:
+        config = load_config()
+        config_source = config.get('dataSource', {}).get('preference', '').lower()
+        if config_source in VALID_DATA_SOURCES:
+            return config_source
+    except:
+        pass
+    
+    # Default to auto
+    return DATA_SOURCE_AUTO
+
+def load_game_data_from_mongodb_source():
+    """
+    Load game data from MongoDB and convert to pandas DataFrame.
+    
+    Returns:
+    pandas.DataFrame: Game data loaded from MongoDB, or empty DataFrame if failed
     """
     global _data_source_info
     
+    try:
+        # Import MongoDB helper
+        from src.mongodb_helper import is_mongodb_available, is_mongodb_enabled, load_json_data_from_mongodb
+        
+        # Check if MongoDB is available and enabled
+        if not is_mongodb_available():
+            print("❌ MongoDB not available: pymongo not installed")
+            return pd.DataFrame()
+        
+        if not is_mongodb_enabled():
+            print("❌ MongoDB not enabled: set MONGODB_ENABLED=true")
+            return pd.DataFrame()
+        
+        # Load data from MongoDB
+        print("Loading game data from MongoDB...")
+        games_data = load_json_data_from_mongodb()
+        
+        if not games_data:
+            print("❌ No data found in MongoDB")
+            return pd.DataFrame()
+        
+        # Convert to DataFrame
+        data = pd.DataFrame(games_data)
+        flatten_df(data)
+        
+        # Update data source info
+        last_update = extract_last_update_from_data(data)
+        if not last_update and '_stored_at' in data.columns:
+            # Use MongoDB storage timestamp if available
+            try:
+                max_stored = pd.to_datetime(data['_stored_at'], errors='coerce').max()
+                if pd.notna(max_stored):
+                    last_update = max_stored.strftime("%Y-%m-%d %H:%M:%S")
+            except:
+                pass
+        
+        _data_source_info = {
+            'source': 'mongodb',
+            'last_update': last_update,
+            'source_description': f'MongoDB database (loaded {len(data)} games)'
+        }
+        
+        print(f"✅ Loaded {len(data)} games from MongoDB")
+        
+        # Optionally save to CSV for backup
+        if FORCE_TO_CREATE_CSV:
+            try:
+                data.to_csv(CSV_FILEPATH, index=False)
+                if AUTO_CREATE_PLAYER_DATABASE:
+                    create_players_database(data)
+            except:
+                pass  # Don't fail if we can't save backup
+        
+        return data
+        
+    except ImportError as e:
+        print(f"❌ Cannot import MongoDB helper: {e}")
+        return pd.DataFrame()
+    except Exception as e:
+        print(f"❌ Error loading data from MongoDB: {e}")
+        import traceback
+        traceback.print_exc()
+        return pd.DataFrame()
+
+def load_game_data():
+    """
+    Load game data based on configured data source preference.
+    
+    Supports three modes via DATA_SOURCE environment variable or config:
+    - 'csv': Load only from CSV files (JSON directory or CSV backup)
+    - 'mongodb': Load only from MongoDB database
+    - 'auto': Try MongoDB first, then fall back to CSV (default)
+    
+    Returns:
+    pandas.DataFrame: Game data from the configured source
+    """
+    global _data_source_info
+    
+    # Get data source preference
+    data_source = get_data_source_preference()
+    print(f"Data source preference: {data_source}")
+    
+    # MODE 1: MongoDB only
+    if data_source == DATA_SOURCE_MONGODB:
+        print("Configured to use MongoDB as data source")
+        data = load_game_data_from_mongodb_source()
+        if not data.empty:
+            return data
+        else:
+            print("❌ MongoDB data source failed and CSV fallback is disabled")
+            _data_source_info = {
+                'source': 'none',
+                'last_update': None,
+                'source_description': 'MongoDB failed and fallback disabled'
+            }
+            return pd.DataFrame()
+    
+    # MODE 2: Auto (try MongoDB, fallback to CSV)
+    if data_source == DATA_SOURCE_AUTO:
+        print("Auto mode: Trying MongoDB first, will fallback to CSV if needed")
+        data = load_game_data_from_mongodb_source()
+        if not data.empty:
+            return data
+        else:
+            print("MongoDB not available or empty, falling back to CSV sources...")
+    
+    # MODE 3: CSV only (or fallback from auto mode)
+    # Continue with existing CSV loading logic
     root_dir = os.path.join(os.getcwd(), FULL_GAME_STATS_OUTPUT_DIR)
     
     # PRIORITY 1: Try to load from new JSON data directory first (live data)
@@ -1969,7 +2109,7 @@ def load_game_data():
         'source_description': 'No data available'
     }
     
-    print("❌ No data available: Neither new data nor backup CSV found")
+    print("❌ No data available: Neither MongoDB nor CSV sources found")
     return pd.DataFrame()
 
 # =============================================================================
