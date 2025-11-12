@@ -29,6 +29,50 @@ CONFIG_FILEPATH = "data/config.json"
 DEFAULT_CONFIG_FILEPATH = "config.json"
 SCRIPTS_CONFIG_FILEPATH = "scripts/config.json"
 
+
+def parse_dotnet_json_date(date_value):
+    """
+    Parse .NET JSON date format or dictionary format to ISO datetime string.
+    
+    Supports two formats:
+    1. .NET JSON date: /Date(milliseconds)/ 
+    2. Dictionary with DateTime key: {'DateTime': 'Saturday, November 8, 2025 12:00:00 AM'}
+    
+    Parameters:
+    date_value: Either a string in .NET JSON format or a dictionary
+    
+    Returns:
+    str: Date in ISO format (YYYY-MM-DD HH:MM:SS) or None if parsing fails
+    """
+    if not date_value:
+        return None
+        
+    # Handle .NET JSON date format: /Date(milliseconds)/
+    if isinstance(date_value, str) and date_value.startswith('/Date(') and date_value.endswith(')/'):
+        try:
+            # Extract milliseconds from /Date(1763235000000)/
+            ms_str = date_value[6:-2]  # Remove '/Date(' and ')/'
+            milliseconds = int(ms_str)
+            # Convert milliseconds to datetime (Unix epoch is 1970-01-01)
+            dt = datetime.fromtimestamp(milliseconds / 1000.0)
+            # Convert to ISO format: "YYYY-MM-DD HH:MM:SS"
+            return dt.strftime(ISO_DATE_FORMAT)
+        except (ValueError, AttributeError, OverflowError):
+            return None
+    
+    # Handle dictionary format with DateTime key (legacy support)
+    elif isinstance(date_value, dict):
+        date_str = date_value.get('DateTime')
+        if date_str:
+            try:
+                # Parse the date string like "Saturday, November 8, 2025 12:00:00 AM"
+                dt = datetime.strptime(date_str, GAMESDB_DATE_FORMAT)
+                return dt.strftime(ISO_DATE_FORMAT)
+            except ValueError:
+                return date_str  # Return original if parsing fails
+    
+    return None
+
 # Data source configuration constants
 DATA_SOURCE_CSV = 'csv'
 DATA_SOURCE_MONGODB = 'mongodb'
@@ -3115,23 +3159,10 @@ def convert_future_game_to_dataframe_format(game):
     Returns:
     dict: Game data in DataFrame format
     """
-    from datetime import datetime
-    
     home_team, away_team = parse_team_names_from_url(game.get('GameUrl', ''))
     
-    # Parse the date from ScheduledGameDate and convert to ISO format
-    game_date = None
-    if 'ScheduledGameDate' in game and isinstance(game['ScheduledGameDate'], dict):
-        date_str = game['ScheduledGameDate'].get('DateTime')
-        if date_str:
-            try:
-                # Parse the date string like "Saturday, November 8, 2025 12:00:00 AM"
-                dt = datetime.strptime(date_str, GAMESDB_DATE_FORMAT)
-                # Convert to ISO format to match finished games: "YYYY-MM-DD HH:MM:SS"
-                game_date = dt.strftime(ISO_DATE_FORMAT)
-            except ValueError as e:
-                # If parsing fails, keep the original date string
-                game_date = date_str
+    # Parse the date from ScheduledGameDate using the helper function
+    game_date = parse_dotnet_json_date(game.get('ScheduledGameDate'))
     
     # Convert division name to match CSV format
     division_display = convert_division_name(game.get('GameDivisionName', ''))
@@ -4318,17 +4349,17 @@ def get_team_next_games(team_name, limit=5, gamesdb_path='data/gamesDB.json'):
         
         # Check if this team is playing
         if home_team == normalized_team_name or away_team == normalized_team_name:
-            # Parse the game date
+            # Parse the game date using the helper function
+            game_date_iso = parse_dotnet_json_date(game.get('ScheduledGameDate'))
             game_date = None
             game_datetime = None
-            if 'ScheduledGameDate' in game and isinstance(game['ScheduledGameDate'], dict):
-                date_str = game['ScheduledGameDate'].get('DateTime')
-                if date_str:
-                    try:
-                        game_datetime = datetime.strptime(date_str, GAMESDB_DATE_FORMAT)
-                        game_date = game_datetime.strftime('%Y-%m-%d')
-                    except (ValueError, TypeError):
-                        pass
+            if game_date_iso:
+                try:
+                    # Parse the ISO date back to datetime for further processing
+                    game_datetime = datetime.strptime(game_date_iso, ISO_DATE_FORMAT)
+                    game_date = game_datetime.strftime('%Y-%m-%d')
+                except (ValueError, TypeError):
+                    pass
             
             # Determine if team is home or away
             is_home = home_team == normalized_team_name
@@ -4534,16 +4565,10 @@ def get_future_game_details(game_id, game):
     
     home_team, away_team = parse_team_names_from_url(game.get('GameUrl', ''))
     
-    # Parse the date from ScheduledGameDate
-    game_date = 'TBD'
-    if 'ScheduledGameDate' in game and isinstance(game['ScheduledGameDate'], dict):
-        date_str = game['ScheduledGameDate'].get('DateTime', 'TBD')
-        if date_str != 'TBD':
-            try:
-                dt = datetime.strptime(date_str, GAMESDB_DATE_FORMAT)
-                game_date = dt.strftime(ISO_DATE_FORMAT)
-            except ValueError:
-                game_date = date_str
+    # Parse the date from ScheduledGameDate using the helper function
+    game_date = parse_dotnet_json_date(game.get('ScheduledGameDate'))
+    if not game_date:
+        game_date = 'TBD'
     
     # Convert division name
     division = convert_division_name(game.get('GameDivisionName', ''))
@@ -5639,22 +5664,12 @@ def get_game_hover_stats(data, game_id):
         for game in future_games:
             if str(game.get('GameId')) == game_id:
                 # Found in future games
-                from datetime import datetime
-                
                 home_team, away_team = parse_team_names_from_url(game.get('GameUrl', ''))
                 
-                # Parse the date from ScheduledGameDate and convert to ISO format
-                game_date = 'TBD'
-                if 'ScheduledGameDate' in game and isinstance(game['ScheduledGameDate'], dict):
-                    date_str = game['ScheduledGameDate'].get('DateTime', 'TBD')
-                    if date_str != 'TBD':
-                        try:
-                            # Parse and convert to ISO format to match finished games
-                            dt = datetime.strptime(date_str, GAMESDB_DATE_FORMAT)
-                            game_date = dt.strftime(ISO_DATE_FORMAT)
-                        except ValueError:
-                            # If parsing fails, keep the original
-                            game_date = date_str
+                # Parse the date from ScheduledGameDate using the helper function
+                game_date = parse_dotnet_json_date(game.get('ScheduledGameDate'))
+                if not game_date:
+                    game_date = 'TBD'
                 
                 # Get division name
                 division = convert_division_name(game.get('GameDivisionName', ''))
