@@ -192,6 +192,7 @@ Comprehensive documentation is available in the `docs/` directory:
 - **[Google Drive Setup](docs/GOOGLE_DRIVE_SECRETS_SETUP.md)** - API configuration guide
 - **[GitHub Actions Usage](docs/GITHUB_ACTIONS_USAGE.md)** - Automation workflows
 - **[MongoDB Integration](docs/MONGODB_INTEGRATION.md)** - Store JSON data in MongoDB
+- **[FIBA API Integration](docs/FIBA_API_INTEGRATION.md)** - Extended player data from FIBA
 
 ### Asset Management
 - **[Team Logos Guide](docs/TEAM_LOGOS.md)** - Team logo management and integration
@@ -322,6 +323,8 @@ The application tracks version information automatically:
 
 ## 📊 Data Sources
 
+### Primary Data Sources
+
 Data is collected from the [Luxembourg Basketball Federation](https://www.luxembourg.basketball/) website:
 - **Game Results** - Complete game results with play-by-play data
 - **Player Statistics** - Individual player performance metrics across all games
@@ -330,12 +333,25 @@ Data is collected from the [Luxembourg Basketball Federation](https://www.luxemb
 - **Game Schedules** - Upcoming fixtures and game schedules
 - **Team Rosters** - Player rosters and team compositions
 
+### FIBA Integration (NEW!)
+
+Extended player data is available through **FIBA API integration**:
+- **International Player Profiles** - Height, weight, position, birth date from FIBA database
+- **National Team Statistics** - Luxembourg national team player data and game results
+- **FIBA Career Stats** - International competition statistics and achievements
+- **Player Enrichment** - Automatic enhancement of FLBB player data with FIBA information
+
+See **[FIBA API Integration Documentation](docs/FIBA_API_INTEGRATION.md)** for details.
+
+### Data Processing Pipeline
+
 The data is processed through a multi-stage pipeline:
 1. **Scraping** - PowerShell scripts download HTML data from FLBB website
 2. **Extraction** - Game data extracted from HTML and stored as JSON
 3. **Processing** - Python utilities calculate statistics and generate CSV
-4. **Storage** - Data stored locally and backed up to Google Drive
-5. **Visualization** - Flask application renders interactive web interface
+4. **FIBA Enrichment** - Player data enriched with international information from FIBA APIs
+5. **Storage** - Data stored locally and backed up to Google Drive
+6. **Visualization** - Flask application renders interactive web interface
 
 ## 🛠️ Technologies
 

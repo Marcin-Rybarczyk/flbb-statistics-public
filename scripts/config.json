@@ -46,6 +46,22 @@
       "teams": "teams"
     }
   },
+  "fiba": {
+    "enabled": true,
+    "api_key": "",
+    "timeout": 30,
+    "cache_enabled": true,
+    "endpoints": {
+      "livestats": "https://fibalivestats.dcd.shared.geniussports.com",
+      "sportresult": "https://livecache.sportresult.com/node/db/FIBASTATS",
+      "official": "https://www.fiba.basketball"
+    },
+    "luxembourg": {
+      "country_code": "LUX",
+      "fiba_zone": "E",
+      "enrich_player_data": true
+    }
+  },
   "website": {
     "title": "FLBB Basketball Statistics",
     "description": "Comprehensive basketball statistics for Luxembourg Basketball Federation",
