@@ -13,6 +13,9 @@ logs/**
 /_unrelated-projects/before_2020
 raw-data-*.zip
 
+# FIBA API cache (can be regenerated)
+data/fiba_cache/
+
 # Generated static sites (can be regenerated)
 racing-c-site/
 
