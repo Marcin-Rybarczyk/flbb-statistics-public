@@ -15,7 +15,7 @@ def test_url_patterns():
     print("Enhanced Logo URL Pattern Testing")
     print("=" * 50)
     print(f"Base URL: {BASE_URL}")
-    print(f"Issue example: {BASE_URL}/layout/themes/flbb/images/Logos/BAS.jpg")
+    print(f"Issue example: {BASE_URL}/layout/themes/flbb/images/Logos/BAS.png")
     print()
     
     teams = get_unique_teams()
@@ -34,13 +34,13 @@ def test_url_patterns():
         # Show FLBB theme directory patterns (from issue)
         print("    FLBB Theme Directory Patterns:")
         for code in team_codes[:3]:  # Show first 3 codes
-            print(f"      {BASE_URL}/layout/themes/flbb/images/Logos/{code}.jpg")
             print(f"      {BASE_URL}/layout/themes/flbb/images/Logos/{code}.png")
+            print(f"      {BASE_URL}/layout/themes/flbb/images/Logos/{code}.jpg")
         
         # Show some standard patterns
         print("    Standard Pattern Examples:")
         print(f"      {BASE_URL}/logos/{normalized_name}.png")
-        print(f"      {BASE_URL}/assets/logos/{normalized_name}.jpg")
+        print(f"      {BASE_URL}/assets/logos/{normalized_name}.png")
         print()
 
 def demonstrate_bas_example():
@@ -48,7 +48,7 @@ def demonstrate_bas_example():
     print("Demonstrating BAS Example from Issue")
     print("=" * 40)
     
-    # The issue shows: https://www.luxembourg.basketball/layout/themes/flbb/images/Logos/BAS.jpg
+    # The issue shows: https://www.luxembourg.basketball/layout/themes/flbb/images/Logos/BAS.png
     # Let's see which team might match "BAS"
     
     teams = get_unique_teams()
@@ -67,8 +67,8 @@ def demonstrate_bas_example():
     
     print()
     print("Enhanced patterns now support this URL structure:")
-    print(f"  {BASE_URL}/layout/themes/flbb/images/Logos/BAS.jpg")
     print(f"  {BASE_URL}/layout/themes/flbb/images/Logos/BAS.png")
+    print(f"  {BASE_URL}/layout/themes/flbb/images/Logos/BAS.jpg")
     print()
 
 if __name__ == "__main__":

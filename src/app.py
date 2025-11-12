@@ -20,7 +20,7 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
                    get_all_players_list, get_player_detail_stats, get_game_details, get_referee_detail_stats,
                    get_team_detail_stats, get_all_referees_list, get_all_games_list,
                    get_player_hover_stats, get_team_hover_stats, get_referee_hover_stats, get_game_hover_stats,
-                   calculate_referee_performance_index, get_closest_games_by_team)
+                   calculate_referee_performance_index, get_closest_games_by_team, CSV_FILEPATH)
 from src.version import get_version_info
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
@@ -614,6 +614,7 @@ def preferences():
 def admin():
     """Administration page with data statistics"""
     import os
+    from datetime import datetime
     
     # Get season information
     season_info = get_season_info()
@@ -681,15 +682,26 @@ def admin():
     # File system statistics
     try:
         file_stats = {}
-        for file_name in ['full-game-stats.csv', 'file.csv']:
-            file_path = os.path.join(os.getcwd(), file_name)
-            if os.path.exists(file_path):
-                file_stats[file_name] = {
-                    'size': os.path.getsize(file_path),
-                    'modified': os.path.getmtime(file_path)
-                }
-            else:
-                file_stats[file_name] = None
+        # Check full-game-stats.csv using the constant from utils.py
+        if os.path.exists(CSV_FILEPATH):
+            mod_time = os.path.getmtime(CSV_FILEPATH)
+            file_stats['full-game-stats.csv'] = {
+                'size': os.path.getsize(CSV_FILEPATH),
+                'modified': datetime.fromtimestamp(mod_time).strftime('%Y-%m-%d %H:%M:%S')
+            }
+        else:
+            file_stats['full-game-stats.csv'] = None
+        
+        # Check file.csv in current directory (legacy check)
+        file_csv_path = os.path.join(os.getcwd(), 'file.csv')
+        if os.path.exists(file_csv_path):
+            mod_time = os.path.getmtime(file_csv_path)
+            file_stats['file.csv'] = {
+                'size': os.path.getsize(file_csv_path),
+                'modified': datetime.fromtimestamp(mod_time).strftime('%Y-%m-%d %H:%M:%S')
+            }
+        else:
+            file_stats['file.csv'] = None
     except:
         file_stats = {}
     
