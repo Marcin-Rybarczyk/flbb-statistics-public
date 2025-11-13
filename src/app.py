@@ -789,10 +789,14 @@ def export_season_data():
                 mimetype='application/zip'
             )
         else:
-            return {'success': False, 'error': '; '.join(result['errors'])}, 400
+            # Log the full error for debugging
+            logger.error(f"Export failed: {'; '.join(result['errors'])}")
+            return {'success': False, 'error': 'Export failed. Please check server logs for details.'}, 400
             
     except Exception as e:
-        return {'success': False, 'error': f'Export failed: {str(e)}'}, 500
+        # Log the full exception for debugging
+        logger.error(f"Export failed with exception: {str(e)}", exc_info=True)
+        return {'success': False, 'error': 'Export failed due to server error. Please contact administrator.'}, 500
 
 # API endpoints for hover tooltips
 @app.route('/api/hover/player/<player_name>')
