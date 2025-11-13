@@ -2933,6 +2933,9 @@ def get_top_scorer_by_game(data):
         away_score_int = int(away_score) if pd.notna(away_score) else None
         top_scorer_points_int = int(top_scorer_points)
         
+        # Parse location data
+        location_info = parse_location_with_link(location)
+        
         fixtures.append({
             'GameId': game_id,
             'HomeTeam': home_team,
@@ -2944,7 +2947,8 @@ def get_top_scorer_by_game(data):
             'DateTime': date_time,
             'Division': division,
             'GameDivisionDisplay': division,  # Add for consistency with future games
-            'Location': parse_location_name(location),  # Use the same parsing function
+            'Location': location_info['name'],  # Use the cleaned location name
+            'LocationGoogleLink': location_info['google_link'],  # Add Google Maps link
             'TopScorerName': top_scorer_name if top_scorer_name else 'N/A',
             'TopScorerPoints': top_scorer_points_int,
             'TopScorerTeam': top_scorer_team if top_scorer_team else 'N/A',
@@ -3304,8 +3308,8 @@ def get_fixtures_matrix_data(data, division_filter=None):
         if pd.notna(raw_home) and pd.notna(raw_away):
             home_team = normalize_team_name_for_display(raw_home)
             away_team = normalize_team_name_for_display(raw_away)
-            # Parse location to get just the name
-            location_name = parse_location_name(game['GameLocation'])
+            # Parse location to get name and Google Maps link
+            location_info = parse_location_with_link(game['GameLocation'])
             
             # Calculate hotness for finished games
             hotness_score = 0
@@ -3343,7 +3347,8 @@ def get_fixtures_matrix_data(data, division_filter=None):
                 'away_score': away_score_int,
                 'home_team_raw': raw_home,
                 'away_team_raw': raw_away,
-                'location': location_name,
+                'location': location_info['name'],
+                'location_google_link': location_info['google_link'],
                 'division': game['GameDivisionDisplay'],
                 'is_finished': is_finished,
                 'referees': parse_referees(game.get('Referres')) if is_finished else [],
@@ -3452,20 +3457,78 @@ def parse_location_name(location_data):
         return 'TBD'
     
     try:
+        location_name = None
         if isinstance(location_data, str):
             # Try to parse as JSON if it looks like JSON
             if location_data.startswith('{') and location_data.endswith('}'):
                 import ast
                 location_dict = ast.literal_eval(location_data)
-                return location_dict.get('Name', 'TBD')
+                location_name = location_dict.get('Name', 'TBD')
             else:
-                return location_data
+                location_name = location_data
         elif isinstance(location_data, dict):
-            return location_data.get('Name', 'TBD')
+            location_name = location_data.get('Name', 'TBD')
         else:
-            return str(location_data)
+            location_name = str(location_data)
+        
+        # Remove " - FINAL RESULT" suffix if present
+        if location_name and location_name != 'TBD':
+            location_name = location_name.replace(' - FINAL RESULT', '')
+        
+        return location_name
     except:
         return 'TBD'
+
+
+def parse_location_with_link(location_data):
+    """
+    Parse location data to extract both the name and Google Maps link.
+    
+    Parameters:
+    location_data: The location data (could be string, dict, or JSON string)
+    
+    Returns:
+    dict: Dictionary with 'name' and 'google_link' keys
+    """
+    result = {
+        'name': 'TBD',
+        'google_link': None
+    }
+    
+    if pd.isna(location_data):
+        return result
+    
+    try:
+        location_dict = None
+        if isinstance(location_data, str):
+            # Try to parse as JSON if it looks like JSON
+            if location_data.startswith('{') and location_data.endswith('}'):
+                import ast
+                location_dict = ast.literal_eval(location_data)
+            else:
+                result['name'] = location_data
+                return result
+        elif isinstance(location_data, dict):
+            location_dict = location_data
+        
+        if location_dict:
+            location_name = location_dict.get('Name', 'TBD')
+            # Remove " - FINAL RESULT" suffix if present
+            if location_name and location_name != 'TBD':
+                location_name = location_name.replace(' - FINAL RESULT', '')
+            result['name'] = location_name
+            
+            # Get Google Maps link and clean it up
+            google_link = location_dict.get('Google Link', '')
+            if google_link and isinstance(google_link, str):
+                # Strip whitespace and validate it's a URL
+                google_link = google_link.strip()
+                if google_link.lower().startswith(('http://', 'https://')):
+                    result['google_link'] = google_link
+        
+        return result
+    except:
+        return result
 
 
 def parse_referees(referees_data):
