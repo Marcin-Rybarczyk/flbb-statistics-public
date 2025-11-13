@@ -3252,9 +3252,11 @@ def get_fixtures_matrix_data(data, division_filter=None):
         - divisions (list): List of available divisions
         - current_division (str): Currently selected division
         - team_points (dict): Dictionary mapping team names to their total points
+        - team_wins (dict): Dictionary mapping team names to their total wins
+        - team_losses (dict): Dictionary mapping team names to their total losses
     """
     if data.empty:
-        return {'teams': [], 'matrix': {}, 'divisions': [], 'team_points': {}}
+        return {'teams': [], 'matrix': {}, 'divisions': [], 'team_points': {}, 'team_wins': {}, 'team_losses': {}}
     
     # Apply division filter if provided
     filtered_data = data.copy()
@@ -3294,9 +3296,13 @@ def get_fixtures_matrix_data(data, division_filter=None):
     # Initialize matrix and team points
     matrix = {}
     team_points = {}
+    team_wins = {}
+    team_losses = {}
     for home_team in all_teams:
         matrix[home_team] = {}
         team_points[home_team] = 0
+        team_wins[home_team] = 0
+        team_losses[home_team] = 0
         for away_team in all_teams:
             matrix[home_team][away_team] = []
     
@@ -3367,9 +3373,13 @@ def get_fixtures_matrix_data(data, division_filter=None):
                 if home_score_int > away_score_int:  # Home team wins
                     team_points[home_team] += 2
                     team_points[away_team] += 1
+                    team_wins[home_team] += 1
+                    team_losses[away_team] += 1
                 elif away_score_int > home_score_int:  # Away team wins
                     team_points[home_team] += 1
                     team_points[away_team] += 2
+                    team_wins[away_team] += 1
+                    team_losses[home_team] += 1
                 # Note: Tied games (rare in basketball) are not awarded points
     
     # Sort teams by points (descending), then alphabetically
@@ -3380,7 +3390,9 @@ def get_fixtures_matrix_data(data, division_filter=None):
         'matrix': matrix,
         'divisions': all_divisions,
         'current_division': division_filter or (all_divisions[0] if all_divisions else None),
-        'team_points': team_points
+        'team_points': team_points,
+        'team_wins': team_wins,
+        'team_losses': team_losses
     }
 
 

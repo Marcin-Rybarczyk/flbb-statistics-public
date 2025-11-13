@@ -522,6 +522,8 @@
                             {% endfor %}
                             <td class="team-points">
                                 {{ matrix_data.team_points.get(home_team, 0) }}
+                                <br>
+                                <span style="font-size: 0.85em; color: #7f8c8d;">({{ matrix_data.team_wins.get(home_team, 0) }}-{{ matrix_data.team_losses.get(home_team, 0) }})</span>
                             </td>
                         </tr>
                         {% endfor %}
