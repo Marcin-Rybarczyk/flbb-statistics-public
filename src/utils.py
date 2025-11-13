@@ -3799,6 +3799,95 @@ def list_available_archives(archive_dir='.'):
     return archives
 
 
+def export_season_archive(output_path=None, include_raw=False):
+    """
+    Export current season data to a ZIP archive.
+    
+    Parameters:
+    output_path (str): Path for output ZIP file (optional, auto-generated if not provided)
+    include_raw (bool): Include raw HTML data directories (default: False)
+    
+    Returns:
+    dict: Export result with success status and details
+    """
+    result = {
+        'success': False,
+        'archive_path': None,
+        'files_added': 0,
+        'archive_size': 0,
+        'errors': []
+    }
+    
+    try:
+        # Load configuration
+        config = load_config()
+        season_id = config.get("seasonId", "unknown")
+        
+        # Determine output path
+        if output_path is None:
+            timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+            archives_dir = "archives"
+            os.makedirs(archives_dir, exist_ok=True)
+            
+            if season_id != "unknown":
+                output_path = os.path.join(archives_dir, f"raw-data-{season_id}-{timestamp}.zip")
+            else:
+                output_path = os.path.join(archives_dir, f"raw-data-{timestamp}.zip")
+        else:
+            # Ensure parent directory exists
+            parent_dir = os.path.dirname(output_path)
+            if parent_dir:
+                os.makedirs(parent_dir, exist_ok=True)
+        
+        # Files to include
+        essential_files = [
+            CSV_FILEPATH,
+            "data/gamesDB.json",
+            "data/gameScheduleDB.json",
+            PLAYERS_DATABASE_CSV_FILEPATH,
+        ]
+        
+        # Create the archive
+        files_added = 0
+        with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
+            # Add essential files
+            for filepath in essential_files:
+                if os.path.exists(filepath):
+                    zipf.write(filepath, filepath)
+                    files_added += 1
+            
+            # Add raw data directories if requested
+            if include_raw:
+                raw_directories = [
+                    config.get("directories", {}).get("gameScheduleRaw", "data/game-schedule-raw"),
+                    config.get("directories", {}).get("fullGameStatsRaw", "data/full-game-stats-raw"),
+                    config.get("directories", {}).get("fullGameStatsOutput", "data/full-game-stats-output"),
+                ]
+                
+                for dir_path in raw_directories:
+                    if os.path.exists(dir_path) and os.path.isdir(dir_path):
+                        for root, dirs, files in os.walk(dir_path):
+                            for file in files:
+                                file_path = os.path.join(root, file)
+                                arcname = file_path
+                                zipf.write(file_path, arcname)
+                                files_added += 1
+        
+        # Get final archive size
+        archive_size = os.path.getsize(output_path)
+        
+        result['success'] = True
+        result['archive_path'] = output_path
+        result['files_added'] = files_added
+        result['archive_size'] = archive_size
+        result['season_id'] = season_id
+        
+    except Exception as e:
+        result['errors'].append(f"Error creating archive: {str(e)}")
+    
+    return result
+
+
 def get_website_config():
     """
     Get website configuration including title and description.

@@ -3,7 +3,7 @@ import re
 import logging
 import unicodedata
 from urllib.parse import unquote
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file
 import pandas as pd
 from src.utils import (calculate_standings_by_division, get_highest_scoring_games, 
                    load_game_data, get_top_players_by_score, get_team_performance_stats,
@@ -16,7 +16,7 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
                    get_player_game_impact_analysis, get_player_foul_impact_analysis,
                    get_best_player_combinations, get_referee_game_impact_analysis, get_all_fixtures_data,
                    get_fixtures_matrix_data, get_data_source_info, get_season_info, 
-                   get_website_config, list_available_archives, import_season_archive,
+                   get_website_config, list_available_archives, import_season_archive, export_season_archive,
                    get_all_players_list, get_player_detail_stats, get_game_details, get_referee_detail_stats,
                    get_team_detail_stats, get_all_referees_list, get_all_games_list,
                    get_player_hover_stats, get_team_hover_stats, get_referee_hover_stats, get_game_hover_stats,
@@ -756,6 +756,43 @@ def import_season_data():
                 
     except Exception as e:
         return {'success': False, 'error': f'Import failed: {str(e)}'}, 500
+
+@app.route('/admin/export-season', methods=['POST'])
+def export_season_data():
+    """Handle season data export"""
+    import tempfile
+    from flask import send_file
+    
+    try:
+        # Get options from request
+        include_raw = request.form.get('include_raw', 'false').lower() == 'true'
+        
+        # Create temporary file for export
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as tmp_file:
+            tmp_path = tmp_file.name
+        
+        # Export the data
+        result = export_season_archive(output_path=tmp_path, include_raw=include_raw)
+        
+        if result['success']:
+            # Generate a nice filename
+            from datetime import datetime
+            season_id = result.get('season_id', 'unknown')
+            timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+            filename = f"flbb-data-{season_id}-{timestamp}.zip"
+            
+            # Send file to user
+            return send_file(
+                tmp_path,
+                as_attachment=True,
+                download_name=filename,
+                mimetype='application/zip'
+            )
+        else:
+            return {'success': False, 'error': '; '.join(result['errors'])}, 400
+            
+    except Exception as e:
+        return {'success': False, 'error': f'Export failed: {str(e)}'}, 500
 
 # API endpoints for hover tooltips
 @app.route('/api/hover/player/<player_name>')
