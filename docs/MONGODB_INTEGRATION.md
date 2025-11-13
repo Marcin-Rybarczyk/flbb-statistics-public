@@ -12,12 +12,15 @@ The MongoDB integration allows you to store extracted basketball game data in Mo
 
 ## Features
 
-- Store extracted JSON game data in MongoDB collections
-- Support for both local MongoDB and MongoDB Atlas (cloud)
-- Batch operations for efficient data storage
-- Query games by ID, division, season, etc.
-- Automatic indexing for better performance
-- Backward compatible with existing CSV workflow
+- **Store game data** - Store extracted JSON game data in MongoDB collections
+- **Use as data source** - Flask app can load data directly from MongoDB (NEW!)
+- **Flexible configuration** - Choose between CSV, MongoDB, or auto mode
+- **Migration tools** - Export existing CSV data to MongoDB
+- **Local & Cloud** - Support for both local MongoDB and MongoDB Atlas (cloud)
+- **Batch operations** - Efficient data storage and retrieval
+- **Query capabilities** - Query games by ID, division, season, etc.
+- **Automatic indexing** - Better performance for queries
+- **Backward compatible** - Existing CSV workflow still works
 
 ## Prerequisites
 
@@ -44,6 +47,24 @@ Install MongoDB Community Edition on your system:
 1. Sign up for free at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
 2. Create a free cluster (M0 - 512 MB storage)
 3. Get your connection string from the Atlas dashboard
+
+**Option 3: MyDevil.net (Polish Hosting)**
+
+If you use MyDevil.net hosting, you can use their MongoDB service:
+
+1. Access MongoDB via SSH tunnel to your MyDevil.net server
+2. See **[MyDevil.net MongoDB Setup Guide](MONGODB_MYDEVIL_SETUP.md)** for complete instructions
+3. Use the `.env.mydevil.example` template for configuration
+
+Quick setup for MyDevil.net:
+```bash
+# Create SSH tunnel (in separate terminal)
+ssh -L 27017:localhost:27017 username@server.mydevil.net
+
+# Use the provided environment template
+cp .env.mydevil.example .env
+# Edit .env with your settings
+```
 
 ### Install Python Package
 
@@ -94,7 +115,76 @@ Edit `scripts/config.json`:
 }
 ```
 
+### Data Source Configuration
+
+**NEW in v2.0:** The Flask application can now load game data directly from MongoDB instead of CSV files.
+
+Configure the data source via environment variable or configuration file:
+
+**Environment Variable (Recommended):**
+```bash
+# Use MongoDB as the primary data source (with CSV fallback)
+DATA_SOURCE=auto
+
+# Use only MongoDB (no CSV fallback)
+DATA_SOURCE=mongodb
+
+# Use only CSV files
+DATA_SOURCE=csv
+```
+
+**Configuration File (`scripts/config.json`):**
+```json
+{
+  "dataSourcePreference": {
+    "preference": "auto"
+  }
+}
+```
+
+**Data Source Options:**
+- `auto` (default): Try MongoDB first, fall back to CSV if unavailable
+- `mongodb`: Use only MongoDB (Flask will fail if MongoDB is not available)
+- `csv`: Use only CSV files (traditional behavior)
+
+**Example Usage:**
+```bash
+# Run Flask app with MongoDB as data source
+export MONGODB_ENABLED=true
+export MONGODB_URI=mongodb://localhost:27017/
+export MONGODB_DATABASE=flbb-statistics
+export DATA_SOURCE=mongodb
+python src/app.py
+
+# Or use auto mode (recommended for production)
+export DATA_SOURCE=auto
+python src/app.py
+```
+
 ## Usage
+
+### Exporting CSV Data to MongoDB
+
+Use the export script to migrate existing CSV data to MongoDB:
+
+```bash
+# Export from CSV file
+python scripts/export_csv_to_mongodb.py --source csv
+
+# Export from JSON files
+python scripts/export_csv_to_mongodb.py --source json
+
+# Export from both (default)
+python scripts/export_csv_to_mongodb.py
+
+# Force export even if MongoDB not enabled
+python scripts/export_csv_to_mongodb.py --force
+
+# Custom MongoDB connection
+python scripts/export_csv_to_mongodb.py \
+  --uri mongodb://localhost:27017/ \
+  --database my-stats
+```
 
 ### Automatic Storage During Post-Processing
 
@@ -204,6 +294,131 @@ Stores individual game records with the following structure:
 - `GameId` (unique) - Fast lookup by game ID
 - `GameDivisionName` - Query games by division
 - `SeasonId` - Query games by season
+
+## Migration Guide: CSV to MongoDB
+
+This guide helps you migrate from CSV-based data storage to MongoDB.
+
+### Step 1: Install and Configure MongoDB
+
+Choose one option:
+
+**Option A: Local MongoDB**
+```bash
+# Install MongoDB (Ubuntu/Debian)
+sudo apt-get install mongodb
+sudo systemctl start mongodb
+```
+
+**Option B: MongoDB Atlas (Cloud)**
+1. Create free account at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+2. Create free M0 cluster
+3. Get connection string
+
+### Step 2: Configure Environment
+
+```bash
+# Enable MongoDB
+export MONGODB_ENABLED=true
+
+# Set connection (local or Atlas)
+export MONGODB_URI=mongodb://localhost:27017/
+# OR for Atlas:
+# export MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/
+
+# Set database name
+export MONGODB_DATABASE=flbb-statistics
+```
+
+### Step 3: Export Existing Data
+
+```bash
+# Export CSV data to MongoDB
+python scripts/export_csv_to_mongodb.py --source csv
+
+# Or export JSON files
+python scripts/export_csv_to_mongodb.py --source json
+
+# Or both
+python scripts/export_csv_to_mongodb.py
+```
+
+### Step 4: Configure Data Source
+
+```bash
+# Use auto mode (tries MongoDB, falls back to CSV)
+export DATA_SOURCE=auto
+
+# Or MongoDB only
+export DATA_SOURCE=mongodb
+```
+
+### Step 5: Test the Application
+
+```bash
+# Run Flask app
+python src/app.py
+
+# Or run tests
+python tests/test_mongodb_data_source.py
+```
+
+### Step 6: Verify Data Loading
+
+Check the Flask app startup logs. You should see:
+```
+Data source preference: auto
+Loading game data from MongoDB...
+✅ Loaded 210 games from MongoDB
+```
+
+### Rollback to CSV
+
+If you need to rollback to CSV:
+
+```bash
+# Set data source to CSV only
+export DATA_SOURCE=csv
+
+# Or disable MongoDB
+export MONGODB_ENABLED=false
+```
+
+The application will automatically use CSV files.
+
+### Production Deployment
+
+For production with MongoDB:
+
+1. **Use MongoDB Atlas** (recommended) - Free tier available
+2. **Set environment variables** on your hosting platform:
+   ```bash
+   MONGODB_ENABLED=true
+   MONGODB_URI=mongodb+srv://...
+   MONGODB_DATABASE=flbb-statistics
+   DATA_SOURCE=auto  # For safety, allows CSV fallback
+   ```
+3. **Monitor MongoDB storage** - Free tier has 512MB limit
+4. **Schedule data exports** - Export fresh data regularly using GitHub Actions
+5. **Keep CSV backups** - Even when using MongoDB, CSV backups are useful
+
+### Data Sync Strategy
+
+**Recommended approach:**
+
+1. **Development**: Use `DATA_SOURCE=auto` with local MongoDB
+2. **Production**: Use `DATA_SOURCE=auto` with MongoDB Atlas
+3. **Backup**: Keep CSV files as backup (automatically created when loading from MongoDB)
+4. **Updates**: Use `post_process.py` to update both CSV and MongoDB
+
+**Update workflow:**
+```bash
+# Process new data (updates both CSV and MongoDB)
+python scripts/post_process.py
+
+# Or MongoDB only
+python scripts/post_process.py --mongodb-only
+```
 
 ## Troubleshooting
 

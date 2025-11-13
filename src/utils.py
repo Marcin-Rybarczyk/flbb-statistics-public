@@ -29,9 +29,59 @@ CONFIG_FILEPATH = "data/config.json"
 DEFAULT_CONFIG_FILEPATH = "config.json"
 SCRIPTS_CONFIG_FILEPATH = "scripts/config.json"
 
+
+def parse_dotnet_json_date(date_value):
+    """
+    Parse .NET JSON date format or dictionary format to ISO datetime string.
+    
+    Supports two formats:
+    1. .NET JSON date: /Date(milliseconds)/ 
+    2. Dictionary with DateTime key: {'DateTime': 'Saturday, November 8, 2025 12:00:00 AM'}
+    
+    Parameters:
+    date_value: Either a string in .NET JSON format or a dictionary
+    
+    Returns:
+    str: Date in ISO format (YYYY-MM-DD HH:MM:SS) or None if parsing fails
+    """
+    if not date_value:
+        return None
+        
+    # Handle .NET JSON date format: /Date(milliseconds)/
+    if isinstance(date_value, str) and date_value.startswith('/Date(') and date_value.endswith(')/'):
+        try:
+            # Extract milliseconds from /Date(1763235000000)/
+            ms_str = date_value[6:-2]  # Remove '/Date(' and ')/'
+            milliseconds = int(ms_str)
+            # Convert milliseconds to datetime (Unix epoch is 1970-01-01)
+            dt = datetime.fromtimestamp(milliseconds / 1000.0)
+            # Convert to ISO format: "YYYY-MM-DD HH:MM:SS"
+            return dt.strftime(ISO_DATE_FORMAT)
+        except (ValueError, AttributeError, OverflowError):
+            return None
+    
+    # Handle dictionary format with DateTime key (legacy support)
+    elif isinstance(date_value, dict):
+        date_str = date_value.get('DateTime')
+        if date_str:
+            try:
+                # Parse the date string like "Saturday, November 8, 2025 12:00:00 AM"
+                dt = datetime.strptime(date_str, GAMESDB_DATE_FORMAT)
+                return dt.strftime(ISO_DATE_FORMAT)
+            except ValueError:
+                return date_str  # Return original if parsing fails
+    
+    return None
+
+# Data source configuration constants
+DATA_SOURCE_CSV = 'csv'
+DATA_SOURCE_MONGODB = 'mongodb'
+DATA_SOURCE_AUTO = 'auto'
+VALID_DATA_SOURCES = [DATA_SOURCE_CSV, DATA_SOURCE_MONGODB, DATA_SOURCE_AUTO]
+
 # Global variables to track data source and last update
 _data_source_info = {
-    'source': 'unknown',  # 'new_data', 'backup_csv', 'none'
+    'source': 'unknown',  # 'new_data', 'backup_csv', 'mongodb', 'none'
     'last_update': None,
     'source_description': 'Unknown data source'
 }
@@ -1471,12 +1521,15 @@ def get_referee_detail_stats(data, referee_name):
         if not isinstance(refs_data, list):
             continue
         
-        # Check if this referee was in this game
+        # Check if this referee was in this game (normalize for comparison)
         referee_in_game = False
+        normalized_referee_name = normalize_name_for_matching(referee_name)
         for ref in refs_data:
-            if isinstance(ref, dict) and ref.get('Referee Name') == referee_name:
-                referee_in_game = True
-                break
+            if isinstance(ref, dict):
+                ref_name = ref.get('Referee Name', '')
+                if normalize_name_for_matching(ref_name) == normalized_referee_name:
+                    referee_in_game = True
+                    break
         
         if not referee_in_game:
             continue
@@ -1891,13 +1944,147 @@ def create_csv_from_json_data(output_dir, csv_filepath):
         print(f"Error creating CSV: {e}")
         return False
 
-def load_game_data():
+def get_data_source_preference():
     """
-    Load game data prioritizing new data over repository backup.
-    For live website, use only new data downloaded. Repository data used only as backup.
+    Get the preferred data source from environment variable or configuration.
+    
+    Returns:
+    str: One of 'csv', 'mongodb', or 'auto' (default)
+    """
+    # Check environment variable first
+    env_source = os.environ.get('DATA_SOURCE', '').lower()
+    if env_source in VALID_DATA_SOURCES:
+        return env_source
+    
+    # Check configuration file
+    try:
+        config = load_config()
+        config_source = config.get('dataSource', {}).get('preference', '').lower()
+        if config_source in VALID_DATA_SOURCES:
+            return config_source
+    except:
+        pass
+    
+    # Default to auto
+    return DATA_SOURCE_AUTO
+
+def load_game_data_from_mongodb_source():
+    """
+    Load game data from MongoDB and convert to pandas DataFrame.
+    
+    Returns:
+    pandas.DataFrame: Game data loaded from MongoDB, or empty DataFrame if failed
     """
     global _data_source_info
     
+    try:
+        # Import MongoDB helper
+        from src.mongodb_helper import is_mongodb_available, is_mongodb_enabled, load_json_data_from_mongodb
+        
+        # Check if MongoDB is available and enabled
+        if not is_mongodb_available():
+            print("❌ MongoDB not available: pymongo not installed")
+            return pd.DataFrame()
+        
+        if not is_mongodb_enabled():
+            print("❌ MongoDB not enabled: set MONGODB_ENABLED=true")
+            return pd.DataFrame()
+        
+        # Load data from MongoDB
+        print("Loading game data from MongoDB...")
+        games_data = load_json_data_from_mongodb()
+        
+        if not games_data:
+            print("❌ No data found in MongoDB")
+            return pd.DataFrame()
+        
+        # Convert to DataFrame
+        data = pd.DataFrame(games_data)
+        flatten_df(data)
+        
+        # Update data source info
+        last_update = extract_last_update_from_data(data)
+        if not last_update and '_stored_at' in data.columns:
+            # Use MongoDB storage timestamp if available
+            try:
+                max_stored = pd.to_datetime(data['_stored_at'], errors='coerce').max()
+                if pd.notna(max_stored):
+                    last_update = max_stored.strftime("%Y-%m-%d %H:%M:%S")
+            except:
+                pass
+        
+        _data_source_info = {
+            'source': 'mongodb',
+            'last_update': last_update,
+            'source_description': f'MongoDB database (loaded {len(data)} games)'
+        }
+        
+        print(f"✅ Loaded {len(data)} games from MongoDB")
+        
+        # Optionally save to CSV for backup
+        if FORCE_TO_CREATE_CSV:
+            try:
+                data.to_csv(CSV_FILEPATH, index=False)
+                if AUTO_CREATE_PLAYER_DATABASE:
+                    create_players_database(data)
+            except:
+                pass  # Don't fail if we can't save backup
+        
+        return data
+        
+    except ImportError as e:
+        print(f"❌ Cannot import MongoDB helper: {e}")
+        return pd.DataFrame()
+    except Exception as e:
+        print(f"❌ Error loading data from MongoDB: {e}")
+        import traceback
+        traceback.print_exc()
+        return pd.DataFrame()
+
+def load_game_data():
+    """
+    Load game data based on configured data source preference.
+    
+    Supports three modes via DATA_SOURCE environment variable or config:
+    - 'csv': Load only from CSV files (JSON directory or CSV backup)
+    - 'mongodb': Load only from MongoDB database
+    - 'auto': Try MongoDB first, then fall back to CSV (default)
+    
+    Returns:
+    pandas.DataFrame: Game data from the configured source
+    """
+    global _data_source_info
+    
+    # Get data source preference
+    data_source = get_data_source_preference()
+    print(f"Data source preference: {data_source}")
+    
+    # MODE 1: MongoDB only
+    if data_source == DATA_SOURCE_MONGODB:
+        print("Configured to use MongoDB as data source")
+        data = load_game_data_from_mongodb_source()
+        if not data.empty:
+            return data
+        else:
+            print("❌ MongoDB data source failed and CSV fallback is disabled")
+            _data_source_info = {
+                'source': 'none',
+                'last_update': None,
+                'source_description': 'MongoDB failed and fallback disabled'
+            }
+            return pd.DataFrame()
+    
+    # MODE 2: Auto (try MongoDB, fallback to CSV)
+    if data_source == DATA_SOURCE_AUTO:
+        print("Auto mode: Trying MongoDB first, will fallback to CSV if needed")
+        data = load_game_data_from_mongodb_source()
+        if not data.empty:
+            return data
+        else:
+            print("MongoDB not available or empty, falling back to CSV sources...")
+    
+    # MODE 3: CSV only (or fallback from auto mode)
+    # Continue with existing CSV loading logic
     root_dir = os.path.join(os.getcwd(), FULL_GAME_STATS_OUTPUT_DIR)
     
     # PRIORITY 1: Try to load from new JSON data directory first (live data)
@@ -1969,7 +2156,7 @@ def load_game_data():
         'source_description': 'No data available'
     }
     
-    print("❌ No data available: Neither new data nor backup CSV found")
+    print("❌ No data available: Neither MongoDB nor CSV sources found")
     return pd.DataFrame()
 
 # =============================================================================
@@ -2749,6 +2936,9 @@ def get_top_scorer_by_game(data):
         away_score_int = int(away_score) if pd.notna(away_score) else None
         top_scorer_points_int = int(top_scorer_points)
         
+        # Parse location data
+        location_info = parse_location_with_link(location)
+        
         fixtures.append({
             'GameId': game_id,
             'HomeTeam': home_team,
@@ -2760,7 +2950,8 @@ def get_top_scorer_by_game(data):
             'DateTime': date_time,
             'Division': division,
             'GameDivisionDisplay': division,  # Add for consistency with future games
-            'Location': parse_location_name(location),  # Use the same parsing function
+            'Location': location_info['name'],  # Use the cleaned location name
+            'LocationGoogleLink': location_info['google_link'],  # Add Google Maps link
             'TopScorerName': top_scorer_name if top_scorer_name else 'N/A',
             'TopScorerPoints': top_scorer_points_int,
             'TopScorerTeam': top_scorer_team if top_scorer_team else 'N/A',
@@ -2806,11 +2997,42 @@ def load_future_games_from_gamesdb(gamesdb_path='data/gamesDB.json'):
         return []
 
 
+def normalize_name_for_matching(name):
+    """
+    Normalize any name (player, team, referee) for matching/comparison purposes.
+    Removes accents/diacritics to ensure consistent matching regardless of how
+    the name was encoded/decoded in URLs or stored in the database.
+    
+    Parameters:
+    name (str): The name to normalize
+    
+    Returns:
+    str: Normalized name (without accents)
+    
+    Examples:
+    >>> normalize_name_for_matching('KAFER Jérôme Charel')
+    'KAFER Jerome Charel'
+    >>> normalize_name_for_matching('Gréngewald Hueschtert B')
+    'Grengewald Hueschtert B'
+    """
+    if not name:
+        return name
+    
+    # Remove accents/diacritics for consistency
+    normalized = ''.join(
+        c for c in unicodedata.normalize('NFD', str(name))
+        if unicodedata.category(c) != 'Mn'
+    )
+    return normalized
+
+
 def normalize_team_name_for_matching(team_name):
     """
     Normalize team name for matching/comparison purposes.
     Removes accents/diacritics to ensure consistent matching regardless of how
     the name was encoded/decoded in URLs.
+    
+    This function now delegates to normalize_name_for_matching() for consistency.
     
     Parameters:
     team_name (str): The team name to normalize
@@ -2818,15 +3040,7 @@ def normalize_team_name_for_matching(team_name):
     Returns:
     str: Normalized team name (without accents)
     """
-    if not team_name:
-        return team_name
-    
-    # Remove accents/diacritics for consistency
-    normalized = ''.join(
-        c for c in unicodedata.normalize('NFD', str(team_name))
-        if unicodedata.category(c) != 'Mn'
-    )
-    return normalized
+    return normalize_name_for_matching(team_name)
 
 
 def normalize_team_name_for_display(team_name):
@@ -2975,23 +3189,10 @@ def convert_future_game_to_dataframe_format(game):
     Returns:
     dict: Game data in DataFrame format
     """
-    from datetime import datetime
-    
     home_team, away_team = parse_team_names_from_url(game.get('GameUrl', ''))
     
-    # Parse the date from ScheduledGameDate and convert to ISO format
-    game_date = None
-    if 'ScheduledGameDate' in game and isinstance(game['ScheduledGameDate'], dict):
-        date_str = game['ScheduledGameDate'].get('DateTime')
-        if date_str:
-            try:
-                # Parse the date string like "Saturday, November 8, 2025 12:00:00 AM"
-                dt = datetime.strptime(date_str, GAMESDB_DATE_FORMAT)
-                # Convert to ISO format to match finished games: "YYYY-MM-DD HH:MM:SS"
-                game_date = dt.strftime(ISO_DATE_FORMAT)
-            except ValueError as e:
-                # If parsing fails, keep the original date string
-                game_date = date_str
+    # Parse the date from ScheduledGameDate using the helper function
+    game_date = parse_dotnet_json_date(game.get('ScheduledGameDate'))
     
     # Convert division name to match CSV format
     division_display = convert_division_name(game.get('GameDivisionName', ''))
@@ -3077,9 +3278,11 @@ def get_fixtures_matrix_data(data, division_filter=None):
         - divisions (list): List of available divisions
         - current_division (str): Currently selected division
         - team_points (dict): Dictionary mapping team names to their total points
+        - team_wins (dict): Dictionary mapping team names to their total wins
+        - team_losses (dict): Dictionary mapping team names to their total losses
     """
     if data.empty:
-        return {'teams': [], 'matrix': {}, 'divisions': [], 'team_points': {}}
+        return {'teams': [], 'matrix': {}, 'divisions': [], 'team_points': {}, 'team_wins': {}, 'team_losses': {}}
     
     # Apply division filter if provided
     filtered_data = data.copy()
@@ -3119,9 +3322,13 @@ def get_fixtures_matrix_data(data, division_filter=None):
     # Initialize matrix and team points
     matrix = {}
     team_points = {}
+    team_wins = {}
+    team_losses = {}
     for home_team in all_teams:
         matrix[home_team] = {}
         team_points[home_team] = 0
+        team_wins[home_team] = 0
+        team_losses[home_team] = 0
         for away_team in all_teams:
             matrix[home_team][away_team] = []
     
@@ -3133,8 +3340,8 @@ def get_fixtures_matrix_data(data, division_filter=None):
         if pd.notna(raw_home) and pd.notna(raw_away):
             home_team = normalize_team_name_for_display(raw_home)
             away_team = normalize_team_name_for_display(raw_away)
-            # Parse location to get just the name
-            location_name = parse_location_name(game['GameLocation'])
+            # Parse location to get name and Google Maps link
+            location_info = parse_location_with_link(game['GameLocation'])
             
             # Calculate hotness for finished games
             hotness_score = 0
@@ -3172,7 +3379,8 @@ def get_fixtures_matrix_data(data, division_filter=None):
                 'away_score': away_score_int,
                 'home_team_raw': raw_home,
                 'away_team_raw': raw_away,
-                'location': location_name,
+                'location': location_info['name'],
+                'location_google_link': location_info['google_link'],
                 'division': game['GameDivisionDisplay'],
                 'is_finished': is_finished,
                 'referees': parse_referees(game.get('Referres')) if is_finished else [],
@@ -3191,9 +3399,13 @@ def get_fixtures_matrix_data(data, division_filter=None):
                 if home_score_int > away_score_int:  # Home team wins
                     team_points[home_team] += 2
                     team_points[away_team] += 1
+                    team_wins[home_team] += 1
+                    team_losses[away_team] += 1
                 elif away_score_int > home_score_int:  # Away team wins
                     team_points[home_team] += 1
                     team_points[away_team] += 2
+                    team_wins[away_team] += 1
+                    team_losses[home_team] += 1
                 # Note: Tied games (rare in basketball) are not awarded points
     
     # Sort teams by points (descending), then alphabetically
@@ -3204,7 +3416,9 @@ def get_fixtures_matrix_data(data, division_filter=None):
         'matrix': matrix,
         'divisions': all_divisions,
         'current_division': division_filter or (all_divisions[0] if all_divisions else None),
-        'team_points': team_points
+        'team_points': team_points,
+        'team_wins': team_wins,
+        'team_losses': team_losses
     }
 
 
@@ -3281,20 +3495,78 @@ def parse_location_name(location_data):
         return 'TBD'
     
     try:
+        location_name = None
         if isinstance(location_data, str):
             # Try to parse as JSON if it looks like JSON
             if location_data.startswith('{') and location_data.endswith('}'):
                 import ast
                 location_dict = ast.literal_eval(location_data)
-                return location_dict.get('Name', 'TBD')
+                location_name = location_dict.get('Name', 'TBD')
             else:
-                return location_data
+                location_name = location_data
         elif isinstance(location_data, dict):
-            return location_data.get('Name', 'TBD')
+            location_name = location_data.get('Name', 'TBD')
         else:
-            return str(location_data)
+            location_name = str(location_data)
+        
+        # Remove " - FINAL RESULT" suffix if present
+        if location_name and location_name != 'TBD':
+            location_name = location_name.replace(' - FINAL RESULT', '')
+        
+        return location_name
     except:
         return 'TBD'
+
+
+def parse_location_with_link(location_data):
+    """
+    Parse location data to extract both the name and Google Maps link.
+    
+    Parameters:
+    location_data: The location data (could be string, dict, or JSON string)
+    
+    Returns:
+    dict: Dictionary with 'name' and 'google_link' keys
+    """
+    result = {
+        'name': 'TBD',
+        'google_link': None
+    }
+    
+    if pd.isna(location_data):
+        return result
+    
+    try:
+        location_dict = None
+        if isinstance(location_data, str):
+            # Try to parse as JSON if it looks like JSON
+            if location_data.startswith('{') and location_data.endswith('}'):
+                import ast
+                location_dict = ast.literal_eval(location_data)
+            else:
+                result['name'] = location_data
+                return result
+        elif isinstance(location_data, dict):
+            location_dict = location_data
+        
+        if location_dict:
+            location_name = location_dict.get('Name', 'TBD')
+            # Remove " - FINAL RESULT" suffix if present
+            if location_name and location_name != 'TBD':
+                location_name = location_name.replace(' - FINAL RESULT', '')
+            result['name'] = location_name
+            
+            # Get Google Maps link and clean it up
+            google_link = location_dict.get('Google Link', '')
+            if google_link and isinstance(google_link, str):
+                # Strip whitespace and validate it's a URL
+                google_link = google_link.strip()
+                if google_link.lower().startswith(('http://', 'https://')):
+                    result['google_link'] = google_link
+        
+        return result
+    except:
+        return result
 
 
 def parse_referees(referees_data):
@@ -3636,8 +3908,13 @@ def get_player_detail_stats(data, player_name):
     if player_stats.empty:
         return None
     
-    # Filter for the specific player
-    player_games = player_stats[player_stats['PlayerName'] == player_name].copy()
+    # Normalize player name for matching
+    normalized_player_name = normalize_name_for_matching(player_name)
+    
+    # Filter for the specific player (normalize database names for comparison)
+    player_games = player_stats[
+        player_stats['PlayerName'].apply(normalize_name_for_matching) == normalized_player_name
+    ].copy()
     
     if player_games.empty:
         return None
@@ -3857,9 +4134,14 @@ def _extract_team_player_stats(team_games, team_name):
             # Parse the Teams data
             teams_data = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
             
+            # Normalize team names for comparison
+            normalized_team_name = normalize_name_for_matching(team_name)
+            normalized_home_team = normalize_name_for_matching(game['HomeTeamName'])
+            normalized_away_team = normalize_name_for_matching(game['AwayTeamName'])
+            
             # Find the team's data (home or away)
             team_data = None
-            is_home = game['HomeTeamName'] == team_name
+            is_home = normalized_home_team == normalized_team_name
             
             for team in teams_data:
                 if (is_home and team.get('Team Role') == 'Home') or \
@@ -4178,17 +4460,17 @@ def get_team_next_games(team_name, limit=5, gamesdb_path='data/gamesDB.json'):
         
         # Check if this team is playing
         if home_team == normalized_team_name or away_team == normalized_team_name:
-            # Parse the game date
+            # Parse the game date using the helper function
+            game_date_iso = parse_dotnet_json_date(game.get('ScheduledGameDate'))
             game_date = None
             game_datetime = None
-            if 'ScheduledGameDate' in game and isinstance(game['ScheduledGameDate'], dict):
-                date_str = game['ScheduledGameDate'].get('DateTime')
-                if date_str:
-                    try:
-                        game_datetime = datetime.strptime(date_str, GAMESDB_DATE_FORMAT)
-                        game_date = game_datetime.strftime('%Y-%m-%d')
-                    except (ValueError, TypeError):
-                        pass
+            if game_date_iso:
+                try:
+                    # Parse the ISO date back to datetime for further processing
+                    game_datetime = datetime.strptime(game_date_iso, ISO_DATE_FORMAT)
+                    game_date = game_datetime.strftime('%Y-%m-%d')
+                except (ValueError, TypeError):
+                    pass
             
             # Determine if team is home or away
             is_home = home_team == normalized_team_name
@@ -4394,16 +4676,10 @@ def get_future_game_details(game_id, game):
     
     home_team, away_team = parse_team_names_from_url(game.get('GameUrl', ''))
     
-    # Parse the date from ScheduledGameDate
-    game_date = 'TBD'
-    if 'ScheduledGameDate' in game and isinstance(game['ScheduledGameDate'], dict):
-        date_str = game['ScheduledGameDate'].get('DateTime', 'TBD')
-        if date_str != 'TBD':
-            try:
-                dt = datetime.strptime(date_str, GAMESDB_DATE_FORMAT)
-                game_date = dt.strftime(ISO_DATE_FORMAT)
-            except ValueError:
-                game_date = date_str
+    # Parse the date from ScheduledGameDate using the helper function
+    game_date = parse_dotnet_json_date(game.get('ScheduledGameDate'))
+    if not game_date:
+        game_date = 'TBD'
     
     # Convert division name
     division = convert_division_name(game.get('GameDivisionName', ''))
@@ -5088,8 +5364,13 @@ def get_player_hover_stats(data, player_name):
     if player_stats.empty:
         return None
     
-    # Filter for the specific player
-    player_games = player_stats[player_stats['PlayerName'] == player_name].copy()
+    # Normalize player name for matching
+    normalized_player_name = normalize_name_for_matching(player_name)
+    
+    # Filter for the specific player (normalize database names for comparison)
+    player_games = player_stats[
+        player_stats['PlayerName'].apply(normalize_name_for_matching) == normalized_player_name
+    ].copy()
     
     if player_games.empty:
         return None
@@ -5304,12 +5585,15 @@ def get_referee_hover_stats(data, referee_name):
     
     # Find games where this referee officiated
     referee_games = []
+    normalized_referee_name = normalize_name_for_matching(referee_name)
+    
     for idx, row in data.iterrows():
         try:
             referees = ast.literal_eval(row['Referres']) if isinstance(row['Referres'], str) else row['Referres']
-            # Check for both 'RefereeName' and 'Referee Name' keys
+            # Check for both 'RefereeName' and 'Referee Name' keys (normalize for comparison)
             if referees and any(
-                ref.get('RefereeName') == referee_name or ref.get('Referee Name') == referee_name 
+                normalize_name_for_matching(ref.get('RefereeName', '')) == normalized_referee_name or 
+                normalize_name_for_matching(ref.get('Referee Name', '')) == normalized_referee_name
                 for ref in referees
             ):
                 referee_games.append(row)
@@ -5499,22 +5783,12 @@ def get_game_hover_stats(data, game_id):
         for game in future_games:
             if str(game.get('GameId')) == game_id:
                 # Found in future games
-                from datetime import datetime
-                
                 home_team, away_team = parse_team_names_from_url(game.get('GameUrl', ''))
                 
-                # Parse the date from ScheduledGameDate and convert to ISO format
-                game_date = 'TBD'
-                if 'ScheduledGameDate' in game and isinstance(game['ScheduledGameDate'], dict):
-                    date_str = game['ScheduledGameDate'].get('DateTime', 'TBD')
-                    if date_str != 'TBD':
-                        try:
-                            # Parse and convert to ISO format to match finished games
-                            dt = datetime.strptime(date_str, GAMESDB_DATE_FORMAT)
-                            game_date = dt.strftime(ISO_DATE_FORMAT)
-                        except ValueError:
-                            # If parsing fails, keep the original
-                            game_date = date_str
+                # Parse the date from ScheduledGameDate using the helper function
+                game_date = parse_dotnet_json_date(game.get('ScheduledGameDate'))
+                if not game_date:
+                    game_date = 'TBD'
                 
                 # Get division name
                 division = convert_division_name(game.get('GameDivisionName', ''))

@@ -1,0 +1,84 @@
+name: Update CSV Data
+
+on:
+  schedule:
+    # Run every Monday at 4:00 AM UTC
+    - cron: '0 4 * * 1'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  update-data:
+    runs-on: windows-latest
+    
+    permissions:
+      contents: write  # Required to push changes to the repository
+    
+    steps:
+      - name: 🧾 Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: development
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: 🔧 Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: 📦 Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: 📥 Download raw files and update JSON databases
+        run: |
+          cd scripts
+          pwsh -File download-controller.ps1
+        shell: bash
+      
+      - name: 🔍 Extract data and generate JSON files
+        run: |
+          cd scripts
+          pwsh -File extract-game.ps1
+        shell: bash
+      
+      - name: 📊 Generate full-game-stats.csv
+        run: |
+          cd scripts
+          python3 post_process.py --skip-upload
+        shell: bash
+      
+      - name: 📝 Configure git
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+      
+      - name: 💾 Commit and push changes
+        run: |
+          # Add the CSV file and any database JSON files that were updated
+          git add -f data/full-game-stats.csv data/gamesDB.json
+          # Also add gameScheduleDB.json if it exists
+          if [ -f data/gameScheduleDB.json ]; then
+            git add -f data/gameScheduleDB.json
+          fi
+          
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            # Create commit message with timestamp
+            TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+            git commit -m "auto commit - update of data source [$TIMESTAMP]"
+            git push origin development
+          fi
+        shell: bash
+      
+      - name: 📋 Summary
+        if: success()
+        run: |
+          echo "✅ **CSV data update completed successfully!**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📦 Branch: development" >> $GITHUB_STEP_SUMMARY
+          echo "🕐 Timestamp: $(date)" >> $GITHUB_STEP_SUMMARY
+          if [ -f data/full-game-stats.csv ]; then
+            echo "📊 CSV file size: $(du -h data/full-game-stats.csv | cut -f1)" >> $GITHUB_STEP_SUMMARY
+          fi

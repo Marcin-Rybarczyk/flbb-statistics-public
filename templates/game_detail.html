@@ -279,7 +279,12 @@
             {% endif %}
             <p><span class="division-name hoverable-item" data-type="division" data-id="{{ game.basic_info.division }}">{{ game.basic_info.division }}</span></p>
             <p style="margin-top: 15px; font-size: 1.1em;">
-                📅 {{ game.basic_info.date_time }} | 📍 {{ game.basic_info.location.Name if game.basic_info.location else 'TBD' }}
+                📅 {{ game.basic_info.date_time }} | 📍 {{ game.basic_info.location.Name.replace(' - FINAL RESULT', '') if game.basic_info.location and game.basic_info.location.Name else 'TBD' }}
+                {% if game.basic_info.location and game.basic_info.location.get('Google Link') %}
+                <a href="{{ game.basic_info.location.get('Google Link').strip() }}" target="_blank" rel="noopener noreferrer" 
+                   style="color: #4CAF50; text-decoration: none; margin-left: 5px;" 
+                   title="View on Google Maps">🗺️</a>
+                {% endif %}
             </p>
             {% if game.referees and game.referees|length > 0 %}
             <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.3);">
