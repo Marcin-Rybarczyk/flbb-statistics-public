@@ -1,6 +1,9 @@
 name: Deploy to Test server
 
 on:
+  schedule:
+  # Run every Monday at 6:00 AM UTC
+    - cron: '0 6 * * 1'
   push:
     branches:
       - development
