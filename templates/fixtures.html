@@ -627,7 +627,14 @@
                         <td>
                             <span class="division-badge division-name hoverable-item" data-type="division" data-id="{{ row.get('Division', row.get('GameDivisionDisplay', 'Unknown')) }}">{{ row.get('Division', row.get('GameDivisionDisplay', 'Unknown')) }}</span>
                         </td>
-                        <td class="location">{{ row.get('Location', 'TBD') }}</td>
+                        <td class="location">
+                            {{ row.get('Location', 'TBD') }}
+                            {% if row.get('LocationGoogleLink') %}
+                            <a href="{{ row.get('LocationGoogleLink') }}" target="_blank" rel="noopener noreferrer" 
+                               style="color: #4CAF50; text-decoration: none; margin-left: 5px;" 
+                               title="View on Google Maps">🗺️</a>
+                            {% endif %}
+                        </td>
                         
                         <!-- Hover tooltip for finished games -->
                         {% if row.get('IsFinished') %}
@@ -643,7 +650,13 @@
                                 {% endfor %}
                             </div>
                             {% endif %}
-                            <div><strong>📍 Venue:</strong> {{ row['Location'] }}</div>
+                            <div><strong>📍 Venue:</strong> {{ row['Location'] }}
+                                {% if row.get('LocationGoogleLink') %}
+                                <a href="{{ row.get('LocationGoogleLink') }}" target="_blank" rel="noopener noreferrer" 
+                                   style="color: #4CAF50; text-decoration: none; margin-left: 5px;" 
+                                   title="View on Google Maps">🗺️</a>
+                                {% endif %}
+                            </div>
                             <div><strong>🏀 Division:</strong> {{ row['Division'] }}</div>
                         </div>
                         {% endif %}
