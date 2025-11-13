@@ -62,7 +62,9 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "auto commit - update of data source"
+            # Create commit message with timestamp
+            TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+            git commit -m "auto commit - update of data source [$TIMESTAMP]"
             git push origin development
           fi
         shell: bash
