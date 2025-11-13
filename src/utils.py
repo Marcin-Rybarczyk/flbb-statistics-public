@@ -1521,12 +1521,15 @@ def get_referee_detail_stats(data, referee_name):
         if not isinstance(refs_data, list):
             continue
         
-        # Check if this referee was in this game
+        # Check if this referee was in this game (normalize for comparison)
         referee_in_game = False
+        normalized_referee_name = normalize_name_for_matching(referee_name)
         for ref in refs_data:
-            if isinstance(ref, dict) and ref.get('Referee Name') == referee_name:
-                referee_in_game = True
-                break
+            if isinstance(ref, dict):
+                ref_name = ref.get('Referee Name', '')
+                if normalize_name_for_matching(ref_name) == normalized_referee_name:
+                    referee_in_game = True
+                    break
         
         if not referee_in_game:
             continue
@@ -2994,11 +2997,42 @@ def load_future_games_from_gamesdb(gamesdb_path='data/gamesDB.json'):
         return []
 
 
+def normalize_name_for_matching(name):
+    """
+    Normalize any name (player, team, referee) for matching/comparison purposes.
+    Removes accents/diacritics to ensure consistent matching regardless of how
+    the name was encoded/decoded in URLs or stored in the database.
+    
+    Parameters:
+    name (str): The name to normalize
+    
+    Returns:
+    str: Normalized name (without accents)
+    
+    Examples:
+    >>> normalize_name_for_matching('KAFER Jérôme Charel')
+    'KAFER Jerome Charel'
+    >>> normalize_name_for_matching('Gréngewald Hueschtert B')
+    'Grengewald Hueschtert B'
+    """
+    if not name:
+        return name
+    
+    # Remove accents/diacritics for consistency
+    normalized = ''.join(
+        c for c in unicodedata.normalize('NFD', str(name))
+        if unicodedata.category(c) != 'Mn'
+    )
+    return normalized
+
+
 def normalize_team_name_for_matching(team_name):
     """
     Normalize team name for matching/comparison purposes.
     Removes accents/diacritics to ensure consistent matching regardless of how
     the name was encoded/decoded in URLs.
+    
+    This function now delegates to normalize_name_for_matching() for consistency.
     
     Parameters:
     team_name (str): The team name to normalize
@@ -3006,15 +3040,7 @@ def normalize_team_name_for_matching(team_name):
     Returns:
     str: Normalized team name (without accents)
     """
-    if not team_name:
-        return team_name
-    
-    # Remove accents/diacritics for consistency
-    normalized = ''.join(
-        c for c in unicodedata.normalize('NFD', str(team_name))
-        if unicodedata.category(c) != 'Mn'
-    )
-    return normalized
+    return normalize_name_for_matching(team_name)
 
 
 def normalize_team_name_for_display(team_name):
@@ -3882,8 +3908,13 @@ def get_player_detail_stats(data, player_name):
     if player_stats.empty:
         return None
     
-    # Filter for the specific player
-    player_games = player_stats[player_stats['PlayerName'] == player_name].copy()
+    # Normalize player name for matching
+    normalized_player_name = normalize_name_for_matching(player_name)
+    
+    # Filter for the specific player (normalize database names for comparison)
+    player_games = player_stats[
+        player_stats['PlayerName'].apply(normalize_name_for_matching) == normalized_player_name
+    ].copy()
     
     if player_games.empty:
         return None
@@ -4103,9 +4134,14 @@ def _extract_team_player_stats(team_games, team_name):
             # Parse the Teams data
             teams_data = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
             
+            # Normalize team names for comparison
+            normalized_team_name = normalize_name_for_matching(team_name)
+            normalized_home_team = normalize_name_for_matching(game['HomeTeamName'])
+            normalized_away_team = normalize_name_for_matching(game['AwayTeamName'])
+            
             # Find the team's data (home or away)
             team_data = None
-            is_home = game['HomeTeamName'] == team_name
+            is_home = normalized_home_team == normalized_team_name
             
             for team in teams_data:
                 if (is_home and team.get('Team Role') == 'Home') or \
@@ -5328,8 +5364,13 @@ def get_player_hover_stats(data, player_name):
     if player_stats.empty:
         return None
     
-    # Filter for the specific player
-    player_games = player_stats[player_stats['PlayerName'] == player_name].copy()
+    # Normalize player name for matching
+    normalized_player_name = normalize_name_for_matching(player_name)
+    
+    # Filter for the specific player (normalize database names for comparison)
+    player_games = player_stats[
+        player_stats['PlayerName'].apply(normalize_name_for_matching) == normalized_player_name
+    ].copy()
     
     if player_games.empty:
         return None
@@ -5544,12 +5585,15 @@ def get_referee_hover_stats(data, referee_name):
     
     # Find games where this referee officiated
     referee_games = []
+    normalized_referee_name = normalize_name_for_matching(referee_name)
+    
     for idx, row in data.iterrows():
         try:
             referees = ast.literal_eval(row['Referres']) if isinstance(row['Referres'], str) else row['Referres']
-            # Check for both 'RefereeName' and 'Referee Name' keys
+            # Check for both 'RefereeName' and 'Referee Name' keys (normalize for comparison)
             if referees and any(
-                ref.get('RefereeName') == referee_name or ref.get('Referee Name') == referee_name 
+                normalize_name_for_matching(ref.get('RefereeName', '')) == normalized_referee_name or 
+                normalize_name_for_matching(ref.get('Referee Name', '')) == normalized_referee_name
                 for ref in referees
             ):
                 referee_games.append(row)
