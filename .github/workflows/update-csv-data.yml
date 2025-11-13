@@ -10,6 +10,9 @@ jobs:
   update-data:
     runs-on: ubuntu-latest
     
+    permissions:
+      contents: write  # Required to push changes to the repository
+    
     steps:
       - name: 🧾 Checkout code
         uses: actions/checkout@v4
