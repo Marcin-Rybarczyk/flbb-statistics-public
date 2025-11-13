@@ -85,6 +85,7 @@
                 <p style="color: #666; font-style: italic;">No archives found in current directory</p>
                 {% endif %}
                 
+                {% if is_admin_authenticated %}
                 <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;">
                     <h3>Export Current Data</h3>
                     <p style="color: #666; margin-bottom: 15px;">
@@ -120,6 +121,17 @@
                     </form>
                     <div id="importStatus" style="margin-top: 10px; padding: 10px; border-radius: 4px; display: none;"></div>
                 </div>
+                {% else %}
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+                    <h3>🔒 Protected Admin Features</h3>
+                    <p style="color: #666; margin-bottom: 15px;">
+                        Export and import functionality is restricted to authenticated administrators.
+                    </p>
+                    <a href="{{ url_for('admin_login') }}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: transform 0.2s;">
+                        🔐 Login as Admin
+                    </a>
+                </div>
+                {% endif %}
             </div>
         </div>
 
@@ -314,8 +326,11 @@
             </table>
         </div>
 
+        {% if is_admin_authenticated %}
         <script>
-        document.getElementById('importForm').addEventListener('submit', async function(e) {
+        const importFormElement = document.getElementById('importForm');
+        if (importFormElement) {
+            importFormElement.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const formData = new FormData(this);
@@ -357,14 +372,18 @@
                 statusDiv.style.color = '#721c24';
                 statusDiv.innerHTML = `❌ Error: ${error.message}`;
             }
-        });
+            });
+        }
+        
         
         // Handle export form submission
-        document.getElementById('exportForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const statusDiv = document.getElementById('exportStatus');
-            const includeRaw = document.getElementById('include_raw').checked;
+        const exportFormElement = document.getElementById('exportForm');
+        if (exportFormElement) {
+            exportFormElement.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const statusDiv = document.getElementById('exportStatus');
+                const includeRaw = document.getElementById('include_raw').checked;
             
             // Show loading status
             statusDiv.style.display = 'block';
@@ -425,6 +444,8 @@
                 statusDiv.style.color = '#721c24';
                 statusDiv.innerHTML = `❌ Error: ${error.message}`;
             }
-        });
+            });
+        }
         </script>
+        {% endif %}
 {% endblock %}
