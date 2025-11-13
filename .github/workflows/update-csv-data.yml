@@ -55,6 +55,7 @@ jobs:
       
       - name: 💾 Commit and push changes
         run: |
+          git pull
           # Add the CSV file and any database JSON files that were updated
           git add -f data/full-game-stats.csv data/gamesDB.json
           # Also add gameScheduleDB.json if it exists
@@ -82,3 +83,4 @@ jobs:
           if [ -f data/full-game-stats.csv ]; then
             echo "📊 CSV file size: $(du -h data/full-game-stats.csv | cut -f1)" >> $GITHUB_STEP_SUMMARY
           fi
+        shell: bash

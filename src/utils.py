@@ -34,12 +34,13 @@ def parse_dotnet_json_date(date_value):
     """
     Parse .NET JSON date format or dictionary format to ISO datetime string.
     
-    Supports two formats:
+    Supports three formats:
     1. .NET JSON date: /Date(milliseconds)/ 
     2. Dictionary with DateTime key: {'DateTime': 'Saturday, November 8, 2025 12:00:00 AM'}
+    3. ISO 8601 format: 2025-11-15T20:00:00
     
     Parameters:
-    date_value: Either a string in .NET JSON format or a dictionary
+    date_value: Either a string in .NET JSON format, ISO 8601 format, or a dictionary
     
     Returns:
     str: Date in ISO format (YYYY-MM-DD HH:MM:SS) or None if parsing fails
@@ -58,6 +59,24 @@ def parse_dotnet_json_date(date_value):
             # Convert to ISO format: "YYYY-MM-DD HH:MM:SS"
             return dt.strftime(ISO_DATE_FORMAT)
         except (ValueError, AttributeError, OverflowError):
+            return None
+    
+    # Handle ISO 8601 format: 2025-11-15T20:00:00
+    elif isinstance(date_value, str) and 'T' in date_value:
+        try:
+            # Try to parse ISO 8601 format with or without timezone
+            # Common formats: "2025-11-15T20:00:00" or "2025-11-15T20:00:00Z"
+            if date_value.endswith('Z'):
+                dt = datetime.strptime(date_value, '%Y-%m-%dT%H:%M:%SZ')
+            elif '+' in date_value or date_value.count('-') > 2:
+                # Handle timezone offsets like "2025-11-15T20:00:00+01:00"
+                # For simplicity, just parse the date/time part and ignore timezone
+                dt = datetime.fromisoformat(date_value.replace('Z', '+00:00'))
+            else:
+                # Simple ISO format without timezone: "2025-11-15T20:00:00"
+                dt = datetime.strptime(date_value, '%Y-%m-%dT%H:%M:%S')
+            return dt.strftime(ISO_DATE_FORMAT)
+        except (ValueError, AttributeError):
             return None
     
     # Handle dictionary format with DateTime key (legacy support)

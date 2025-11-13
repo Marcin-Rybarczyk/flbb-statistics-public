@@ -35,33 +35,6 @@
             position: relative; /* Needed for absolute positioning of layout-switcher */
         }
 
-        .user-prefs-button-container {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 100;
-        }
-
-        .user-prefs-button {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9em;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .user-prefs-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-
         .header h1 {
             color: #2c3e50;
             font-size: 2.5em;
@@ -410,17 +383,6 @@
 
             .header p {
                 font-size: 0.95em;
-            }
-            
-            .user-prefs-button-container {
-                position: static;
-                text-align: center;
-                margin-bottom: 10px;
-            }
-
-            .user-prefs-button {
-                padding: 8px 16px;
-                font-size: 0.85em;
             }
             
             /* Mobile Navigation Menu */
@@ -967,9 +929,6 @@
                 <a href="/preferences" title="Set your preferences">⚙️ Set Preferences</a>
             </div>
             {% endif %}
-            <div class="user-prefs-button-container">
-                <a href="/preferences" class="user-prefs-button">⚙️ User Preferences</a>
-            </div>
             <h1>{% block page_title %}🏀 {{ website_config.title }}{% endblock %}</h1>
             <p>{% block page_description %}{{ website_config.description }}{% endblock %}</p>
             <div style="margin-top: 10px; color: #34495e; font-size: 0.9em;">
