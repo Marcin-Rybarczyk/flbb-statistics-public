@@ -52,7 +52,13 @@ jobs:
       
       - name: 💾 Commit and push changes
         run: |
-          git add data/full-game-stats.csv
+          # Add the CSV file and any database JSON files that were updated
+          git add -f data/full-game-stats.csv data/gamesDB.json
+          # Also add gameScheduleDB.json if it exists
+          if [ -f data/gameScheduleDB.json ]; then
+            git add -f data/gameScheduleDB.json
+          fi
+          
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
