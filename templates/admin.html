@@ -85,14 +85,38 @@
                 <p style="color: #666; font-style: italic;">No archives found in current directory</p>
                 {% endif %}
                 
-                <div style="margin-top: 20px;">
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+                    <h3>Export Current Data</h3>
+                    <p style="color: #666; margin-bottom: 15px;">
+                        Export all current season data to a ZIP archive. This archive can be imported later to restore data.
+                    </p>
+                    <form id="exportForm" style="margin-top: 10px;">
+                        <div style="margin-bottom: 10px;">
+                            <label style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" id="include_raw" name="include_raw" value="true">
+                                <span>Include raw HTML data (larger archive)</span>
+                            </label>
+                        </div>
+                        <button type="submit" style="background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                            📥 Export Data Archive
+                        </button>
+                    </form>
+                    <div id="exportStatus" style="margin-top: 10px; padding: 10px; border-radius: 4px; display: none;"></div>
+                </div>
+                
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;">
                     <h3>Import Season Archive</h3>
+                    <p style="color: #666; margin-bottom: 15px;">
+                        Import data from a previously exported archive. The archive will be extracted to a new directory.
+                    </p>
                     <form id="importForm" enctype="multipart/form-data" style="margin-top: 10px;">
                         <div style="margin-bottom: 10px;">
                             <label for="archive_file" style="display: block; margin-bottom: 5px; font-weight: bold;">Select Archive File (.zip):</label>
                             <input type="file" id="archive_file" name="archive_file" accept=".zip" required style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                         </div>
-                        <button type="submit" style="background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">Import Archive</button>
+                        <button type="submit" style="background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
+                            📤 Import Archive
+                        </button>
                     </form>
                     <div id="importStatus" style="margin-top: 10px; padding: 10px; border-radius: 4px; display: none;"></div>
                 </div>
@@ -327,6 +351,74 @@
                     statusDiv.style.background = '#f8d7da';
                     statusDiv.style.color = '#721c24';
                     statusDiv.innerHTML = `❌ Import failed: ${result.error}`;
+                }
+            } catch (error) {
+                statusDiv.style.background = '#f8d7da';
+                statusDiv.style.color = '#721c24';
+                statusDiv.innerHTML = `❌ Error: ${error.message}`;
+            }
+        });
+        
+        // Handle export form submission
+        document.getElementById('exportForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const statusDiv = document.getElementById('exportStatus');
+            const includeRaw = document.getElementById('include_raw').checked;
+            
+            // Show loading status
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#e7f3ff';
+            statusDiv.style.color = '#0066cc';
+            statusDiv.innerHTML = '⏳ Creating export archive, please wait...';
+            
+            try {
+                // Create form data
+                const formData = new FormData();
+                formData.append('include_raw', includeRaw);
+                
+                const response = await fetch('/admin/export-season', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    // Get the blob from response
+                    const blob = await response.blob();
+                    
+                    // Get filename from Content-Disposition header or use default
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    let filename = 'flbb-data-export.zip';
+                    if (contentDisposition) {
+                        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+                        if (filenameMatch) {
+                            filename = filenameMatch[1];
+                        }
+                    }
+                    
+                    // Create download link
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    statusDiv.style.background = '#d4edda';
+                    statusDiv.style.color = '#155724';
+                    statusDiv.innerHTML = `✅ Export successful! Download started: ${filename}`;
+                    
+                    // Hide status after 5 seconds
+                    setTimeout(() => {
+                        statusDiv.style.display = 'none';
+                    }, 5000);
+                } else {
+                    const result = await response.json();
+                    statusDiv.style.background = '#f8d7da';
+                    statusDiv.style.color = '#721c24';
+                    statusDiv.innerHTML = `❌ Export failed: ${result.error}`;
                 }
             } catch (error) {
                 statusDiv.style.background = '#f8d7da';

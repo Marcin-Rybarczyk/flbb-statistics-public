@@ -34,6 +34,7 @@ This project provides in-depth analysis and visualization of basketball statisti
 - **Google Drive Integration** - Automatic backup and file management
 - **GitHub Actions Workflows** - 5+ automated workflows for deployment and data processing
 - **Season Archive System** - Import and manage historical season data
+- **Data Export/Import** - Standalone scripts to export and import season data archives (NEW!)
 - **Version Tracking** - Automated version management with Git integration
 - **Flexible Data Sources** - Choose between CSV files, MongoDB, or auto mode with fallback
 
@@ -59,6 +60,8 @@ flbb-statistics/
 │   ├── download-controller.ps1      # Main data collection script (PowerShell)
 │   ├── extract-game.ps1             # Data extraction and JSON conversion (PowerShell)
 │   ├── post_process.py              # Post-processing automation (Python)
+│   ├── export_data.py               # Export season data to ZIP archive (NEW!)
+│   ├── import_data.py               # Import season data from ZIP archive (NEW!)
 │   ├── export_csv_to_mongodb.py     # CSV to MongoDB migration tool (NEW!)
 │   ├── check_version_api.py         # API version checking utility
 │   ├── create_team_logos.py         # Team logo creation utility
@@ -80,6 +83,7 @@ flbb-statistics/
 ├── 📂 docs/                         # Comprehensive documentation
 │   ├── README.md                    # Documentation overview
 │   ├── README_DEPLOYMENT.md         # Complete deployment instructions
+│   ├── DATA_EXPORT_IMPORT.md        # Data export and import guide (NEW!)
 │   ├── MONGODB_INTEGRATION.md       # MongoDB setup and usage guide (NEW!)
 │   ├── GOOGLE_DRIVE_SECRETS_SETUP.md # Google Drive API setup guide
 │   ├── GITHUB_ACTIONS_USAGE.md      # Automation workflows documentation
@@ -91,6 +95,7 @@ flbb-statistics/
 │   └── RACING_C_README.md           # Racing C team specific documentation
 ├── 📂 tests/                        # Testing and validation
 │   ├── test_local_flask.py          # Local development and testing script
+│   ├── test_export_import.py        # Export/import functionality tests (NEW!)
 │   ├── test_mongodb.py              # MongoDB integration tests
 │   ├── test_mongodb_data_source.py  # MongoDB data source tests (NEW!)
 │   ├── test_google_drive.py         # Google Drive integration tests
@@ -195,6 +200,51 @@ python tests/test_local_flask.py
 - ✅ Better query performance with indexing
 - ✅ Flexible data queries by division, team, season, etc.
 - ✅ Auto fallback to CSV if MongoDB unavailable
+
+### Data Export/Import (Backup & Restore)
+
+**NEW**: Export and import season data for backups or historical data management.
+
+**Export current data:**
+```bash
+# Export with default settings (creates archive in archives/ directory)
+python scripts/export_data.py
+
+# Export to specific file
+python scripts/export_data.py -o my-backup.zip
+
+# Export with raw HTML data (larger archive)
+python scripts/export_data.py --include-raw
+```
+
+**Import archived data:**
+```bash
+# List available archives
+python scripts/import_data.py --list
+
+# Validate an archive
+python scripts/import_data.py archive.zip --validate-only
+
+# Import to a new directory
+python scripts/import_data.py archive.zip
+
+# Import to specific directory
+python scripts/import_data.py archive.zip -t season-2023-2024
+```
+
+**Web Interface:**
+- Navigate to `/admin` page
+- Use "Export Current Data" button to download archives
+- Use "Import Season Archive" to upload and restore data
+
+**For detailed instructions:**
+- See **[Data Export/Import Guide](docs/DATA_EXPORT_IMPORT.md)** - Complete documentation
+
+**Use Cases:**
+- 📦 Create backups before updates
+- 🗄️ Archive end-of-season data
+- 📤 Share data between installations
+- 🔄 Restore data from past years
 
 ## 🌐 Deployment Options
 
