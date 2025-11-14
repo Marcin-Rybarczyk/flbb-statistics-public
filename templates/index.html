@@ -77,6 +77,18 @@
     background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
 }
 
+.menu-tile.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: linear-gradient(135deg, #999 0%, #666 100%);
+    pointer-events: none;
+}
+
+.menu-tile.disabled:hover {
+    transform: none;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
 @media (max-width: 768px) {
     .menu-tiles {
         grid-template-columns: 1fr;
@@ -106,6 +118,7 @@
             </p>
             
             <div class="menu-tiles">
+                <!-- Guest accessible tiles -->
                 <a href="/standings" class="menu-tile primary">
                     <span class="icon">🏆</span>
                     <div class="title">Standings</div>
@@ -118,6 +131,8 @@
                     <div class="description">Game schedules and results</div>
                 </a>
                 
+                <!-- User and Admin accessible tiles -->
+                {% if is_user_authenticated %}
                 <a href="/statistics" class="menu-tile success">
                     <span class="icon">🎮</span>
                     <div class="title">Game Stats</div>
@@ -171,12 +186,71 @@
                     <div class="title">Referee Detail</div>
                     <div class="description">Search referee information</div>
                 </a>
+                {% else %}
+                <!-- Disabled tiles for guests -->
+                <div class="menu-tile success disabled">
+                    <span class="icon">🎮</span>
+                    <div class="title">Game Stats</div>
+                    <div class="description">Login to view detailed game statistics</div>
+                </div>
                 
+                <div class="menu-tile warning disabled">
+                    <span class="icon">👤</span>
+                    <div class="title">Player Stats</div>
+                    <div class="description">Login to view individual player performance</div>
+                </div>
+                
+                <div class="menu-tile info disabled">
+                    <span class="icon">🏆</span>
+                    <div class="title">Team Stats</div>
+                    <div class="description">Login to view team performance analysis</div>
+                </div>
+                
+                <div class="menu-tile special disabled">
+                    <span class="icon">👨‍⚖️</span>
+                    <div class="title">Referee Stats</div>
+                    <div class="description">Login to view referee performance data</div>
+                </div>
+                
+                <div class="menu-tile primary disabled">
+                    <span class="icon">📊</span>
+                    <div class="title">Deep Analysis</div>
+                    <div class="description">Login to view advanced analytics</div>
+                </div>
+                
+                <div class="menu-tile secondary disabled">
+                    <span class="icon">👤</span>
+                    <div class="title">Player Detail</div>
+                    <div class="description">Login to search player statistics</div>
+                </div>
+                
+                <div class="menu-tile success disabled">
+                    <span class="icon">🏀</span>
+                    <div class="title">Team Detail</div>
+                    <div class="description">Login to search team information</div>
+                </div>
+                
+                <div class="menu-tile warning disabled">
+                    <span class="icon">📋</span>
+                    <div class="title">Game Details</div>
+                    <div class="description">Login to search game information</div>
+                </div>
+                
+                <div class="menu-tile info disabled">
+                    <span class="icon">👨‍⚖️</span>
+                    <div class="title">Referee Detail</div>
+                    <div class="description">Login to search referee information</div>
+                </div>
+                {% endif %}
+                
+                <!-- Admin only tile -->
+                {% if is_admin_authenticated %}
                 <a href="/admin" class="menu-tile special">
                     <span class="icon">⚙️</span>
                     <div class="title">Admin</div>
                     <div class="description">Administrative tools</div>
                 </a>
+                {% endif %}
             </div>
         </div>
         
