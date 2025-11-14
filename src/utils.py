@@ -4204,13 +4204,42 @@ def _analyze_player_quarters(data, player_name):
     return quarter_stats
 
 
-def _extract_team_player_stats(team_games, team_name):
+def _get_multi_team_players(data):
+    """
+    Identify players who play for multiple teams.
+    
+    Parameters:
+    data (DataFrame): The game data
+    
+    Returns:
+    dict: Dictionary mapping player names to list of teams they play for
+    """
+    if data.empty:
+        return {}
+    
+    # Extract all player stats to get player-team relationships
+    player_stats = extract_all_player_stats(data)
+    
+    if player_stats.empty:
+        return {}
+    
+    # Group by player name and get unique teams
+    player_teams = player_stats.groupby('PlayerName')['Team'].apply(lambda x: sorted(set(x))).to_dict()
+    
+    # Filter to only include players with more than one team
+    multi_team_players = {player: teams for player, teams in player_teams.items() if len(teams) > 1}
+    
+    return multi_team_players
+
+
+def _extract_team_player_stats(team_games, team_name, multi_team_players=None):
     """
     Extract comprehensive player statistics for a team from their games.
     
     Parameters:
     team_games (DataFrame): Games filtered for the team
     team_name (str): Name of the team
+    multi_team_players (dict): Optional dictionary of players who play for multiple teams
     
     Returns:
     dict: Dictionary containing:
@@ -4220,6 +4249,9 @@ def _extract_team_player_stats(team_games, team_name):
     """
     import ast
     from collections import defaultdict
+    
+    if multi_team_players is None:
+        multi_team_players = {}
     
     # Initialize data structures
     player_totals = defaultdict(lambda: {
@@ -4340,8 +4372,18 @@ def _extract_team_player_stats(team_games, team_name):
         
         # Calculate averages
         games = stats['games_played']
+        player_name = stats['name']
+        
+        # Check if player plays for multiple teams
+        plays_multiple_teams = player_name in multi_team_players
+        other_teams = []
+        if plays_multiple_teams:
+            # Get list of other teams (excluding current team)
+            all_teams = multi_team_players[player_name]
+            other_teams = [t for t in all_teams if normalize_name_for_matching(t) != normalize_name_for_matching(team_name)]
+        
         player_dict = {
-            'name': stats['name'],
+            'name': player_name,
             'number': stats['number'],
             'games_played': games,
             'total_points': stats['total_points'],
@@ -4353,7 +4395,9 @@ def _extract_team_player_stats(team_games, team_name):
             'total_1p': stats['total_1p'],
             'starting_percentage': round(stats['starting_five_count'] / games * 100, 1) if games > 0 else 0,
             'quarters': dict(stats['quarters']),
-            'last_5_games': stats['last_5_games']
+            'last_5_games': stats['last_5_games'],
+            'plays_multiple_teams': plays_multiple_teams,
+            'other_teams': other_teams
         }
         all_players.append(player_dict)
     
@@ -4524,8 +4568,11 @@ def get_team_detail_stats(data, team_name):
         game_dict['HotnessIcon'] = hotness_icon
         game_by_game.append(game_dict)
     
+    # Get multi-team players information
+    multi_team_players = _get_multi_team_players(data)
+    
     # Extract player statistics for this team
-    player_stats = _extract_team_player_stats(team_games, team_name)
+    player_stats = _extract_team_player_stats(team_games, team_name, multi_team_players)
     
     # Get next 5 upcoming games for this team
     next_games = get_team_next_games(team_name, limit=5)
