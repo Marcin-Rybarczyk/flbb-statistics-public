@@ -3,6 +3,12 @@ import re
 import logging
 import unicodedata
 from urllib.parse import unquote
+
+# Load environment variables from .env file if it exists
+# This should be done before any other imports that might use env vars
+from dotenv import load_dotenv
+load_dotenv()
+
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file
 import pandas as pd
 from src.utils import (calculate_standings_by_division, get_highest_scoring_games, 
