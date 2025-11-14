@@ -7,3 +7,4 @@ google-auth-oauthlib==1.2.1
 google-auth-httplib2==0.2.0
 pymongo==4.10.1
 requests==2.32.3
+paramiko==3.5.0
