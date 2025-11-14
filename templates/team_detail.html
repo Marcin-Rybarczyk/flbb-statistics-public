@@ -408,6 +408,12 @@
                                style="text-decoration: none; color: inherit; font-weight: bold;">
                                 {{ player.name }}
                             </a>
+                            {% if player.plays_multiple_teams %}
+                            <span style="color: #e67e22; font-size: 0.9em; margin-left: 5px;" 
+                                  title="Also plays for: {{ player.other_teams|join(', ') }}">
+                                🔄 Multi-team
+                            </span>
+                            {% endif %}
                         </td>
                         <td>{{ player.games_played }}</td>
                         <td><strong>{{ player.total_points }}</strong></td>
@@ -422,7 +428,7 @@
                     {% endfor %}
                 </tbody>
             </table>
-            <p><em>Players sorted by total points scored</em></p>
+            <p><em>Players sorted by total points scored. 🔄 indicates player also plays for other teams (hover for details).</em></p>
         </div>
         
         <!-- Panel 2: Quarter by Quarter Performance -->
