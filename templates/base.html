@@ -946,6 +946,8 @@
             <a href="/" {% if request and request.endpoint == 'index' %}class="active"{% endif %}>🏠 Home</a>
             <a href="/standings" {% if request and request.endpoint == 'standings' %}class="active"{% endif %}>🏆 Standings</a>
             <a href="/fixtures" {% if request and request.endpoint == 'fixtures' %}class="active"{% endif %}>📅 Fixtures</a>
+            
+            {% if is_user_authenticated %}
             <a href="/statistics" {% if request and request.endpoint == 'statistics' %}class="active"{% endif %}>🎮 Game Stats</a>
             <a href="/player-stats" {% if request and request.endpoint == 'player_stats' %}class="active"{% endif %}>👤 Player Stats</a>
             <a href="/player-detail" {% if request and request.endpoint == 'player_detail' %}class="active"{% endif %}>🔍 Player Detail</a>
@@ -956,9 +958,16 @@
             <a href="/referee-detail" {% if request and request.endpoint == 'referee_detail' %}class="active"{% endif %}>🔍 Referee Detail</a>
             <a href="/deeper-analysis" {% if request and request.endpoint == 'deeper_analysis' %}class="active"{% endif %}>🔍 Deep Analysis</a>
             <a href="/preferences" {% if request and request.endpoint == 'preferences' %}class="active"{% endif %}>⚙️ Preferences</a>
-            <a href="/admin" {% if request and request.endpoint == 'admin' %}class="active"{% endif %}>🔐 Admin</a>
+            {% endif %}
+            
             {% if is_admin_authenticated %}
-            <a href="/admin/logout" style="background: rgba(220, 53, 69, 0.1); color: #dc3545;">🔓 Logout</a>
+            <a href="/admin" {% if request and request.endpoint == 'admin' %}class="active"{% endif %}>🔐 Admin</a>
+            {% endif %}
+            
+            {% if is_user_authenticated or is_admin_authenticated %}
+            <a href="/user/logout" style="background: rgba(220, 53, 69, 0.1); color: #dc3545;">🔓 Logout</a>
+            {% else %}
+            <a href="/user/login" style="background: rgba(102, 126, 234, 0.1); color: #667eea;">🔑 Login</a>
             {% endif %}
         </div>
 

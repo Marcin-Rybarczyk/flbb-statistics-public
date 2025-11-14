@@ -105,19 +105,41 @@ if not os.environ.get('SECRET_KEY'):
 else:
     app.secret_key = os.environ.get('SECRET_KEY')
 
-# Admin authentication
+# Admin and User authentication
 from functools import wraps
 
 def is_admin_authenticated():
     """Check if the current user is authenticated as admin"""
     return session.get('admin_authenticated', False)
 
+def is_user_authenticated():
+    """Check if the current user is authenticated as regular user or admin"""
+    return session.get('user_authenticated', False) or is_admin_authenticated()
+
+def get_user_level():
+    """Get the current user's authorization level: 'guest', 'user', or 'admin'"""
+    if is_admin_authenticated():
+        return 'admin'
+    elif is_user_authenticated():
+        return 'user'
+    else:
+        return 'guest'
+
 def login_required(f):
     """Decorator to require admin authentication for a route"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not is_admin_authenticated():
-            return jsonify({'success': False, 'error': 'Authentication required'}), 401
+            return jsonify({'success': False, 'error': 'Admin authentication required'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
+def user_required(f):
+    """Decorator to require user or admin authentication for a route"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not is_user_authenticated():
+            return redirect(url_for('user_login', next=request.url))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -145,7 +167,9 @@ def inject_season_info():
         'version_info': version_info,
         'user_prefs': user_prefs,
         'mydevil_stats_code': mydevil_stats_code,
-        'is_admin_authenticated': is_admin_authenticated()
+        'is_admin_authenticated': is_admin_authenticated(),
+        'is_user_authenticated': is_user_authenticated(),
+        'user_level': get_user_level()
     }
 
 # Logo utility functions
@@ -249,6 +273,7 @@ def standings():
                          data_source_info=data_source_info)
 
 @app.route('/statistics', methods=['GET', 'POST'])
+@user_required
 def statistics():
     """Game Statistics page with division filtering"""
     if data.empty:
@@ -280,6 +305,7 @@ def statistics():
                          data_source_info=data_source_info)
 
 @app.route('/team-stats', methods=['GET', 'POST'])
+@user_required
 def team_stats():
     """Complete team statistics page with division filter"""
     if data.empty:
@@ -304,6 +330,7 @@ def team_stats():
                          data_source_info=data_source_info)
 
 @app.route('/team-detail')
+@user_required
 def team_detail():
     """Individual team detail page with comprehensive statistics"""
     if data.empty:
@@ -329,6 +356,7 @@ def team_detail():
                          data_source_info=data_source_info)
 
 @app.route('/player-stats', methods=['GET', 'POST'])
+@user_required
 def player_stats():
     """Dedicated player statistics page"""
     if data.empty:
@@ -366,6 +394,7 @@ def player_stats():
                          data_source_info=data_source_info)
 
 @app.route('/player-detail')
+@user_required
 def player_detail():
     """Individual player detail page with search and comprehensive statistics"""
     if data.empty:
@@ -389,6 +418,7 @@ def player_detail():
                          data_source_info=data_source_info)
 
 @app.route('/referee-stats')
+@user_required
 def referee_stats():
     """Dedicated referee statistics page"""
     if data.empty:
@@ -409,6 +439,7 @@ def referee_stats():
                          data_source_info=data_source_info)
 
 @app.route('/referee-detail')
+@user_required
 def referee_detail():
     """Individual referee detail page with search and comprehensive statistics"""
     if data.empty:
@@ -432,6 +463,7 @@ def referee_detail():
                          data_source_info=data_source_info)
 
 @app.route('/referee-performance-index')
+@user_required
 def referee_performance_index():
     """Referee Performance Index (RPI) page with comprehensive rankings"""
     if data.empty:
@@ -473,6 +505,7 @@ def referee_performance_index():
                          data_source_info=data_source_info)
 
 @app.route('/deeper-analysis')
+@user_required
 def deeper_analysis():
     """Deep game analysis page with advanced metrics"""
     if data.empty:
@@ -553,6 +586,7 @@ def fixtures():
                          closest_games=closest_games)
 
 @app.route('/game-detail/<game_id>')
+@user_required
 def game_detail(game_id):
     """Game detail page showing comprehensive information about a specific game"""
     if data.empty:
@@ -569,6 +603,7 @@ def game_detail(game_id):
                          data_source_info=data_source_info)
 
 @app.route('/game-details')
+@user_required
 def game_details_search():
     """Game details search page with searchable functionality similar to player detail"""
     if data.empty:
@@ -592,6 +627,7 @@ def game_details_search():
                          data_source_info=data_source_info)
 
 @app.route('/preferences', methods=['GET', 'POST'])
+@user_required
 def preferences():
     """User preferences page for setting default filters"""
     if request.method == 'POST':
@@ -627,6 +663,46 @@ def preferences():
                          current_prefs=current_prefs,
                          data_source_info=data_source_info)
 
+@app.route('/user/login', methods=['GET', 'POST'])
+def user_login():
+    """User login page and authentication"""
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        user_password = os.environ.get('USER_PASSWORD', '')
+        
+        # Check if user password is configured
+        if not user_password:
+            return render_template('user_login.html', 
+                                 error='User authentication is not configured. Please set USER_PASSWORD environment variable.')
+        
+        # Verify password
+        if password == user_password:
+            session['user_authenticated'] = True
+            session.permanent = True  # Make session persistent
+            # Redirect to next URL if provided, otherwise to index
+            next_url = request.args.get('next')
+            if next_url and next_url.startswith('/'):
+                return redirect(next_url)
+            return redirect(url_for('index'))
+        else:
+            return render_template('user_login.html', 
+                                 error='Invalid password. Please try again.')
+    
+    # GET request - show login form
+    # If already authenticated, redirect to home
+    if is_user_authenticated():
+        return redirect(url_for('index'))
+    
+    return render_template('user_login.html')
+
+@app.route('/user/logout')
+def user_logout():
+    """User logout"""
+    session.pop('user_authenticated', None)
+    # Also clear admin authentication if present
+    session.pop('admin_authenticated', None)
+    return redirect(url_for('index'))
+
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     """Admin login page and authentication"""
@@ -659,6 +735,7 @@ def admin_login():
 def admin_logout():
     """Admin logout"""
     session.pop('admin_authenticated', None)
+    session.pop('user_authenticated', None)
     return redirect(url_for('index'))
 
 @app.route('/admin')
@@ -853,6 +930,7 @@ def export_season_data():
 
 # API endpoints for hover tooltips
 @app.route('/api/hover/player/<player_name>')
+@user_required
 def api_player_hover(player_name):
     """API endpoint to get player hover statistics"""
     if data.empty:
@@ -868,6 +946,7 @@ def api_player_hover(player_name):
     return jsonify(stats)
 
 @app.route('/api/hover/team/<team_name>')
+@user_required
 def api_team_hover(team_name):
     """API endpoint to get team hover statistics"""
     if data.empty:
@@ -883,6 +962,7 @@ def api_team_hover(team_name):
     return jsonify(stats)
 
 @app.route('/api/hover/referee/<referee_name>')
+@user_required
 def api_referee_hover(referee_name):
     """API endpoint to get referee hover statistics"""
     if data.empty:
@@ -898,6 +978,7 @@ def api_referee_hover(referee_name):
     return jsonify(stats)
 
 @app.route('/api/hover/game/<game_id>')
+@user_required
 def api_game_hover(game_id):
     """API endpoint to get game hover statistics"""
     if data.empty:
