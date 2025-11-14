@@ -2,6 +2,9 @@ $ROOT = $PSScriptRoot
 $DATA_ROOT = "$ROOT\..\data"
 Add-Type -Path "$ROOT\Net40\HtmlAgilityPack.dll"
 
+# Import cache helper functions
+. "$ROOT\cache_helper.ps1"
+
 # Load configuration from config.json
 $CONFIG_FILEPATH = "$ROOT/config.json"
 if (Test-Path $CONFIG_FILEPATH) {
@@ -379,6 +382,19 @@ function Test-PythonDependencies() {
 }
 
 function Main($appConfig) {
+    # Try to download cache from Google Drive at the start
+    Write-Host "`n========================================" -ForegroundColor Cyan
+    Write-Host "Attempting to restore cache from Google Drive" -ForegroundColor Cyan
+    Write-Host "========================================`n" -ForegroundColor Cyan
+    
+    $cacheDownloaded = Invoke-DownloadCache
+    if ($cacheDownloaded) {
+        Write-Host "✓ Cache restored successfully - finished games won't be re-downloaded" -ForegroundColor Green
+    } else {
+        Write-Host "⚠ No cache available or download failed - will download all games" -ForegroundColor Yellow
+    }
+    Write-Host ""
+    
     # Check Python dependencies early
     if (-not (Test-PythonDependencies)) {
         Write-Warning "Python dependencies are not properly configured. Post-processing will fall back to PowerShell-only mode."
@@ -452,6 +468,18 @@ function Main($appConfig) {
         } else {
             Write-Error "Failed to create archive"
         }
+    }
+    
+    # Upload cache to Google Drive at the end
+    Write-Host "`n========================================" -ForegroundColor Cyan
+    Write-Host "Uploading cache to Google Drive" -ForegroundColor Cyan
+    Write-Host "========================================`n" -ForegroundColor Cyan
+    
+    $cacheUploaded = Invoke-UploadCache
+    if ($cacheUploaded) {
+        Write-Host "✓ Cache uploaded successfully - finished games cached for next run" -ForegroundColor Green
+    } else {
+        Write-Warning "⚠ Cache upload failed"
     }
     
 }

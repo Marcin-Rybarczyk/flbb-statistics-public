@@ -35,6 +35,9 @@ jobs:
           cd scripts
           pwsh -File download-controller.ps1
         shell: bash
+        env:
+          GOOGLE_DRIVE_CREDENTIALS: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}
+          GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
       
       - name: 🔍 Extract data and generate JSON files
         run: |
