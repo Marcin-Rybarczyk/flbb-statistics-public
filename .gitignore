@@ -45,3 +45,6 @@ Thumbs.db
 
 # Logo placeholders  
 logos/*_placeholder.txt
+
+# Environment variables (contains sensitive credentials)
+.env
