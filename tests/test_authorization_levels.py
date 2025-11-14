@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Set test environment variables
 os.environ['ADMIN_PASSWORD'] = 'admin123'
+os.environ['USER_USERNAME'] = 'testuser'
 os.environ['USER_PASSWORD'] = 'user123'
 os.environ['SECRET_KEY'] = 'test-secret-key'
 
@@ -84,19 +85,27 @@ def test_user_login():
     
     client = app.test_client()
     
-    # Test invalid login
-    print("\n1. Testing login with invalid password...")
-    response = client.post('/user/login', data={'password': 'wrongpassword'}, follow_redirects=False)
+    # Test invalid login - wrong username
+    print("\n1. Testing login with invalid username...")
+    response = client.post('/user/login', data={'username': 'wronguser', 'password': 'user123'}, follow_redirects=False)
     assert response.status_code == 200, f"Expected 200 (error page), got {response.status_code}"
     response_data = response.data.decode('utf-8')
-    assert 'Invalid password' in response_data or 'error' in response_data.lower(), "Expected error message"
+    assert 'Invalid' in response_data or 'error' in response_data.lower(), "Expected error message"
+    print("   ✓ Invalid username rejected")
+    
+    # Test invalid login - wrong password
+    print("\n2. Testing login with invalid password...")
+    response = client.post('/user/login', data={'username': 'testuser', 'password': 'wrongpassword'}, follow_redirects=False)
+    assert response.status_code == 200, f"Expected 200 (error page), got {response.status_code}"
+    response_data = response.data.decode('utf-8')
+    assert 'Invalid' in response_data or 'error' in response_data.lower(), "Expected error message"
     print("   ✓ Invalid password rejected")
     
     # Test valid login
-    print("\n2. Testing login with valid password...")
-    response = client.post('/user/login', data={'password': 'user123'}, follow_redirects=False)
+    print("\n3. Testing login with valid credentials...")
+    response = client.post('/user/login', data={'username': 'testuser', 'password': 'user123'}, follow_redirects=False)
     assert response.status_code == 302, f"Expected 302 (redirect), got {response.status_code}"
-    print("   ✓ Valid password accepted and redirected")
+    print("   ✓ Valid credentials accepted and redirected")
     
     print("\n" + "=" * 70)
     print("✅ USER LOGIN TESTS PASSED")

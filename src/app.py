@@ -667,16 +667,20 @@ def preferences():
 def user_login():
     """User login page and authentication"""
     if request.method == 'POST':
+        username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
+        
+        # Get predefined user credentials from environment
+        user_username = os.environ.get('USER_USERNAME', '')
         user_password = os.environ.get('USER_PASSWORD', '')
         
-        # Check if user password is configured
-        if not user_password:
+        # Check if user credentials are configured
+        if not user_username or not user_password:
             return render_template('user_login.html', 
-                                 error='User authentication is not configured. Please set USER_PASSWORD environment variable.')
+                                 error='User authentication is not configured. Please set USER_USERNAME and USER_PASSWORD environment variables.')
         
-        # Verify password
-        if password == user_password:
+        # Verify credentials
+        if username == user_username and password == user_password:
             session['user_authenticated'] = True
             session.permanent = True  # Make session persistent
             # Redirect to next URL if provided, otherwise to index
@@ -686,7 +690,7 @@ def user_login():
             return redirect(url_for('index'))
         else:
             return render_template('user_login.html', 
-                                 error='Invalid password. Please try again.')
+                                 error='Invalid username or password. Please try again.')
     
     # GET request - show login form
     # If already authenticated, redirect to home
