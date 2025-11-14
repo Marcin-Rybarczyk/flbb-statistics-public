@@ -11,7 +11,7 @@ load_dotenv()
 
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file
 import pandas as pd
-from src.utils import (calculate_standings_by_division, get_highest_scoring_games, 
+from .utils import (calculate_standings_by_division, get_highest_scoring_games, 
                    load_game_data, get_top_players_by_score, get_team_performance_stats,
                    get_top_scorers, get_highest_single_game_score, get_top_three_pointers, 
                    get_top_foulers, get_referee_statistics, get_referee_fouls_per_game,
@@ -27,7 +27,7 @@ from src.utils import (calculate_standings_by_division, get_highest_scoring_game
                    get_team_detail_stats, get_all_referees_list, get_all_games_list,
                    get_player_hover_stats, get_team_hover_stats, get_referee_hover_stats, get_game_hover_stats,
                    calculate_referee_performance_index, get_closest_games_by_team, CSV_FILEPATH)
-from src.version import get_version_info
+from .version import get_version_info
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
 
