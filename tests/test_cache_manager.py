@@ -103,12 +103,12 @@ def test_cache_manager():
         # Create test data
         data_root, scripts_root = create_test_data(tmpdir)
         
-        # Initialize cache manager
-        print("\n1. Initializing Cache Manager...")
+        # Initialize cache manager with local storage for testing
+        print("\n1. Initializing Cache Manager with local storage...")
         cache_mgr = CacheManager(
             data_root=data_root,
             scripts_root=scripts_root,
-            folder_id=None  # No Google Drive for testing
+            storage_backend='local'
         )
         print("✓ Cache manager initialized")
         

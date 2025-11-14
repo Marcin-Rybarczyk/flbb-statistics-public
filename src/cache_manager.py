@@ -3,7 +3,8 @@
 Cache Manager for FLBB Statistics
 
 This module manages caching of raw HTML and JSON files for finished games
-on Google Drive to avoid re-downloading them from the FLBB website.
+on remote storage (Google Drive, MyDevil.net, etc.) to avoid re-downloading 
+them from the FLBB website.
 """
 
 import os
@@ -17,29 +18,26 @@ from datetime import datetime
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.google_drive_helper import (
-    get_drive_service,
-    upload_file_to_drive,
-    download_file_from_drive,
-    list_files_in_folder
-)
+from src.storage_helper import get_storage_backend
 
 
 class CacheManager:
     """Manages caching of raw HTML and JSON files for finished games."""
     
-    def __init__(self, data_root: str, scripts_root: str, folder_id: Optional[str] = None):
+    def __init__(self, data_root: str, scripts_root: str, 
+                 storage_backend: Optional[str] = None):
         """
         Initialize the cache manager.
         
         Args:
             data_root: Root directory for data files
             scripts_root: Root directory for scripts
-            folder_id: Google Drive folder ID for cache storage
+            storage_backend: Storage backend type ('gdrive', 'mydevil', 'local')
+                           If None, reads from CACHE_STORAGE_BACKEND env var
         """
         self.data_root = Path(data_root)
         self.scripts_root = Path(scripts_root)
-        self.folder_id = folder_id or os.getenv('GOOGLE_DRIVE_FOLDER_ID')
+        self.storage = get_storage_backend(storage_backend)
         
         # Load configuration
         self.config = self._load_config()
@@ -176,46 +174,47 @@ class CacheManager:
         
         return output_path
     
-    def upload_cache_to_drive(self) -> Optional[str]:
+    def upload_cache_to_storage(self) -> Optional[str]:
         """
-        Create and upload cache archive to Google Drive.
+        Create and upload cache archive to remote storage.
         
         Returns:
-            File ID of the uploaded archive or None on failure
+            File ID/path of the uploaded archive or None on failure
         """
         try:
             # Create cache archive
             cache_archive = self.create_cache_archive()
             
-            # Upload to Google Drive
-            print(f"Uploading cache to Google Drive...")
-            file_id = upload_file_to_drive(
+            # Upload to storage
+            print(f"Uploading cache to remote storage...")
+            file_id = self.storage.upload_file(
                 str(cache_archive),
-                folder_id=self.folder_id,
                 file_name=cache_archive.name
             )
             
-            # Update cache metadata
-            self.cache_metadata['last_updated'] = datetime.now().isoformat()
-            self.cache_metadata['drive_file_id'] = file_id
-            self._save_cache_metadata()
+            if file_id:
+                # Update cache metadata
+                self.cache_metadata['last_updated'] = datetime.now().isoformat()
+                self.cache_metadata['storage_file_id'] = file_id
+                self._save_cache_metadata()
+                
+                # Clean up local archive
+                cache_archive.unlink()
+                
+                print(f"Cache uploaded successfully. File ID/path: {file_id}")
             
-            # Clean up local archive
-            cache_archive.unlink()
-            
-            print(f"Cache uploaded successfully. File ID: {file_id}")
             return file_id
             
         except Exception as e:
-            print(f"Error uploading cache to Google Drive: {e}")
+            print(f"Error uploading cache to storage: {e}")
             return None
     
-    def download_cache_from_drive(self, file_id: Optional[str] = None) -> bool:
+    def download_cache_from_storage(self, file_id: Optional[str] = None) -> bool:
         """
-        Download and extract cache archive from Google Drive.
+        Download and extract cache archive from remote storage.
         
         Args:
-            file_id: File ID to download (uses latest from metadata if not provided)
+            file_id: File ID/path to download (uses latest from storage if not provided)
             
         Returns:
             True if successful, False otherwise
@@ -226,15 +225,22 @@ class CacheManager:
                 file_id = self._find_latest_cache_file()
             
             if file_id is None:
-                print("No cache file found on Google Drive")
+                print("No cache file found in remote storage")
                 return False
             
-            print(f"Downloading cache from Google Drive (File ID: {file_id})...")
+            print(f"Downloading cache from remote storage (ID: {file_id})...")
             
             # Download to temporary location
             with tempfile.TemporaryDirectory() as tmpdir:
                 cache_archive = Path(tmpdir) / 'cache.zip'
-                download_file_from_drive(file_id, output_path=tmpdir, file_name='cache.zip')
+                success = self.storage.download_file(
+                    file_id, 
+                    output_path=tmpdir, 
+                    file_name='cache.zip'
+                )
+                
+                if not success:
+                    return False
                 
                 # Extract archive
                 print("Extracting cache archive...")
@@ -254,44 +260,38 @@ class CacheManager:
                     cache_info_path.unlink()
             
             # Update metadata
-            self.cache_metadata['drive_file_id'] = file_id
+            self.cache_metadata['storage_file_id'] = file_id
             self._save_cache_metadata()
             
             print("Cache download and extraction completed successfully")
             return True
             
         except Exception as e:
-            print(f"Error downloading cache from Google Drive: {e}")
+            print(f"Error downloading cache from storage: {e}")
             return False
     
     def _find_latest_cache_file(self) -> Optional[str]:
         """
-        Find the latest cache file in Google Drive folder.
+        Find the latest cache file in remote storage.
         
         Returns:
-            File ID of the latest cache file or None if not found
+            File ID/path of the latest cache file or None if not found
         """
         try:
             # First check metadata
-            if self.cache_metadata.get('drive_file_id'):
-                return self.cache_metadata['drive_file_id']
+            if self.cache_metadata.get('storage_file_id'):
+                return self.cache_metadata['storage_file_id']
             
-            # Otherwise search in Google Drive
-            if not self.folder_id:
-                print("No Google Drive folder ID configured")
-                return None
-            
-            files = list_files_in_folder(self.folder_id, name_pattern='cache-')
+            # Otherwise search in storage
+            file_id = self.storage.find_latest_file('cache-')
             
             if not files:
                 return None
             
-            # Sort by creation time and get the latest
-            files.sort(key=lambda x: x.get('createdTime', ''), reverse=True)
-            latest_file = files[0]
+            if file_id:
+                print(f"Found latest cache file (ID/path: {file_id})")
             
-            print(f"Found latest cache file: {latest_file['name']} (ID: {latest_file['id']})")
-            return latest_file['id']
+            return file_id
             
         except Exception as e:
             print(f"Error finding latest cache file: {e}")
@@ -328,8 +328,9 @@ def main():
                        help='Root directory for data files')
     parser.add_argument('--scripts-root', default='scripts',
                        help='Root directory for scripts')
-    parser.add_argument('--folder-id', help='Google Drive folder ID')
-    parser.add_argument('--file-id', help='File ID for download')
+    parser.add_argument('--storage', choices=['gdrive', 'mydevil', 'local'],
+                       help='Storage backend (default: from CACHE_STORAGE_BACKEND env var)')
+    parser.add_argument('--file-id', help='File ID/path for download')
     parser.add_argument('--output', '-o', help='Output path for cache archive')
     
     args = parser.parse_args()
@@ -338,21 +339,21 @@ def main():
     cache_mgr = CacheManager(
         data_root=args.data_root,
         scripts_root=args.scripts_root,
-        folder_id=args.folder_id
+        storage_backend=args.storage
     )
     
     try:
         if args.action == 'upload':
-            file_id = cache_mgr.upload_cache_to_drive()
+            file_id = cache_mgr.upload_cache_to_storage()
             if file_id:
-                print(f"✓ Cache uploaded successfully. File ID: {file_id}")
+                print(f"✓ Cache uploaded successfully. File ID/path: {file_id}")
                 return 0
             else:
                 print("✗ Failed to upload cache")
                 return 1
         
         elif args.action == 'download':
-            success = cache_mgr.download_cache_from_drive(args.file_id)
+            success = cache_mgr.download_cache_from_storage(args.file_id)
             if success:
                 print("✓ Cache downloaded and extracted successfully")
                 return 0
