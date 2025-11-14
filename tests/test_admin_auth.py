@@ -64,7 +64,7 @@ def test_admin_authentication():
         assert response.status_code == 401, f"Expected 401, got {response.status_code}"
         result = response.get_json()
         assert result['success'] == False, "Expected success=False"
-        assert 'Authentication required' in result['error'], "Expected authentication error"
+        assert 'authentication required' in result['error'].lower(), "Expected authentication error"
         print("   ✓ Import endpoint is protected")
     finally:
         os.unlink(tmp_path)
