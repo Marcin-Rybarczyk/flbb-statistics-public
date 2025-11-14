@@ -38,6 +38,7 @@ jobs:
             echo "📦 Pulling latest changes..."
             git pull origin development
           fi
+          pip install -r requirements.txt
           devil www restart ${{ secrets.MYDEVIL_TEST_DOMAIN_NAME }}
           EOF
 
