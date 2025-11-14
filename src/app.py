@@ -105,6 +105,22 @@ if not os.environ.get('SECRET_KEY'):
 else:
     app.secret_key = os.environ.get('SECRET_KEY')
 
+# Admin authentication
+from functools import wraps
+
+def is_admin_authenticated():
+    """Check if the current user is authenticated as admin"""
+    return session.get('admin_authenticated', False)
+
+def login_required(f):
+    """Decorator to require admin authentication for a route"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not is_admin_authenticated():
+            return jsonify({'success': False, 'error': 'Authentication required'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
 # Context processor to make season info available to all templates
 @app.context_processor
 def inject_season_info():
@@ -128,7 +144,8 @@ def inject_season_info():
         'website_config': website_config,
         'version_info': version_info,
         'user_prefs': user_prefs,
-        'mydevil_stats_code': mydevil_stats_code
+        'mydevil_stats_code': mydevil_stats_code,
+        'is_admin_authenticated': is_admin_authenticated()
     }
 
 # Logo utility functions
@@ -610,6 +627,40 @@ def preferences():
                          current_prefs=current_prefs,
                          data_source_info=data_source_info)
 
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    """Admin login page and authentication"""
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        admin_password = os.environ.get('ADMIN_PASSWORD', '')
+        
+        # Check if admin password is configured
+        if not admin_password:
+            return render_template('admin_login.html', 
+                                 error='Admin authentication is not configured. Please set ADMIN_PASSWORD environment variable.')
+        
+        # Verify password
+        if password == admin_password:
+            session['admin_authenticated'] = True
+            session.permanent = True  # Make session persistent
+            return redirect(url_for('admin'))
+        else:
+            return render_template('admin_login.html', 
+                                 error='Invalid password. Please try again.')
+    
+    # GET request - show login form
+    # If already authenticated, redirect to admin
+    if is_admin_authenticated():
+        return redirect(url_for('admin'))
+    
+    return render_template('admin_login.html')
+
+@app.route('/admin/logout')
+def admin_logout():
+    """Admin logout"""
+    session.pop('admin_authenticated', None)
+    return redirect(url_for('index'))
+
 @app.route('/admin')
 def admin():
     """Administration page with data statistics"""
@@ -718,6 +769,7 @@ def admin():
                          available_archives=available_archives)
 
 @app.route('/admin/import-season', methods=['POST'])
+@login_required
 def import_season_data():
     """Handle season archive import"""
     import os
@@ -758,6 +810,7 @@ def import_season_data():
         return {'success': False, 'error': f'Import failed: {str(e)}'}, 500
 
 @app.route('/admin/export-season', methods=['POST'])
+@login_required
 def export_season_data():
     """Handle season data export"""
     import tempfile
