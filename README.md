@@ -268,6 +268,7 @@ Comprehensive documentation is available in the `docs/` directory:
 ### Core Documentation
 - **[Documentation Overview](docs/README.md)** - Complete documentation index
 - **[Deployment Guide](docs/README_DEPLOYMENT.md)** - Complete deployment instructions for multiple platforms
+- **[Authentication Setup](docs/AUTHENTICATION_SETUP.md)** - User and admin authentication configuration
 - **[MyDevil Statistics Setup](docs/MYDEVIL_STATISTICS.md)** - Enable visitor statistics for MyDevil.net hosting
 - **[User Features Guide](docs/USER_FEATURES.md)** - Themes, preferences, and personalization
 
