@@ -940,7 +940,6 @@ def export_season_data():
 
 # API endpoints for hover tooltips
 @app.route('/api/hover/player/<player_name>')
-@user_required
 def api_player_hover(player_name):
     """API endpoint to get player hover statistics"""
     if data.empty:
@@ -956,7 +955,6 @@ def api_player_hover(player_name):
     return jsonify(stats)
 
 @app.route('/api/hover/team/<team_name>')
-@user_required
 def api_team_hover(team_name):
     """API endpoint to get team hover statistics"""
     if data.empty:
@@ -972,7 +970,6 @@ def api_team_hover(team_name):
     return jsonify(stats)
 
 @app.route('/api/hover/referee/<referee_name>')
-@user_required
 def api_referee_hover(referee_name):
     """API endpoint to get referee hover statistics"""
     if data.empty:
@@ -988,7 +985,6 @@ def api_referee_hover(referee_name):
     return jsonify(stats)
 
 @app.route('/api/hover/game/<game_id>')
-@user_required
 def api_game_hover(game_id):
     """API endpoint to get game hover statistics"""
     if data.empty:
