@@ -31,6 +31,7 @@
             font-size: 0.9em;
             color: #e74c3c;
             font-weight: 600;
+            white-space: nowrap;
         }
 
         .date-time {
@@ -40,6 +41,7 @@
 
         .teams {
             font-weight: 600;
+            white-space: nowrap;
         }
 
         .home-team {
@@ -611,7 +613,7 @@
                         </td>
                         <td>
                             {% if row.get('IsFinished') and row.get('TopScorerName') and row['TopScorerName'] != 'N/A' %}
-                                <div class="top-scorer">
+                                <span class="top-scorer">
                                     <a href="{{ url_for('player_detail', player=row['TopScorerName']) }}" 
                                        class="hoverable-item" 
                                        data-type="player" 
@@ -621,7 +623,7 @@
                                     {% if row['TopScorerPoints'] > 0 %}
                                         ({{ row['TopScorerPoints'] }}pts)
                                     {% endif %}
-                                </div>
+                                </span>
                             {% else %}
                                 <span class="unfinished">-</span>
                             {% endif %}
