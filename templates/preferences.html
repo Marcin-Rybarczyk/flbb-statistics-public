@@ -114,4 +114,16 @@
     {% endif %}
 </div>
 
+<div class="stats-section" style="margin-top: 30px;">
+    <h2>🔐 Account Security</h2>
+    <div style="background: white; border-radius: 10px; padding: 20px; text-align: center;">
+        <p style="color: #666; margin-bottom: 15px;">
+            Keep your account secure by changing your password regularly.
+        </p>
+        <a href="{{ url_for('user_change_password') }}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: transform 0.2s;">
+            🔑 Change Password
+        </a>
+    </div>
+</div>
+
 {% endblock %}
