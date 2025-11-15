@@ -1619,6 +1619,42 @@
                                 </div>
                             `;
                         }
+                    } else if (type === 'division') {
+                        // Format top 3 teams
+                        let topTeamsHtml = '';
+                        if (data.top_teams && data.top_teams.length > 0) {
+                            topTeamsHtml = '<div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.1);">';
+                            topTeamsHtml += '<div style="font-weight: 600; color: #667eea; margin-bottom: 6px;">Top 3 Teams:</div>';
+                            data.top_teams.forEach((team, idx) => {
+                                const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : '🥉');
+                                topTeamsHtml += `<div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85em;">
+                                    <span>${medal} ${team.name}</span>
+                                    <span style="font-weight: 600; color: #667eea;">${team.wins}W-${team.losses}L</span>
+                                </div>`;
+                            });
+                            topTeamsHtml += '</div>';
+                        }
+                        
+                        // Format top 3 scorers
+                        let topScorersHtml = '';
+                        if (data.top_scorers && data.top_scorers.length > 0) {
+                            topScorersHtml = '<div>';
+                            topScorersHtml += '<div style="font-weight: 600; color: #667eea; margin-bottom: 6px;">Top 3 Scorers (Avg):</div>';
+                            data.top_scorers.forEach((scorer, idx) => {
+                                const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : '🥉');
+                                topScorersHtml += `<div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85em;">
+                                    <span>${medal} ${scorer.name}</span>
+                                    <span style="font-weight: 600; color: #667eea;">${scorer.avg_score} ppg</span>
+                                </div>`;
+                            });
+                            topScorersHtml += '</div>';
+                        }
+                        
+                        content = `
+                            <h4>🏆 ${data.division_name}</h4>
+                            ${topTeamsHtml}
+                            ${topScorersHtml}
+                        `;
                     }
 
                     tooltip.innerHTML = content;
@@ -1664,6 +1700,15 @@
                     menuHtml = `
                         <div class="context-menu-item" data-action="details" data-type="game" data-id="${id}">
                             <i>🔍</i>Open Game Details
+                        </div>
+                    `;
+                } else if (type === 'location') {
+                    menuHtml = `
+                        <div class="context-menu-item" data-action="open-maps" data-type="location" data-id="${id}">
+                            <i>🗺️</i>Open in Google Maps
+                        </div>
+                        <div class="context-menu-item" data-action="copy-link" data-type="location" data-id="${id}">
+                            <i>📋</i>Copy Maps Link
                         </div>
                     `;
                 } else if (type === 'division') {
@@ -1727,6 +1772,38 @@
                                 window.location.href = `/referee-detail?referee=${encodeURIComponent(menuId)}`;
                             } else if (menuType === 'game') {
                                 window.location.href = `/game-detail/${menuId}`;
+                            }
+                        } else if (menuType === 'location') {
+                            // Handle location-specific actions
+                            if (action === 'open-maps') {
+                                window.open(menuId, '_blank', 'noopener,noreferrer');
+                            } else if (action === 'copy-link') {
+                                // Copy the Google Maps link to clipboard
+                                navigator.clipboard.writeText(menuId).then(() => {
+                                    // Show a temporary notification
+                                    const notification = document.createElement('div');
+                                    notification.textContent = '✓ Link copied to clipboard!';
+                                    notification.style.cssText = `
+                                        position: fixed;
+                                        top: 20px;
+                                        right: 20px;
+                                        background: #28a745;
+                                        color: white;
+                                        padding: 15px 20px;
+                                        border-radius: 8px;
+                                        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                                        z-index: 10002;
+                                        animation: slideIn 0.3s ease;
+                                    `;
+                                    document.body.appendChild(notification);
+                                    setTimeout(() => {
+                                        notification.style.animation = 'slideOut 0.3s ease';
+                                        setTimeout(() => notification.remove(), 300);
+                                    }, 2000);
+                                }).catch(err => {
+                                    console.error('Failed to copy link:', err);
+                                    alert('Failed to copy link to clipboard');
+                                });
                             }
                         } else if (menuType === 'division') {
                             // Handle division-specific actions

@@ -679,8 +679,12 @@
                             {% endif %}
                         </td>
                         <td style="text-align: center;">
-                            {% if row.get('IsFinished') and row.get('HotnessIcon') %}
-                                <span style="font-size: 1.5em;" title="Hotness Score: {{ row['HotnessScore'] }}/100">{{ row['HotnessIcon'] }}</span>
+                            {% if row.get('HotnessIcon') %}
+                                {% if row.get('IsFutureGame') %}
+                                    <span style="font-size: 1.5em;" title="Expected Hotness (based on standings): {{ row['HotnessScore'] }}/100">{{ row['HotnessIcon'] }}</span>
+                                {% else %}
+                                    <span style="font-size: 1.5em;" title="Hotness Score: {{ row['HotnessScore'] }}/100">{{ row['HotnessIcon'] }}</span>
+                                {% endif %}
                             {% else %}
                                 <span class="unfinished">-</span>
                             {% endif %}
@@ -706,11 +710,17 @@
                             <span class="division-badge division-name division-link hoverable-item" data-type="division" data-id="{{ row.get('Division', row.get('GameDivisionDisplay', 'Unknown')) }}">{{ row.get('Division', row.get('GameDivisionDisplay', 'Unknown')) }}</span>
                         </td>
                         <td class="location">
-                            {{ row.get('Location', 'TBD') }}
                             {% if row.get('LocationGoogleLink') %}
-                            <a href="{{ row.get('LocationGoogleLink') }}" target="_blank" rel="noopener noreferrer" 
-                               style="color: #4CAF50; text-decoration: none; margin-left: 5px;" 
-                               title="View on Google Maps">🗺️</a>
+                            <span class="hoverable-item location-link" 
+                                  data-type="location" 
+                                  data-id="{{ row.get('LocationGoogleLink') }}"
+                                  style="cursor: pointer; text-decoration: underline; text-decoration-style: dotted;"
+                                  title="Right-click for options">
+                                {{ row.get('Location', 'TBD') }}
+                                <span style="color: #4CAF50; margin-left: 5px;">🌐</span>
+                            </span>
+                            {% else %}
+                            {{ row.get('Location', 'TBD') }}
                             {% endif %}
                         </td>
                         
@@ -728,11 +738,18 @@
                                 {% endfor %}
                             </div>
                             {% endif %}
-                            <div><strong>📍 Venue:</strong> {{ row['Location'] }}
+                            <div><strong>📍 Venue:</strong> 
                                 {% if row.get('LocationGoogleLink') %}
-                                <a href="{{ row.get('LocationGoogleLink') }}" target="_blank" rel="noopener noreferrer" 
-                                   style="color: #4CAF50; text-decoration: none; margin-left: 5px;" 
-                                   title="View on Google Maps">🗺️</a>
+                                <span class="hoverable-item location-link" 
+                                      data-type="location" 
+                                      data-id="{{ row.get('LocationGoogleLink') }}"
+                                      style="cursor: pointer; text-decoration: underline; text-decoration-style: dotted; color: white;"
+                                      title="Right-click for options">
+                                    {{ row['Location'] }}
+                                    <span style="color: #4CAF50; margin-left: 5px;">🌐</span>
+                                </span>
+                                {% else %}
+                                {{ row['Location'] }}
                                 {% endif %}
                             </div>
                             <div><strong>🏀 Division:</strong> {{ row['Division'] }}</div>
