@@ -402,10 +402,9 @@
                         <td><strong>{{ player.number }}</strong></td>
                         <td>
                             <a href="/player-detail?player={{ player.name|urlencode }}" 
-                               class="hoverable-item" 
+                               class="player-link hoverable-item" 
                                data-type="player" 
-                               data-id="{{ player.name }}"
-                               style="text-decoration: none; color: inherit; font-weight: bold;">
+                               data-id="{{ player.name }}">
                                 {{ player.name }}
                             </a>
                             {% if player.plays_multiple_teams %}
@@ -464,10 +463,9 @@
                         <td><strong>{{ player.number }}</strong></td>
                         <td>
                             <a href="/player-detail?player={{ player.name|urlencode }}" 
-                               class="hoverable-item" 
+                               class="player-link hoverable-item" 
                                data-type="player" 
-                               data-id="{{ player.name }}"
-                               style="text-decoration: none; color: inherit; font-weight: bold;">
+                               data-id="{{ player.name }}">
                                 {{ player.name }}
                             </a>
                         </td>
