@@ -921,6 +921,29 @@
             transform: translateY(-1px);
         }
 
+        /* Notification animations */
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
         {% block extra_styles %}{% endblock %}
     </style>
 </head>
@@ -1583,6 +1606,15 @@
                             <i>🔍</i>Open Game Details
                         </div>
                     `;
+                } else if (type === 'location') {
+                    menuHtml = `
+                        <div class="context-menu-item" data-action="open-maps" data-type="location" data-id="${id}">
+                            <i>🗺️</i>Open in Google Maps
+                        </div>
+                        <div class="context-menu-item" data-action="copy-link" data-type="location" data-id="${id}">
+                            <i>📋</i>Copy Maps Link
+                        </div>
+                    `;
                 } else if (type === 'division') {
                     menuHtml = `
                         <div class="context-menu-item" data-action="standings" data-type="division" data-id="${id}">
@@ -1644,6 +1676,38 @@
                                 window.location.href = `/referee-detail?referee=${encodeURIComponent(menuId)}`;
                             } else if (menuType === 'game') {
                                 window.location.href = `/game-detail/${menuId}`;
+                            }
+                        } else if (menuType === 'location') {
+                            // Handle location-specific actions
+                            if (action === 'open-maps') {
+                                window.open(menuId, '_blank', 'noopener,noreferrer');
+                            } else if (action === 'copy-link') {
+                                // Copy the Google Maps link to clipboard
+                                navigator.clipboard.writeText(menuId).then(() => {
+                                    // Show a temporary notification
+                                    const notification = document.createElement('div');
+                                    notification.textContent = '✓ Link copied to clipboard!';
+                                    notification.style.cssText = `
+                                        position: fixed;
+                                        top: 20px;
+                                        right: 20px;
+                                        background: #28a745;
+                                        color: white;
+                                        padding: 15px 20px;
+                                        border-radius: 8px;
+                                        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                                        z-index: 10002;
+                                        animation: slideIn 0.3s ease;
+                                    `;
+                                    document.body.appendChild(notification);
+                                    setTimeout(() => {
+                                        notification.style.animation = 'slideOut 0.3s ease';
+                                        setTimeout(() => notification.remove(), 300);
+                                    }, 2000);
+                                }).catch(err => {
+                                    console.error('Failed to copy link:', err);
+                                    alert('Failed to copy link to clipboard');
+                                });
                             }
                         } else if (menuType === 'division') {
                             // Handle division-specific actions
