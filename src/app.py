@@ -702,6 +702,12 @@ def preferences():
                          current_prefs=current_prefs,
                          data_source_info=data_source_info)
 
+@app.route('/help')
+def help_page():
+    """Help page with website features guideline"""
+    return render_template('help.html',
+                         data_source_info=data_source_info)
+
 @app.route('/user/login', methods=['GET', 'POST'])
 @limiter.limit("5 per 15 minutes", methods=["POST"])
 def user_login():
