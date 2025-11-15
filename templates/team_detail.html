@@ -237,10 +237,14 @@
                     {% for game in team_stats['game_by_game']|reverse %}
                     <tr class="{% if game['Result'] == 'W' %}game-row-win{% else %}game-row-loss{% endif %}">
                         <td>{{ game['DateTime'][:10] if game['DateTime'] else 'N/A' }}</td>
-                        <td><span class="division-name hoverable-item" data-type="division" data-id="{{ game['GameDivisionDisplay'] }}">{{ game['GameDivisionDisplay'] }}</span></td>
+                        <td><span class="division-name division-link hoverable-item" data-type="division" data-id="{{ game['GameDivisionDisplay'] }}">{{ game['GameDivisionDisplay'] }}</span></td>
                         <td>
                             <div style="margin-bottom: 4px;">
+                                {% if game.get('HotnessIcon') %}
+                                <a href="/game-detail/{{ game['GameId'] }}" class="game-link completed-game hoverable-item" data-type="game" data-id="{{ game['GameId'] }}" data-hotness-icon="{{ game['HotnessIcon'] }}" title="Hotness: {{ game.get('HotnessScore', 'N/A') }}/100" style="font-size: 0.85em;">Game {{ game['GameId'] }}</a>
+                                {% else %}
                                 <a href="/game-detail/{{ game['GameId'] }}" class="game-link hoverable-item" data-type="game" data-id="{{ game['GameId'] }}" style="font-size: 0.85em;">Game {{ game['GameId'] }}</a>
+                                {% endif %}
                             </div>
                             <div>
                                 {% if game['IsHome'] %}

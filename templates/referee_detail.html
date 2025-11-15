@@ -450,9 +450,15 @@
                         {% for game in referee_stats.games %}
                         <tr>
                             <td>
+                                {% if game.hotness_icon %}
+                                <a href="/game-detail/{{ game.game_id }}" class="game-link completed-game hoverable-item" data-type="game" data-id="{{ game.game_id }}" data-hotness-icon="{{ game.hotness_icon }}" title="Hotness: {{ game.hotness_score }}/100">
+                                    {{ game.game_id }}
+                                </a>
+                                {% else %}
                                 <a href="/game-detail/{{ game.game_id }}" class="game-link hoverable-item" data-type="game" data-id="{{ game.game_id }}">
                                     {{ game.game_id }}
                                 </a>
+                                {% endif %}
                             </td>
                             <td>{{ game.date_time }}</td>
                             <td>{{ game.division }}</td>

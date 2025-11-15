@@ -179,7 +179,7 @@
             {% if selected_division or selected_team %}
             <p style="margin-top: 10px; color: #667eea; font-weight: 600;">
                 Showing statistics for: 
-                {% if selected_division %}<span class="division-name hoverable-item" data-type="division" data-id="{{ selected_division }}">{{ selected_division }}</span>{% endif %}
+                {% if selected_division %}<span class="division-name division-link hoverable-item" data-type="division" data-id="{{ selected_division }}">{{ selected_division }}</span>{% endif %}
                 {% if selected_division and selected_team %} - {% endif %}
                 {% if selected_team %}{{ selected_team }}{% endif %}
             </p>
@@ -348,7 +348,11 @@
                             <td>{{ row.get('GameDate', 'N/A') }}</td>
                             <td>
                                 {% if row.get('GameId') %}
+                                {% if row.get('HotnessIcon') %}
+                                <a href="/game-detail/{{ row['GameId'] }}" class="game-link completed-game hoverable-item" data-type="game" data-id="{{ row['GameId'] }}" data-hotness-icon="{{ row['HotnessIcon'] }}" title="Hotness: {{ row.get('HotnessScore', 'N/A') }}/100">{{ row['GameId'] }}</a>
+                                {% else %}
                                 <a href="/game-detail/{{ row['GameId'] }}" class="game-link hoverable-item" data-type="game" data-id="{{ row['GameId'] }}">{{ row['GameId'] }}</a>
+                                {% endif %}
                                 {% else %}
                                 N/A
                                 {% endif %}
