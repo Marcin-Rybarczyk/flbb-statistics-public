@@ -156,14 +156,18 @@
         }
 
         .matrix-table th {
-            background: #f8f9fa;
-            color: #2c3e50;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
             padding: 8px;
             text-align: center;
             font-weight: 600;
             font-size: 0.9em;
             border: 1px solid #ddd;
             min-width: 100px;
+        }
+
+        .matrix-table th:hover {
+            background: linear-gradient(135deg, #5568d3, #6a3d8f);
         }
 
         .matrix-table th.team-header {
@@ -206,16 +210,25 @@
             font-size: 1.1em;
         }
 
-        .team-name a,
-        .matrix-table th.team-header a {
+        .team-name a {
             color: #2c3e50;
             text-decoration: none;
             transition: color 0.2s ease;
         }
 
-        .team-name a:hover,
-        .matrix-table th.team-header a:hover {
+        .team-name a:hover {
             color: #667eea;
+            text-decoration: underline;
+        }
+
+        .matrix-table th.team-header a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .matrix-table th.team-header a:hover {
+            color: #ffd700;
             text-decoration: underline;
         }
 
