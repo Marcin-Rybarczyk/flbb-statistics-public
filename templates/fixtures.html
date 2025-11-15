@@ -34,6 +34,23 @@
             white-space: nowrap;
         }
 
+        .top-scorer a {
+            color: #e74c3c;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .top-scorer a:hover {
+            text-decoration: underline;
+            color: #c0392b;
+        }
+
+        .top-scorer-points {
+            color: #7f8c8d;
+            font-weight: 500;
+            font-size: 0.95em;
+        }
+
         .date-time {
             color: #7f8c8d;
             font-size: 0.9em;
@@ -114,6 +131,16 @@
             border-radius: 12px;
             font-size: 0.8em;
             font-weight: 500;
+        }
+
+        .location-badge {
+            background: #8e44ad;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+            display: inline-block;
         }
 
         .location {
@@ -608,7 +635,6 @@
                         <th>Date & Time</th>
                         <th>Teams</th>
                         <th>Score</th>
-                        <th>Hotness</th>
                         <th>Top Scorer</th>
                         <th>Division</th>
                         <th>Location</th>
@@ -678,17 +704,6 @@
                                 <span class="unfinished">-</span>
                             {% endif %}
                         </td>
-                        <td style="text-align: center;">
-                            {% if row.get('HotnessIcon') %}
-                                {% if row.get('IsFutureGame') %}
-                                    <span style="font-size: 1.5em;" title="Expected Hotness (based on standings): {{ row['HotnessScore'] }}/100">{{ row['HotnessIcon'] }}</span>
-                                {% else %}
-                                    <span style="font-size: 1.5em;" title="Hotness Score: {{ row['HotnessScore'] }}/100">{{ row['HotnessIcon'] }}</span>
-                                {% endif %}
-                            {% else %}
-                                <span class="unfinished">-</span>
-                            {% endif %}
-                        </td>
                         <td>
                             {% if row.get('IsFinished') and row.get('TopScorerName') and row['TopScorerName'] != 'N/A' %}
                                 <span class="top-scorer">
@@ -699,7 +714,7 @@
                                         {{ row['TopScorerName'] }}
                                     </a>
                                     {% if row['TopScorerPoints'] > 0 %}
-                                        ({{ row['TopScorerPoints'] }}pts)
+                                        <span class="top-scorer-points">({{ row['TopScorerPoints'] }}pts)</span>
                                     {% endif %}
                                 </span>
                             {% else %}
@@ -710,17 +725,22 @@
                             <span class="division-badge division-name division-link hoverable-item" data-type="division" data-id="{{ row.get('Division', row.get('GameDivisionDisplay', 'Unknown')) }}">{{ row.get('Division', row.get('GameDivisionDisplay', 'Unknown')) }}</span>
                         </td>
                         <td class="location">
-                            {% if row.get('LocationGoogleLink') %}
-                            <span class="hoverable-item location-link" 
-                                  data-type="location" 
-                                  data-id="{{ row.get('LocationGoogleLink') }}"
-                                  style="cursor: pointer; text-decoration: underline; text-decoration-style: dotted;"
-                                  title="Right-click for options">
-                                {{ row.get('Location', 'TBD') }}
-                                <span style="color: #4CAF50; margin-left: 5px;">🌐</span>
-                            </span>
+                            {% set location_value = row.get('Location', '-') %}
+                            {% if location_value and location_value != 'TBD' and location_value|string|lower != 'nan' %}
+                                {% if row.get('LocationGoogleLink') %}
+                                <span class="location-badge hoverable-item location-link" 
+                                      data-type="location" 
+                                      data-id="{{ row.get('LocationGoogleLink') }}"
+                                      style="cursor: pointer;"
+                                      title="Right-click for options">
+                                    {{ location_value }}
+                                    <span style="color: #a3f7bf; margin-left: 3px;">🌐</span>
+                                </span>
+                                {% else %}
+                                <span class="location-badge">{{ location_value }}</span>
+                                {% endif %}
                             {% else %}
-                            {{ row.get('Location', 'TBD') }}
+                                <span class="unfinished">-</span>
                             {% endif %}
                         </td>
                         
