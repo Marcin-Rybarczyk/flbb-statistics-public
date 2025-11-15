@@ -1616,6 +1616,19 @@ def get_referee_detail_stats(data, referee_name):
         except:
             pass
         
+        # Calculate hotness for this game
+        hotness_score = 0
+        hotness_icon = "❄️"
+        try:
+            # Use the already parsed events_data
+            teams_data = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
+            score_evolution = _calculate_score_evolution(events_data, game['HomeTeamName'], game['AwayTeamName'], teams_data)
+            game_stats = _calculate_game_statistics(score_evolution)
+            hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'], game_stats.get('close_game_ratio'))
+            hotness_icon = get_hotness_icon(hotness_score)
+        except:
+            pass
+        
         # Add game to referee's game list
         game_info = {
             'game_id': game['GameId'],
@@ -1629,7 +1642,9 @@ def get_referee_detail_stats(data, referee_name):
             'winner': game['GameWinner'],
             'location': game['GameLocation'],
             'fouls_called': game_fouls,
-            'foul_types': dict(game_foul_types)
+            'foul_types': dict(game_foul_types),
+            'hotness_score': hotness_score,
+            'hotness_icon': hotness_icon
         }
         referee_games.append(game_info)
     
