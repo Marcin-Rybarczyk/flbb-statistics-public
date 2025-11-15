@@ -28,7 +28,8 @@ from .utils import (calculate_standings_by_division, get_highest_scoring_games,
                    get_player_hover_stats, get_team_hover_stats, get_referee_hover_stats, get_game_hover_stats,
                    calculate_referee_performance_index, get_closest_games_by_team, CSV_FILEPATH)
 from .version import get_version_info
-from .user_database import authenticate_user, get_user_preferences, update_user_preferences
+from .user_database import (authenticate_user, get_user_preferences, update_user_preferences,
+                            create_user, list_users, update_user_password, delete_user)
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
 
@@ -180,6 +181,15 @@ def user_required(f):
     def decorated_function(*args, **kwargs):
         if not is_user_authenticated():
             return redirect(url_for('user_login', next=request.url))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    """Decorator to require admin authentication for a route"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not is_admin_authenticated():
+            return redirect(url_for('admin_login'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -1019,6 +1029,137 @@ def export_season_data():
         # Log the full exception for debugging
         logger.error(f"Export failed with exception: {str(e)}", exc_info=True)
         return {'success': False, 'error': 'Export failed due to server error. Please contact administrator.'}, 500
+
+# User management routes
+@app.route('/admin/users')
+@admin_required
+def admin_users():
+    """User management page - list all users"""
+    users = list_users()
+    return render_template('admin_users.html', users=users)
+
+@app.route('/admin/users/create', methods=['POST'])
+@admin_required
+@limiter.limit("10 per hour")
+def admin_create_user():
+    """Create a new user with default password"""
+    username = request.form.get('username', '').strip()
+    division_name = request.form.get('division_name', '').strip() or None
+    team_name = request.form.get('team_name', '').strip() or None
+    
+    if not username:
+        return jsonify({'success': False, 'error': 'Username is required'}), 400
+    
+    # Default password as specified in requirements
+    default_password = "kurwa"
+    
+    # Create the user
+    success, message = create_user(
+        username=username,
+        password=default_password,
+        division_name=division_name,
+        team_name=team_name
+    )
+    
+    if success:
+        return jsonify({
+            'success': True,
+            'message': f"User '{username}' created successfully with default password"
+        })
+    else:
+        return jsonify({'success': False, 'error': message}), 400
+
+@app.route('/admin/users/reset-password', methods=['POST'])
+@admin_required
+@limiter.limit("10 per hour")
+def admin_reset_password():
+    """Reset user password to default"""
+    username = request.form.get('username', '').strip()
+    
+    if not username:
+        return jsonify({'success': False, 'error': 'Username is required'}), 400
+    
+    # Default password as specified in requirements
+    default_password = "kurwa"
+    
+    # Update the password
+    success, message = update_user_password(username, default_password)
+    
+    if success:
+        return jsonify({
+            'success': True,
+            'message': f"Password reset successfully for user '{username}'"
+        })
+    else:
+        return jsonify({'success': False, 'error': message}), 400
+
+@app.route('/admin/users/delete', methods=['POST'])
+@admin_required
+@limiter.limit("10 per hour")
+def admin_delete_user():
+    """Delete a user"""
+    username = request.form.get('username', '').strip()
+    
+    if not username:
+        return jsonify({'success': False, 'error': 'Username is required'}), 400
+    
+    # Delete the user
+    success, message = delete_user(username)
+    
+    if success:
+        return jsonify({
+            'success': True,
+            'message': message
+        })
+    else:
+        return jsonify({'success': False, 'error': message}), 400
+
+@app.route('/user/change-password', methods=['GET', 'POST'])
+@user_required
+def user_change_password():
+    """Allow users to change their own password"""
+    if request.method == 'POST':
+        current_password = request.form.get('current_password', '')
+        new_password = request.form.get('new_password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        
+        # Get current username from session
+        username = session.get('username')
+        if not username:
+            return render_template('change_password.html', 
+                                 error='Session expired. Please login again.')
+        
+        # Validate inputs
+        if not current_password or not new_password or not confirm_password:
+            return render_template('change_password.html',
+                                 error='All fields are required')
+        
+        if new_password != confirm_password:
+            return render_template('change_password.html',
+                                 error='New passwords do not match')
+        
+        if len(new_password) < 5:
+            return render_template('change_password.html',
+                                 error='New password must be at least 5 characters')
+        
+        # Verify current password
+        auth_success, _ = authenticate_user(username, current_password)
+        if not auth_success:
+            return render_template('change_password.html',
+                                 error='Current password is incorrect')
+        
+        # Update password
+        success, message = update_user_password(username, new_password)
+        
+        if success:
+            return render_template('change_password.html',
+                                 success='Password changed successfully')
+        else:
+            return render_template('change_password.html',
+                                 error=f'Failed to change password: {message}')
+    
+    # GET request - show form
+    return render_template('change_password.html')
 
 # API endpoints for hover tooltips
 @app.route('/api/hover/player/<player_name>')

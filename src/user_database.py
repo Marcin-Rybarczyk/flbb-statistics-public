@@ -112,8 +112,8 @@ def create_user(username: str, password: str, division_name: Optional[str] = Non
     if not username or len(username) > 50:
         return False, "Username must be between 1 and 50 characters"
     
-    if not password or len(password) < 6:
-        return False, "Password must be at least 6 characters"
+    if not password or len(password) < 5:
+        return False, "Password must be at least 5 characters"
     
     conn = None
     try:
@@ -297,8 +297,8 @@ def update_user_password(username: str, new_password: str) -> Tuple[bool, str]:
     Returns:
         Tuple[bool, str]: (Success status, Message or error description)
     """
-    if not new_password or len(new_password) < 6:
-        return False, "Password must be at least 6 characters"
+    if not new_password or len(new_password) < 5:
+        return False, "Password must be at least 5 characters"
     
     conn = None
     try:

@@ -6,6 +6,22 @@
 {% block page_description %}Data statistics and system information{% endblock %}
 
 {% block content %}
+        {% if is_admin_authenticated %}
+        <div class="stats-section">
+            <h2>🔧 Quick Admin Actions</h2>
+            <div style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;">
+                    <a href="{{ url_for('admin_users') }}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 25px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: transform 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        👥 Manage Users
+                    </a>
+                    <a href="{{ url_for('admin') }}" style="display: inline-block; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 15px 25px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: transform 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        📊 Data Overview
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <div class="stats-section">
             <h2>📊 Data Overview</h2>
             <div class="stat-summary">
