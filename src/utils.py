@@ -3276,9 +3276,86 @@ def get_all_fixtures_data(data, division_filter=None):
         # Combine finished and future games
         if not future_games_df.empty:
             all_games = pd.concat([finished_games, future_games_df], ignore_index=True)
+            
+            # Add time_until columns for future games
+            all_games['TimeUntilText'] = ''
+            all_games['TimeUntilColorClass'] = ''
+            all_games['TimeUntilHours'] = float('inf')
+            
+            for idx, row in all_games.iterrows():
+                if row.get('IsFutureGame', False):
+                    time_until = calculate_time_until_game(row.get('DateTime'))
+                    all_games.at[idx, 'TimeUntilText'] = time_until['text']
+                    all_games.at[idx, 'TimeUntilColorClass'] = time_until['color_class']
+                    all_games.at[idx, 'TimeUntilHours'] = time_until['hours']
+            
             return all_games
     
     return finished_games
+
+
+def calculate_time_until_game(game_datetime_str):
+    """
+    Calculate time remaining until a game and return formatted string with color class.
+    
+    Parameters:
+    game_datetime_str (str): The game datetime string
+    
+    Returns:
+    dict: Dictionary with keys:
+        - 'text': Formatted time remaining text (e.g., "in 2 days", "in 5 hours")
+        - 'color_class': CSS class for color coding based on urgency
+        - 'hours': Total hours until game (for sorting)
+    """
+    from datetime import datetime, timedelta
+    
+    if not game_datetime_str or game_datetime_str == 'TBD':
+        return {'text': '', 'color_class': '', 'hours': float('inf')}
+    
+    try:
+        # Parse the game datetime
+        game_dt = pd.to_datetime(game_datetime_str)
+        now = datetime.now()
+        
+        # Calculate time difference
+        time_diff = game_dt - now
+        
+        # If game is in the past, return empty
+        if time_diff.total_seconds() < 0:
+            return {'text': '', 'color_class': '', 'hours': -1}
+        
+        total_hours = time_diff.total_seconds() / 3600
+        total_days = time_diff.days
+        
+        # Format the text based on time remaining
+        if total_hours < 1:
+            minutes = int(time_diff.total_seconds() / 60)
+            text = f"in {minutes} min" if minutes > 0 else "starting soon"
+            color_class = 'time-very-soon'
+        elif total_hours < 24:
+            hours = int(total_hours)
+            text = f"in {hours}h"
+            color_class = 'time-today'
+        elif total_days == 1:
+            text = "tomorrow"
+            color_class = 'time-tomorrow'
+        elif total_days <= 3:
+            text = f"in {total_days} days"
+            color_class = 'time-few-days'
+        elif total_days <= 7:
+            text = f"in {total_days} days"
+            color_class = 'time-week'
+        else:
+            text = f"in {total_days} days"
+            color_class = 'time-later'
+        
+        return {
+            'text': text,
+            'color_class': color_class,
+            'hours': total_hours
+        }
+    except Exception as e:
+        return {'text': '', 'color_class': '', 'hours': float('inf')}
 
 
 def get_fixtures_matrix_data(data, division_filter=None):
@@ -3391,6 +3468,11 @@ def get_fixtures_matrix_data(data, division_filter=None):
             is_next_for_home = closest_games.get(raw_home) == game_id
             is_next_for_away = closest_games.get(raw_away) == game_id
             
+            # Calculate time until game for future games
+            time_until = {'text': '', 'color_class': '', 'hours': float('inf')}
+            if game.get('IsFutureGame', False):
+                time_until = calculate_time_until_game(game['DateTime'])
+            
             game_info = {
                 'game_id': game_id,
                 'date': game['DateTime'][:16] if pd.notna(game['DateTime']) else 'TBD',
@@ -3408,7 +3490,8 @@ def get_fixtures_matrix_data(data, division_filter=None):
                 'hotness_icon': hotness_icon,
                 'is_future': game.get('IsFutureGame', False),
                 'is_next_for_home': is_next_for_home,
-                'is_next_for_away': is_next_for_away
+                'is_next_for_away': is_next_for_away,
+                'time_until': time_until
             }
             
             matrix[home_team][away_team].append(game_info)
