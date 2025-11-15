@@ -536,19 +536,23 @@
                             </div>
                             <div>
                                 <a href="/team-detail?team={{ game.Team }}" class="team-link">
+                                    <span class="team-name-container">
                                     {% set team_logo_url = get_team_logo_url(game.Team) %}
                                     {% if team_logo_url %}
                                     <img src="{{ team_logo_url }}" alt="{{ game.Team }} logo" class="team-logo-icon">
                                     {% endif %}
                                     {{ game.Team }}
+                                    </span>
                                 </a>
                                 vs
                                 <a href="/team-detail?team={{ game.OpponentTeam }}" class="team-link">
+                                    <span class="team-name-container">
                                     {% set opponent_logo_url = get_team_logo_url(game.OpponentTeam) %}
                                     {% if opponent_logo_url %}
                                     <img src="{{ opponent_logo_url }}" alt="{{ game.OpponentTeam }} logo" class="team-logo-icon">
                                     {% endif %}
                                     {{ game.OpponentTeam }}
+                                    </span>
                                 </a>
                             </div>
                         </td>

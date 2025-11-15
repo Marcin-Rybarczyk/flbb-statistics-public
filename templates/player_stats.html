@@ -139,11 +139,13 @@
         <form method="post" action="/team-stats" style="display: inline;">
             <input type="hidden" name="team" value="{{ team_name }}">
             <button type="submit" class="team-link">
+                <span class="team-name-container">
                 {% set team_logo_url = get_team_logo_url(team_name) %}
                 {% if team_logo_url %}
                 <img src="{{ team_logo_url }}" alt="{{ team_name }} logo" class="team-logo-icon">
                 {% endif %}
                 {{ team_name }}
+                </span>
             </button>
         </form>
         {%- endmacro %}
