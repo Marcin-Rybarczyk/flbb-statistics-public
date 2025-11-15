@@ -48,3 +48,6 @@ logos/*_placeholder.txt
 
 # Environment variables (contains sensitive credentials)
 .env
+
+# User database (contains sensitive user data)
+data/users.db
