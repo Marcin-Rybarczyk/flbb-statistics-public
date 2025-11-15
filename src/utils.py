@@ -3325,7 +3325,9 @@ def calculate_time_until_game(game_datetime_str):
             return {'text': '', 'color_class': '', 'hours': -1}
         
         total_hours = time_diff.total_seconds() / 3600
-        total_days = time_diff.days
+        # Round up for partial days to show more accurate day count
+        import math
+        total_days = math.ceil(total_hours / 24)
         
         # Format the text based on time remaining
         if total_hours < 1:
@@ -3336,7 +3338,7 @@ def calculate_time_until_game(game_datetime_str):
             hours = int(total_hours)
             text = f"in {hours}h"
             color_class = 'time-today'
-        elif total_days == 1:
+        elif total_hours >= 24 and total_hours < 36:  # Between 1-1.5 days (reasonable "tomorrow" range)
             text = "tomorrow"
             color_class = 'time-tomorrow'
         elif total_days <= 3:
