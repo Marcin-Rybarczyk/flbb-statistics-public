@@ -743,6 +743,18 @@
             vertical-align: middle;
         }
 
+        /* Prevent line breaks between team logo and team name */
+        .team-logo {
+            display: inline-block;
+            vertical-align: middle;
+        }
+        
+        /* Keep logo and team name together on same line */
+        .team-name-container {
+            white-space: nowrap;
+            display: inline-block;
+        }
+
         /* For team buttons styled as links */
         button.team-link {
             background: none;
