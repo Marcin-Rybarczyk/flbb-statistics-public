@@ -1559,6 +1559,42 @@
                                 </div>
                             `;
                         }
+                    } else if (type === 'division') {
+                        // Format top 3 teams
+                        let topTeamsHtml = '';
+                        if (data.top_teams && data.top_teams.length > 0) {
+                            topTeamsHtml = '<div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.1);">';
+                            topTeamsHtml += '<div style="font-weight: 600; color: #667eea; margin-bottom: 6px;">Top 3 Teams:</div>';
+                            data.top_teams.forEach((team, idx) => {
+                                const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : '🥉');
+                                topTeamsHtml += `<div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85em;">
+                                    <span>${medal} ${team.name}</span>
+                                    <span style="font-weight: 600; color: #667eea;">${team.wins}W-${team.losses}L</span>
+                                </div>`;
+                            });
+                            topTeamsHtml += '</div>';
+                        }
+                        
+                        // Format top 3 scorers
+                        let topScorersHtml = '';
+                        if (data.top_scorers && data.top_scorers.length > 0) {
+                            topScorersHtml = '<div>';
+                            topScorersHtml += '<div style="font-weight: 600; color: #667eea; margin-bottom: 6px;">Top 3 Scorers (Avg):</div>';
+                            data.top_scorers.forEach((scorer, idx) => {
+                                const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : '🥉');
+                                topScorersHtml += `<div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85em;">
+                                    <span>${medal} ${scorer.name}</span>
+                                    <span style="font-weight: 600; color: #667eea;">${scorer.avg_score} ppg</span>
+                                </div>`;
+                            });
+                            topScorersHtml += '</div>';
+                        }
+                        
+                        content = `
+                            <h4>🏆 ${data.division_name}</h4>
+                            ${topTeamsHtml}
+                            ${topScorersHtml}
+                        `;
                     }
 
                     tooltip.innerHTML = content;

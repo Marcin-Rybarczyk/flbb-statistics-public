@@ -26,7 +26,7 @@ from .utils import (calculate_standings_by_division, get_highest_scoring_games,
                    get_all_players_list, get_player_detail_stats, get_game_details, get_referee_detail_stats,
                    get_team_detail_stats, get_all_referees_list, get_all_games_list,
                    get_player_hover_stats, get_team_hover_stats, get_referee_hover_stats, get_game_hover_stats,
-                   calculate_referee_performance_index, get_closest_games_by_team, CSV_FILEPATH)
+                   get_division_hover_stats, calculate_referee_performance_index, get_closest_games_by_team, CSV_FILEPATH)
 from .version import get_version_info
 from .user_database import (authenticate_user, get_user_preferences, update_user_preferences,
                             create_user, list_users, update_user_password, delete_user)
@@ -1216,6 +1216,21 @@ def api_game_hover(game_id):
     stats = get_game_hover_stats(data, game_id)
     if stats is None:
         return jsonify({'error': 'Game not found'}), 404
+    
+    return jsonify(stats)
+
+@app.route('/api/hover/division/<division_name>')
+def api_division_hover(division_name):
+    """API endpoint to get division hover statistics"""
+    if data.empty:
+        return jsonify({'error': 'No data available'}), 404
+    
+    # URL decode the division name
+    division_name = unquote(division_name)
+    
+    stats = get_division_hover_stats(data, division_name)
+    if stats is None:
+        return jsonify({'error': 'Division not found'}), 404
     
     return jsonify(stats)
 
