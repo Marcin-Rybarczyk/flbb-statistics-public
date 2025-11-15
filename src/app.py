@@ -643,14 +643,19 @@ def game_detail(game_id):
     if data.empty:
         return render_template('game_detail.html', error="No data available", data_source_info=data_source_info)
     
+    # Get all games for autocomplete
+    all_games = get_all_games_list(data)
+    
     # Get game details
     game_details = get_game_details(data, game_id)
     
     if not game_details:
-        return render_template('game_detail.html', error=f"Game {game_id} not found", data_source_info=data_source_info)
+        return render_template('game_detail.html', error=f"Game {game_id} not found", all_games=all_games, game_id=game_id, data_source_info=data_source_info)
     
     return render_template('game_detail.html',
                          game=game_details,
+                         all_games=all_games,
+                         game_id=game_id,
                          data_source_info=data_source_info)
 
 @app.route('/game-details')
