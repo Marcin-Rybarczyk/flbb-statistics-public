@@ -442,8 +442,8 @@ def player_detail():
     # Get all players for autocomplete
     all_players = get_all_players_list(data)
     
-    # Get selected player from query parameter
-    player_name = request.args.get('player')
+    # Get selected player from query parameter or user preferences
+    player_name = request.args.get('player') or session.get('preferred_player')
     player_stats_detail = None
     
     if player_name:
@@ -673,6 +673,7 @@ def preferences():
         # Save preferences to session
         session['preferred_division'] = request.form.get('division') or None
         session['preferred_team'] = request.form.get('team') or None
+        session['preferred_player'] = request.form.get('player') or None
         
         # Validate and save theme preference
         theme = request.form.get('theme', 'default')
@@ -689,16 +690,21 @@ def preferences():
     away_teams = set(data['AwayTeamName'].unique()) if not data.empty else set()
     all_teams = sorted(home_teams.union(away_teams))
     
+    # Get all players for dropdown
+    all_players = get_all_players_list(data)
+    
     # Get current preferences from session
     current_prefs = {
         'division': session.get('preferred_division'),
         'team': session.get('preferred_team'),
+        'player': session.get('preferred_player'),
         'theme': session.get('preferred_theme', 'default')
     }
     
     return render_template('preferences.html',
                          divisions=divisions,
                          all_teams=all_teams,
+                         all_players=all_players,
                          current_prefs=current_prefs,
                          data_source_info=data_source_info)
 
