@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% block title %}Help & Features Guide - FLBB Statistics{% endblock %}
+
+{% block page_title %}📚 Help & Features Guide{% endblock %}
+{% block page_description %}Complete guide to all website features and how to use them{% endblock %}
+
+{% block content %}
+
+<div class="stats-section">
+    <div style="background: linear-gradient(135deg, #e3f2fd, #bbdefb); padding: 20px; border-radius: 10px; margin-bottom: 30px; text-align: center;">
+        <h2 style="color: #1565c0; margin-bottom: 10px;">Welcome to FLBB Statistics Help Center</h2>
+        <p style="color: #0d47a1;">
+            This guide provides comprehensive information about all features available on the website.
+            Use this reference to get the most out of your basketball statistics analysis experience.
+        </p>
+    </div>
+
+    <!-- Table of Contents -->
+    <div style="background: #f5f5f5; padding: 20px; border-radius: 10px; margin-bottom: 30px;">
+        <h3 style="color: #2c3e50; margin-bottom: 15px;">📑 Quick Navigation</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px;">
+            <a href="#home" style="color: #667eea; text-decoration: none; padding: 8px; background: white; border-radius: 5px; display: block;">🏠 Home & Standings</a>
+            <a href="#fixtures" style="color: #667eea; text-decoration: none; padding: 8px; background: white; border-radius: 5px; display: block;">📅 Fixtures</a>
+            <a href="#game-stats" style="color: #667eea; text-decoration: none; padding: 8px; background: white; border-radius: 5px; display: block;">🎮 Game Statistics</a>
+            <a href="#player-stats" style="color: #667eea; text-decoration: none; padding: 8px; background: white; border-radius: 5px; display: block;">👤 Player Statistics</a>
+            <a href="#team-stats" style="color: #667eea; text-decoration: none; padding: 8px; background: white; border-radius: 5px; display: block;">🏀 Team Statistics</a>
+            <a href="#referee-stats" style="color: #667eea; text-decoration: none; padding: 8px; background: white; border-radius: 5px; display: block;">👨‍⚖️ Referee Statistics</a>
+            <a href="#deep-analysis" style="color: #667eea; text-decoration: none; padding: 8px; background: white; border-radius: 5px; display: block;">🔍 Deep Analysis</a>
+            <a href="#preferences" style="color: #667eea; text-decoration: none; padding: 8px; background: white; border-radius: 5px; display: block;">⚙️ Preferences</a>
+            {% if is_admin_authenticated %}
+            <a href="#admin" style="color: #667eea; text-decoration: none; padding: 8px; background: white; border-radius: 5px; display: block;">🔐 Admin Features</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Home & Standings -->
+    <div id="home" class="feature-section" style="margin-bottom: 40px; padding: 25px; background: white; border-left: 5px solid #667eea; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h3 style="color: #667eea; margin-bottom: 15px;">🏠 Home & Standings</h3>
+        <p style="margin-bottom: 15px; line-height: 1.8;">
+            The home page and standings section provide an overview of team rankings across different divisions.
+        </p>
+        <h4 style="color: #2c3e50; margin-top: 20px; margin-bottom: 10px;">Features:</h4>
+        <ul style="line-height: 1.8; color: #555; margin-left: 20px;">
+            <li><strong>Division Selection:</strong> Choose from available divisions to view specific standings</li>
+            <li><strong>Team Rankings:</strong> View teams ranked by points, with wins, losses, and point differentials</li>
+            <li><strong>Quick Overview:</strong> See win/loss records and total points for each team</li>
+            <li><strong>Team Logos:</strong> Visual representation of teams with their official logos</li>
+        </ul>
+        <h4 style="color: #2c3e50; margin-top: 20px; margin-bottom: 10px;">How to Use:</h4>
+        <ol style="line-height: 1.8; color: #555; margin-left: 20px;">
+            <li>Navigate to <strong>Home</strong> or <strong>Standings</strong> from the navigation menu</li>
+            <li>Select a division from the dropdown menu</li>
+            <li>Click "Show Standings" to view the current rankings</li>
+            <li>Teams are automatically sorted by points (wins count for 2 points)</li>
+        </ol>
+    </div>
+
+    <!-- Fixtures -->
+    <div id="fixtures" class="feature-section" style="margin-bottom: 40px; padding: 25px; background: white; border-left: 5px solid #4caf50; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h3 style="color: #4caf50; margin-bottom: 15px;">📅 Fixtures</h3>
+        <p style="margin-bottom: 15px; line-height: 1.8;">
+            The fixtures page shows the complete schedule of games, including past results and upcoming matches.
+        </p>
+        <h4 style="color: #2c3e50; margin-top: 20px; margin-bottom: 10px;">Features:</h4>
+        <ul style="line-height: 1.8; color: #555; margin-left: 20px;">
+            <li><strong>Game Schedule:</strong> Comprehensive list of all games with dates and times</li>
+            <li><strong>Match Results:</strong> View final scores for completed games</li>
+            <li><strong>Division Filtering:</strong> Filter fixtures by specific divisions</li>
+            <li><strong>Game Matrix:</strong> Visual representation of head-to-head matchups</li>
+            <li><strong>Venue Information:</strong> See where each game is/was played</li>
+        </ul>
+        <h4 style="color: #2c3e50; margin-top: 20px; margin-bottom: 10px;">How to Use:</h4>
+        <ol style="line-height: 1.8; color: #555; margin-left: 20px;">
+            <li>Click on <strong>Fixtures</strong> in the navigation menu</li>
+            <li>Use the division filter to narrow down to specific competitions</li>
+            <li>Browse through the list of games chronologically</li>
+            <li>Click on individual games for detailed information</li>
+        </ol>
+    </div>
+
+    <!-- Game Statistics -->
+    <div id="game-stats" class="feature-section" style="margin-bottom: 40px; padding: 25px; background: white; border-left: 5px solid #ff9800; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h3 style="color: #ff9800; margin-bottom: 15px;">🎮 Game Statistics</h3>
+        <p style="margin-bottom: 15px; line-height: 1.8;">
+            Comprehensive game-level statistics and highlights across the league.
+        </p>
+        <h4 style="color: #2c3e50; margin-top: 20px; margin-bottom: 10px;">Features:</h4>
+        <ul style="line-height: 1.8; color: #555; margin-left: 20px;">
+            <li><strong>Highest Scoring Games:</strong> See games with the most combined points</li>
+            <li><strong>Biggest Wins:</strong> Identify games with the largest point differentials</li>
+            <li><strong>Biggest Leads:</strong> Track the largest leads held during games</li>
+            <li><strong>Tie Scores:</strong> Games with the most tied scores throughout</li>
+            <li><strong>Lead Changes:</strong> Most competitive games by number of lead changes</li>
+            <li><strong>Game Duration:</strong> Longest and shortest games by playing time</li>
+            <li><strong>Division Filtering:</strong> View statistics for specific divisions</li>
+        </ul>
+        <h4 style="color: #2c3e50; margin-top: 20px; margin-bottom: 10px;">How to Use:</h4>
+        <ol style="line-height: 1.8; color: #555; margin-left: 20px;">
+            <li>Access <strong>Game Stats</strong> from the navigation (requires login)</li>
+            <li>Select a division or view all divisions</li>
+            <li>Browse through different statistical categories</li>
+            <li>Each statistic shows top games with relevant details</li>
+        </ol>
+    </div>
+
+    <!-- Player Statistics -->
+    <div id="player-stats" class="feature-section" style="margin-bottom: 40px; padding: 25px; background: white; border-left: 5px solid #9c27b0; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h3 style="color: #9c27b0; margin-bottom: 15px;">👤 Player Statistics</h3>
+        <p style="margin-bottom: 15px; line-height: 1.8;">
+            Detailed individual player performance metrics and rankings.
+        </p>
+        <h4 style="color: #2c3e50; margin-top: 20px; margin-bottom: 10px;">Features:</h4>
+        <ul style="line-height: 1.8; color: #555; margin-left: 20px;">
+            <li><strong>Top Scorers:</strong> Leading players by total points and per-game averages</li>
+            <li><strong>Single Game Highs:</strong> Best individual game performances</li>
+            <li><strong>Three-Point Leaders:</strong> Best three-point shooters</li>
+            <li><strong>Shooting Efficiency:</strong> Field goal percentages and efficiency ratings</li>
+            <li><strong>Foul Statistics:</strong> Players with most fouls and foul patterns</li>
+            <li><strong>Consistency Metrics:</strong> Players who consistently score in double digits</li>
+            <li><strong>Player Detail View:</strong> Deep dive into individual player statistics</li>
+            <li><strong>Hover Information:</strong> Quick stats preview on player name hover</li>
+        </ul>
+        <h4 style="color: #2c3e50; margin-top: 20px; margin-bottom: 10px;">How to Use:</h4>
+        <ol style="line-height: 1.8; color: #555; margin-left: 20px;">
+            <li>Navigate to <strong>Player Stats</strong> (requires login)</li>
+            <li>Browse different statistical categories</li>
+            <li>Click on <strong>Player Detail</strong> for comprehensive individual stats</li>
+            <li>Search for specific players using the search function</li>
+            <li>Hover over player names for quick stat previews</li>
+        </ol>
+    </div>
+
+    <!-- Team Statistics -->
+    <div id="team-stats" class="feature-section" style="margin-bottom: 40px; padding: 25px; background: white; border-left: 5px solid #f44336; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h3 style="color: #f44336; margin-bottom: 15px;">🏀 Team Statistics</h3>
+        <p style="margin-bottom: 15px; line-height: 1.8;">
+            Comprehensive team performance analysis and comparative statistics.
+        </p>
+        <h4 style="color: #2c3e50; margin-top: 20px; margin-bottom: 10px;">Features:</h4>
+        <ul style="line-height: 1.8; color: #555; margin-left: 20px;">
+            <li><strong>Team Performance:</strong> Win/loss records, points for/against</li>
+            <li><strong>Offensive Stats:</strong> Scoring averages, highest scores, shooting percentages</li>
+            <li><strong>Defensive Stats:</strong> Points allowed, defensive efficiency</li>
+            <li><strong>Home/Away Splits:</strong> Performance comparison at home vs. away</li>
+            <li><strong>Winning Streaks:</strong> Current and longest winning/losing streaks</li>
+            <li><strong>Team Detail View:</strong> In-depth team analysis with game-by-game breakdown</li>
+            <li><strong>Player Rosters:</strong> View team rosters and player contributions</li>
+            <li><strong>Division Filtering:</strong> Compare teams within specific divisions</li>
+        </ul>
+        <h4 style="color: #2c3e50; margin-top: 20px; margin-bottom: 10px;">How to Use:</h4>
+        <ol style="line-height: 1.8; color: #555; margin-left: 20px;">
+            <li>Go to <strong>Team Stats</strong> (requires login)</li>
+            <li>Select a division to filter teams</li>
+            <li>Browse team performance metrics</li>
+            <li>Click <strong>Team Detail</strong> for comprehensive team analysis</li>
+            <li>Select a team from the dropdown for detailed statistics</li>
+        </ol>
+    </div>
+
+    <!-- Referee Statistics -->
+    <div id="referee-stats" class="feature-section" style="margin-bottom: 40px; padding: 25px; background: white; border-left: 5px solid #00bcd4; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h3 style="color: #00bcd4; margin-bottom: 15px;">👨‍⚖️ Referee Statistics</h3>
+        <p style="margin-bottom: 15px; line-height: 1.8;">
+            Analysis of referee performance and game management statistics.
+        </p>
+        <h4 style="color: #2c3e50; margin-top: 20px; margin-bottom: 10px;">Features:</h4>
+        <ul style="line-height: 1.8; color: #555; margin-left: 20px;">
+            <li><strong>Games Officiated:</strong> Total number of games per referee</li>
+            <li><strong>Foul Statistics:</strong> Average fouls called per game</li>
+            <li><strong>Most/Least Fouls:</strong> Referees who call most and least fouls</li>
+            <li><strong>Referee Performance Index:</strong> Comprehensive performance scoring</li>
+            <li><strong>Game Impact Analysis:</strong> How referee decisions affect game flow</li>
+            <li><strong>Referee Detail View:</strong> Complete statistics for individual referees</li>
+            <li><strong>Hover Information:</strong> Quick referee stats on name hover</li>
+        </ul>
+        <h4 style="color: #2c3e50; margin-top: 20px; margin-bottom: 10px;">How to Use:</h4>
+        <ol style="line-height: 1.8; color: #555; margin-left: 20px;">
+            <li>Navigate to <strong>Referee Stats</strong> (requires login)</li>
+            <li>View overall referee statistics and rankings</li>
+            <li>Click <strong>Referee Performance Index</strong> for detailed performance metrics</li>
+            <li>Use <strong>Referee Detail</strong> to analyze specific referees</li>
+            <li>Select a referee from the dropdown for comprehensive statistics</li>
+        </ol>
+    </div>
+
+    <!-- Deep Analysis -->
+    <div id="deep-analysis" class="feature-section" style="margin-bottom: 40px; padding: 25px; background: white; border-left: 5px solid #673ab7; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h3 style="color: #673ab7; margin-bottom: 15px;">🔍 Deep Analysis</h3>
+        <p style="margin-bottom: 15px; line-height: 1.8;">
+            Advanced analytics and deeper insights into basketball performance.
+        </p>
+        <h4 style="color: #2c3e50; margin-top: 20px; margin-bottom: 10px;">Features:</h4>
+        <ul style="line-height: 1.8; color: #555; margin-left: 20px;">
+            <li><strong>Starting Five vs Bench:</strong> Compare starter and bench player contributions</li>
+            <li><strong>Double-Digit Scorers:</strong> Games with most players scoring 10+ points</li>
+            <li><strong>Consistent Scorers:</strong> Players with high double-digit scoring frequency</li>
+            <li><strong>Player Combinations:</strong> Best performing player pairings</li>
+            <li><strong>Game Impact Analysis:</strong> How individual players affect game outcomes</li>
+            <li><strong>Foul Impact Analysis:</strong> Relationship between fouls and performance</li>
+            <li><strong>Shooting Efficiency:</strong> Advanced shooting metrics and percentages</li>
+            <li><strong>Division Filtering:</strong> Focus analysis on specific divisions</li>
+        </ul>
+        <h4 style="color: #2c3e50; margin-top: 20px; margin-bottom: 10px;">How to Use:</h4>
+        <ol style="line-height: 1.8; color: #555; margin-left: 20px;">
+            <li>Access <strong>Deep Analysis</strong> from the navigation (requires login)</li>
+            <li>Select a division for focused analysis or view all divisions</li>
+            <li>Explore various advanced analytics sections</li>
+            <li>Each section provides detailed tables with sortable columns</li>
+            <li>Use insights to understand team dynamics and player performance patterns</li>
+        </ol>
+    </div>
+
+    <!-- Preferences -->
+    <div id="preferences" class="feature-section" style="margin-bottom: 40px; padding: 25px; background: white; border-left: 5px solid #607d8b; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h3 style="color: #607d8b; margin-bottom: 15px;">⚙️ Preferences</h3>
+        <p style="margin-bottom: 15px; line-height: 1.8;">
+            Customize your experience with personal preferences and settings.
+        </p>
+        <h4 style="color: #2c3e50; margin-top: 20px; margin-bottom: 10px;">Features:</h4>
+        <ul style="line-height: 1.8; color: #555; margin-left: 20px;">
+            <li><strong>Preferred Division:</strong> Set default division for automatic filtering</li>
+            <li><strong>Preferred Team:</strong> Set default team for team detail pages</li>
+            <li><strong>Theme Selection:</strong> Choose from multiple color schemes</li>
+            <li><strong>Session Persistence:</strong> Preferences saved for your browsing session</li>
+        </ul>
+        <h4 style="color: #2c3e50; margin-top: 20px; margin-bottom: 10px;">Available Themes:</h4>
+        <ul style="line-height: 1.8; color: #555; margin-left: 20px;">
+            <li><strong>Default Purple:</strong> Classic purple gradient theme</li>
+            <li><strong>Ocean Blue:</strong> Calming blue color scheme</li>
+            <li><strong>Sunset Orange:</strong> Warm orange and red tones</li>
+            <li><strong>Forest Green:</strong> Natural green theme</li>
+            <li><strong>Minimal Gray:</strong> Clean and simple grayscale</li>
+            <li><strong>Cherry Red:</strong> Bold red color scheme</li>
+        </ul>
+        <h4 style="color: #2c3e50; margin-top: 20px; margin-bottom: 10px;">How to Use:</h4>
+        <ol style="line-height: 1.8; color: #555; margin-left: 20px;">
+            <li>Navigate to <strong>Preferences</strong> (requires login)</li>
+            <li>Select your preferred division (optional)</li>
+            <li>Select your preferred team (optional)</li>
+            <li>Choose a theme color</li>
+            <li>Click "Save Preferences" to apply your settings</li>
+            <li>Your preferences will be used as defaults on applicable pages</li>
+        </ol>
+    </div>
+
+    <!-- Game Details -->
+    <div id="game-details" class="feature-section" style="margin-bottom: 40px; padding: 25px; background: white; border-left: 5px solid #795548; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h3 style="color: #795548; margin-bottom: 15px;">🏀 Game Details</h3>
+        <p style="margin-bottom: 15px; line-height: 1.8;">
+            Search and view comprehensive information about specific games.
+        </p>
+        <h4 style="color: #2c3e50; margin-top: 20px; margin-bottom: 10px;">Features:</h4>
+        <ul style="line-height: 1.8; color: #555; margin-left: 20px;">
+            <li><strong>Game Search:</strong> Find games by ID, team names, or division</li>
+            <li><strong>Detailed Statistics:</strong> Complete game breakdown with quarter-by-quarter scores</li>
+            <li><strong>Player Performance:</strong> Individual player statistics for the game</li>
+            <li><strong>Play-by-Play:</strong> Detailed game events and timeline</li>
+            <li><strong>Referee Information:</strong> Officials who worked the game</li>
+            <li><strong>Venue Details:</strong> Location and attendance information</li>
+        </ul>
+        <h4 style="color: #2c3e50; margin-top: 20px; margin-bottom: 10px;">How to Use:</h4>
+        <ol style="line-height: 1.8; color: #555; margin-left: 20px;">
+            <li>Click on <strong>Game Details</strong> (requires login)</li>
+            <li>Use the search function to find specific games</li>
+            <li>Enter game ID, team names, or filter by division</li>
+            <li>Click on a game to view comprehensive details</li>
+        </ol>
+    </div>
+
+    {% if is_admin_authenticated %}
+    <!-- Admin Features -->
+    <div id="admin" class="feature-section" style="margin-bottom: 40px; padding: 25px; background: white; border-left: 5px solid #e91e63; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h3 style="color: #e91e63; margin-bottom: 15px;">🔐 Admin Features</h3>
+        <p style="margin-bottom: 15px; line-height: 1.8;">
+            Administrative tools for data management and system configuration.
+        </p>
+        <h4 style="color: #2c3e50; margin-top: 20px; margin-bottom: 10px;">Features:</h4>
+        <ul style="line-height: 1.8; color: #555; margin-left: 20px;">
+            <li><strong>Season Management:</strong> Import and export season data archives</li>
+            <li><strong>Data Source Configuration:</strong> Manage data sources (CSV/MongoDB)</li>
+            <li><strong>Archive Access:</strong> View and restore previous seasons</li>
+            <li><strong>System Information:</strong> View application version and data status</li>
+            <li><strong>Data Export:</strong> Export current season data for backup</li>
+            <li><strong>Data Import:</strong> Import historical season archives</li>
+        </ul>
+        <h4 style="color: #2c3e50; margin-top: 20px; margin-bottom: 10px;">How to Use:</h4>
+        <ol style="line-height: 1.8; color: #555; margin-left: 20px;">
+            <li>Navigate to <strong>Admin</strong> (requires admin login)</li>
+            <li>View current data source and season information</li>
+            <li>Use export feature to backup current season data</li>
+            <li>Use import feature to load archived season data</li>
+            <li>Manage season archives and switch between seasons</li>
+        </ol>
+    </div>
+    {% endif %}
+
+    <!-- User Access Information -->
+    <div style="background: linear-gradient(135deg, #fff3e0, #ffe0b2); padding: 20px; border-radius: 10px; margin-top: 40px;">
+        <h3 style="color: #e65100; margin-bottom: 15px;">🔑 User Access Levels</h3>
+        <p style="line-height: 1.8; color: #555;">
+            <strong>Public Access:</strong> Home, Standings, and Fixtures are available to all visitors without login.
+        </p>
+        <p style="line-height: 1.8; color: #555; margin-top: 10px;">
+            <strong>User Access:</strong> Game Stats, Player Stats, Team Stats, Referee Stats, Deep Analysis, Game Details, and Preferences require user login.
+        </p>
+        {% if is_admin_authenticated %}
+        <p style="line-height: 1.8; color: #555; margin-top: 10px;">
+            <strong>Admin Access:</strong> Admin features are only available to administrators for data management and system configuration.
+        </p>
+        {% endif %}
+    </div>
+
+    <!-- Getting Help -->
+    <div style="background: linear-gradient(135deg, #e8f5e9, #c8e6c9); padding: 20px; border-radius: 10px; margin-top: 30px; text-align: center;">
+        <h3 style="color: #2e7d32; margin-bottom: 15px;">💡 Need More Help?</h3>
+        <p style="line-height: 1.8; color: #1b5e20;">
+            If you have questions or need assistance with any features, please contact the system administrator.
+            This website provides comprehensive basketball statistics for the Luxembourg Basketball Federation (FLBB).
+        </p>
+        <p style="line-height: 1.8; color: #1b5e20; margin-top: 15px;">
+            <strong>Tips for Best Experience:</strong>
+        </p>
+        <ul style="line-height: 1.8; color: #1b5e20; text-align: left; max-width: 600px; margin: 15px auto 0;">
+            <li>Set your preferences to customize your default views</li>
+            <li>Hover over player, team, and referee names for quick stats</li>
+            <li>Use division filters to focus on specific competitions</li>
+            <li>Explore the Deep Analysis section for advanced insights</li>
+            <li>Check Game Details for comprehensive game information</li>
+        </ul>
+    </div>
+
+</div>
+
+{% endblock %}

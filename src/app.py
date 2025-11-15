@@ -443,8 +443,8 @@ def player_detail():
     # Get all players for autocomplete
     all_players = get_all_players_list(data)
     
-    # Get selected player from query parameter
-    player_name = request.args.get('player')
+    # Get selected player from query parameter or user preferences
+    player_name = request.args.get('player') or session.get('preferred_player')
     player_stats_detail = None
     
     if player_name:
@@ -674,8 +674,11 @@ def preferences():
         # Save preferences to session
         division = request.form.get('division') or None
         team = request.form.get('team') or None
+        player = request.form.get('player') or None
         session['preferred_division'] = division
         session['preferred_team'] = team
+        session['preferred_player'] = player
+
         
         # Validate and save theme preference
         theme = request.form.get('theme', 'default')
@@ -703,17 +706,28 @@ def preferences():
     away_teams = set(data['AwayTeamName'].unique()) if not data.empty else set()
     all_teams = sorted(home_teams.union(away_teams))
     
+    # Get all players for dropdown
+    all_players = get_all_players_list(data)
+    
     # Get current preferences from session
     current_prefs = {
         'division': session.get('preferred_division'),
         'team': session.get('preferred_team'),
+        'player': session.get('preferred_player'),
         'theme': session.get('preferred_theme', 'default')
     }
     
     return render_template('preferences.html',
                          divisions=divisions,
                          all_teams=all_teams,
+                         all_players=all_players,
                          current_prefs=current_prefs,
+                         data_source_info=data_source_info)
+
+@app.route('/help')
+def help_page():
+    """Help page with website features guideline"""
+    return render_template('help.html',
                          data_source_info=data_source_info)
 
 @app.route('/user/login', methods=['GET', 'POST'])

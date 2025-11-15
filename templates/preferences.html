@@ -3,14 +3,14 @@
 {% block title %}User Preferences - FLBB Statistics{% endblock %}
 
 {% block page_title %}⚙️ User Preferences{% endblock %}
-{% block page_description %}Set your preferred division, team, and theme color{% endblock %}
+{% block page_description %}Set your preferred division, team, player, and theme color{% endblock %}
 
 {% block content %}
 
 <div class="stats-section">
     <h2>Your Preferences</h2>
     <p style="text-align: center; color: #7f8c8d; margin-bottom: 30px;">
-        Set your preferred division, team, and theme color to customize your experience.
+        Set your preferred division, team, player, and theme color to customize your experience.
     </p>
 
     <form method="post" style="max-width: 600px; margin: 0 auto;">
@@ -49,6 +49,23 @@
         </div>
 
         <div style="margin-bottom: 25px;">
+            <label for="player" style="display: block; font-weight: 600; margin-bottom: 10px; color: #2c3e50;">
+                Preferred Player:
+            </label>
+            <select name="player" id="player" style="width: 100%;">
+                <option value="">-- No preference --</option>
+                {% for player in all_players %}
+                <option value="{{ player.PlayerName }}" {% if current_prefs.player == player.PlayerName %}selected{% endif %}>
+                    {{ player.PlayerName }} ({{ player.Team }})
+                </option>
+                {% endfor %}
+            </select>
+            <small style="display: block; margin-top: 8px; color: #7f8c8d;">
+                This will be used as default for: Player Detail page.
+            </small>
+        </div>
+
+        <div style="margin-bottom: 25px;">
             <label for="theme" style="display: block; font-weight: 600; margin-bottom: 10px; color: #2c3e50;">
                 Theme Color:
             </label>
@@ -70,7 +87,7 @@
         </div>
     </form>
 
-    {% if current_prefs.division or current_prefs.team or current_prefs.theme %}
+    {% if current_prefs.division or current_prefs.team or current_prefs.player or current_prefs.theme %}
     <div style="margin-top: 40px; padding: 20px; background: linear-gradient(135deg, #e8f5e9, #c8e6c9); border-radius: 10px; text-align: center;">
         <h3 style="color: #2e7d32; margin-bottom: 15px;">✓ Your Current Preferences</h3>
         <p style="color: #1b5e20;">
@@ -79,6 +96,9 @@
             {% endif %}
             {% if current_prefs.team %}
             <strong>Team:</strong> {{ current_prefs.team }}<br>
+            {% endif %}
+            {% if current_prefs.player %}
+            <strong>Player:</strong> {{ current_prefs.player }}<br>
             {% endif %}
             {% if current_prefs.theme %}
             <strong>Theme:</strong> {{ current_prefs.theme|title }}<br>
