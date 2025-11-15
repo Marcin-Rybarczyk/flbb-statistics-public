@@ -6067,3 +6067,76 @@ def get_game_hover_stats(data, game_id):
     
     # Game not found in either finished or future games
     return None
+
+def get_division_hover_stats(data, division_name):
+    """
+    Get basic statistics for a division to display in hover tooltip.
+    
+    Parameters:
+    data (DataFrame): The game data
+    division_name (str): The name of the division
+    
+    Returns:
+    dict: Dictionary containing:
+        - top_teams: List of top 3 teams with wins, losses, and points
+        - top_scorers: List of top 3 scorers with avg score per game
+        - division_name: The division name
+    """
+    if data.empty:
+        return None
+    
+    # Filter games for this division
+    division_games = data[data['GameDivisionDisplay'] == division_name].copy()
+    
+    if division_games.empty:
+        return None
+    
+    # Calculate standings for the division
+    standings = calculate_standings_by_division(data, division_name)
+    
+    # Get top 3 teams from standings
+    top_teams = []
+    if not standings.empty:
+        for idx in range(min(3, len(standings))):
+            team_row = standings.iloc[idx]
+            top_teams.append({
+                'name': team_row['Team Name'],
+                'wins': team_row['Wins'],
+                'losses': team_row['Losses'],
+                'points': team_row.get('League Points', 0)
+            })
+    
+    # Get top 3 scorers based on average score per game
+    top_scorers = []
+    player_stats = extract_all_player_stats(division_games)
+    
+    if not player_stats.empty:
+        # Group by player name and calculate average points per game
+        player_aggregates = player_stats.groupby('PlayerName').agg({
+            'TotalPoints': ['sum', 'mean'],
+            'GameId': 'count'
+        }).reset_index()
+        
+        # Flatten column names
+        player_aggregates.columns = ['PlayerName', 'TotalPoints', 'AvgPoints', 'GamesPlayed']
+        
+        # Filter players with at least 1 game
+        player_aggregates = player_aggregates[player_aggregates['GamesPlayed'] >= 1]
+        
+        # Sort by average points descending
+        player_aggregates = player_aggregates.sort_values('AvgPoints', ascending=False)
+        
+        # Get top 3 scorers
+        for idx in range(min(3, len(player_aggregates))):
+            player_row = player_aggregates.iloc[idx]
+            top_scorers.append({
+                'name': player_row['PlayerName'],
+                'avg_score': round(player_row['AvgPoints'], 1),
+                'games_played': int(player_row['GamesPlayed'])
+            })
+    
+    return {
+        'division_name': division_name,
+        'top_teams': top_teams,
+        'top_scorers': top_scorers
+    }
