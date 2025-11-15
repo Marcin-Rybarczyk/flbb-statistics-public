@@ -814,6 +814,7 @@ def admin_logout():
     return redirect(url_for('logout'))
 
 @app.route('/admin')
+@admin_required
 def admin():
     """Administration page with data statistics"""
     import os
@@ -921,7 +922,7 @@ def admin():
                          available_archives=available_archives)
 
 @app.route('/admin/import-season', methods=['POST'])
-@login_required
+@admin_required
 def import_season_data():
     """Handle season archive import"""
     import os
@@ -962,7 +963,7 @@ def import_season_data():
         return {'success': False, 'error': f'Import failed: {str(e)}'}, 500
 
 @app.route('/admin/export-season', methods=['POST'])
-@login_required
+@admin_required
 def export_season_data():
     """Handle season data export"""
     import tempfile
