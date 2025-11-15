@@ -675,8 +675,12 @@
                             {% endif %}
                         </td>
                         <td style="text-align: center;">
-                            {% if row.get('IsFinished') and row.get('HotnessIcon') %}
-                                <span style="font-size: 1.5em;" title="Hotness Score: {{ row['HotnessScore'] }}/100">{{ row['HotnessIcon'] }}</span>
+                            {% if row.get('HotnessIcon') %}
+                                {% if row.get('IsFutureGame') %}
+                                    <span style="font-size: 1.5em;" title="Expected Hotness (based on standings): {{ row['HotnessScore'] }}/100">{{ row['HotnessIcon'] }}</span>
+                                {% else %}
+                                    <span style="font-size: 1.5em;" title="Hotness Score: {{ row['HotnessScore'] }}/100">{{ row['HotnessIcon'] }}</span>
+                                {% endif %}
                             {% else %}
                                 <span class="unfinished">-</span>
                             {% endif %}

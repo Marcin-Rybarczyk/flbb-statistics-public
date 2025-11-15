@@ -3282,12 +3282,40 @@ def get_all_fixtures_data(data, division_filter=None):
             all_games['TimeUntilColorClass'] = ''
             all_games['TimeUntilHours'] = float('inf')
             
+            # Calculate hotness for future games based on standings
+            # Get standings for the division filter if provided, otherwise None
+            standings_df = None
+            if division_filter is not None:
+                standings_df = calculate_standings_by_division(filtered_data, division_filter)
+            
             for idx, row in all_games.iterrows():
                 if row.get('IsFutureGame', False):
                     time_until = calculate_time_until_game(row.get('DateTime'))
                     all_games.at[idx, 'TimeUntilText'] = time_until['text']
                     all_games.at[idx, 'TimeUntilColorClass'] = time_until['color_class']
                     all_games.at[idx, 'TimeUntilHours'] = time_until['hours']
+                    
+                    # Calculate hotness based on league standings
+                    home_team = row.get('HomeTeamName')
+                    away_team = row.get('AwayTeamName')
+                    game_division = row.get('GameDivisionDisplay')
+                    
+                    # Get standings for this game's division if not already calculated
+                    if game_division and (standings_df is None or division_filter != game_division):
+                        game_standings = calculate_standings_by_division(filtered_data, game_division)
+                    else:
+                        game_standings = standings_df
+                    
+                    if home_team and away_team and game_standings is not None and not game_standings.empty:
+                        hotness_score, hotness_icon = calculate_future_game_hotness(
+                            home_team, away_team, game_standings
+                        )
+                        all_games.at[idx, 'HotnessScore'] = hotness_score
+                        all_games.at[idx, 'HotnessIcon'] = hotness_icon
+                    else:
+                        # Default neutral hotness if we can't calculate
+                        all_games.at[idx, 'HotnessScore'] = 50
+                        all_games.at[idx, 'HotnessIcon'] = '🌡️'
             
             return all_games
     
@@ -5578,6 +5606,89 @@ def get_hotness_icon(hotness_score):
         return "🔥"
     else:
         return "🔥🔥"
+
+
+def calculate_future_game_hotness(home_team, away_team, standings_df):
+    """
+    Calculate hotness score for a future game based on league standings.
+    
+    The hotness is based on:
+    1. Team Rankings: Higher when both teams are highly ranked
+    2. Ranking Proximity: Higher when teams are close in standings (competitive matchup)
+    3. Top-of-table Factor: Extra weight for games involving top 3 teams
+    
+    Parameters:
+    home_team (str): Home team name
+    away_team (str): Away team name
+    standings_df (DataFrame): Standings table with 'Team Name' column and index as rank
+    
+    Returns:
+    tuple: (hotness_score (int 0-100), hotness_icon (str))
+    """
+    # Default for cases where we can't calculate
+    if standings_df is None or standings_df.empty:
+        return 50, "🌡️"  # Neutral/unknown
+    
+    # Normalize team names for matching
+    home_team_normalized = normalize_team_name_for_matching(home_team)
+    away_team_normalized = normalize_team_name_for_matching(away_team)
+    
+    # Find teams in standings
+    home_rank = None
+    away_rank = None
+    total_teams = len(standings_df)
+    
+    for rank, row in standings_df.iterrows():
+        team_name = row['Team Name']
+        team_normalized = normalize_team_name_for_matching(team_name)
+        
+        if team_normalized == home_team_normalized:
+            home_rank = rank
+        if team_normalized == away_team_normalized:
+            away_rank = rank
+    
+    # If either team is not found in standings, return neutral hotness
+    if home_rank is None or away_rank is None:
+        return 50, "🌡️"
+    
+    # Calculate hotness components
+    
+    # 1. Average Ranking Factor (0-1): Lower average rank = higher hotness
+    # Normalize ranks to 0-1 range (1st place = 0, last place = 1)
+    home_rank_normalized = (home_rank - 1) / max(total_teams - 1, 1)
+    away_rank_normalized = (away_rank - 1) / max(total_teams - 1, 1)
+    avg_rank_normalized = (home_rank_normalized + away_rank_normalized) / 2
+    ranking_factor = 1 - avg_rank_normalized  # Invert so top teams = high value
+    
+    # 2. Proximity Factor (0-1): Closer ranks = more competitive = higher hotness
+    rank_difference = abs(home_rank - away_rank)
+    # Normalize by total teams (difference of half the league = 0.5)
+    proximity_normalized = rank_difference / max(total_teams, 1)
+    proximity_factor = 1 - min(proximity_normalized, 1)  # Closer = higher value
+    
+    # 3. Top-of-table Bonus: Extra excitement for top 3 teams
+    top_threshold = 3
+    home_is_top = home_rank <= top_threshold
+    away_is_top = away_rank <= top_threshold
+    
+    if home_is_top and away_is_top:
+        top_bonus = 0.3  # Both in top 3 = big bonus
+    elif home_is_top or away_is_top:
+        top_bonus = 0.15  # One in top 3 = medium bonus
+    else:
+        top_bonus = 0.0  # Neither in top 3 = no bonus
+    
+    # Combine factors with weights
+    # 40% ranking quality, 40% proximity/competitiveness, 20% base + top bonus
+    base_score = (0.4 * ranking_factor + 0.4 * proximity_factor + 0.2)
+    
+    # Add top bonus and scale to 0-100
+    hotness_score = int(min(100, (base_score + top_bonus) * 100))
+    
+    # Get icon for the score
+    hotness_icon = get_hotness_icon(hotness_score)
+    
+    return hotness_score, hotness_icon
 
 
 def get_player_hover_stats(data, player_name):
