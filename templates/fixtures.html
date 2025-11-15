@@ -346,6 +346,47 @@
             background-color: rgba(102, 126, 234, 0.1);
         }
 
+        /* Time until game styling with very light color palette */
+        .time-counter {
+            font-size: 0.7em;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin: 2px 0;
+            display: inline-block;
+        }
+
+        /* Very light color palette based on urgency */
+        .time-very-soon {
+            background-color: rgba(255, 107, 107, 0.15);  /* Very light red */
+            color: #c92a2a;
+        }
+
+        .time-today {
+            background-color: rgba(255, 159, 67, 0.15);  /* Very light orange */
+            color: #d9480f;
+        }
+
+        .time-tomorrow {
+            background-color: rgba(255, 212, 59, 0.15);  /* Very light yellow */
+            color: #e67700;
+        }
+
+        .time-few-days {
+            background-color: rgba(130, 201, 30, 0.15);  /* Very light green */
+            color: #5c940d;
+        }
+
+        .time-week {
+            background-color: rgba(34, 139, 230, 0.15);  /* Very light blue */
+            color: #1971c2;
+        }
+
+        .time-later {
+            background-color: rgba(174, 182, 191, 0.15);  /* Very light gray */
+            color: #495057;
+        }
+
         .filter-section {
             margin-bottom: 20px;
             text-align: center;
@@ -495,12 +536,15 @@
                                              tabindex="0" 
                                              role="button" 
                                              aria-label="View details for {{ home_team }} vs {{ away_team }} on {{ game.date[:10] if game.date != 'TBD' else 'TBD' }}">
-                                            {% if game.is_finished %}
+                                             {% if game.is_finished %}
                                                 <div class="game-score">{{ game.home_score }} - {{ game.away_score }}</div>
                                                 {% if game.hotness_icon %}
                                                     <div style="font-size: 1.2em;" title="Hotness: {{ game.hotness_score }}/100">{{ game.hotness_icon }}</div>
                                                 {% endif %}
                                             {% else %}
+                                                {% if game.time_until.text %}
+                                                    <div class="time-counter {{ game.time_until.color_class }}">{{ game.time_until.text }}</div>
+                                                {% endif %}
                                                 {% if game.is_next_for_home or game.is_next_for_away %}
                                                     <div class="next-game-indicator">
                                                         {% if game.is_next_for_home %}
@@ -586,6 +630,10 @@
                         <td class="date-time">
                             {% if row['DateTime'] %}
                                 {{ row['DateTime'][:16].replace('T', ' ') if 'T' in (row['DateTime'] or '') else row['DateTime'][:16] }}
+                                {% if row.get('IsFutureGame') and row.get('TimeUntilText') %}
+                                    <br>
+                                    <span class="time-counter {{ row.get('TimeUntilColorClass', '') }}">{{ row['TimeUntilText'] }}</span>
+                                {% endif %}
                             {% else %}
                                 TBD
                             {% endif %}
