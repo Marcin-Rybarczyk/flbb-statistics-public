@@ -653,7 +653,13 @@
                     <tr class="{{ row_class }}" onclick="window.location.href='/game-detail/{{ row['GameId'] }}'" style="cursor: pointer;">
                         <td>
                             {% if row.get('IsFinished') and row.get('HotnessIcon') %}
-                                <a href="/game-detail/{{ row['GameId'] }}" class="game-link completed-game hoverable-item" data-type="game" data-id="{{ row['GameId'] }}" data-hotness-icon="{{ row['HotnessIcon'] }}" title="Hotness: {{ row.get('HotnessScore', 'N/A') }}/100">{{ row['GameId'] }}</a>
+                                <a href="/game-detail/{{ row['GameId'] }}" class="game-link completed-game hoverable-item" data-type="game" data-id="{{ row['GameId'] }}" data-hotness-icon="{{ row['HotnessIcon'] }}" title="Hotness: {{ row.get('HotnessScore', 'N/A') }}/100">
+                                    <span style="font-size: 1.3em; margin-right: 4px;" title="Hotness Score: {{ row.get('HotnessScore', 'N/A') }}/100">{{ row['HotnessIcon'] }}</span>{{ row['GameId'] }}
+                                </a>
+                            {% elif row.get('IsFutureGame') and row.get('HotnessIcon') %}
+                                <a href="/game-detail/{{ row['GameId'] }}" class="game-link future-game hoverable-item" data-type="game" data-id="{{ row['GameId'] }}">
+                                    <span style="font-size: 1.3em; margin-right: 4px;" title="Expected Hotness (based on standings): {{ row.get('HotnessScore', 'N/A') }}/100">{{ row['HotnessIcon'] }}</span>{{ row['GameId'] }}
+                                </a>
                             {% else %}
                                 <a href="/game-detail/{{ row['GameId'] }}" class="game-link future-game hoverable-item" data-type="game" data-id="{{ row['GameId'] }}">{{ row['GameId'] }}</a>
                             {% endif %}
