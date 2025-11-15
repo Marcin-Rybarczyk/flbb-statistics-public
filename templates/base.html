@@ -1010,14 +1010,17 @@
 <body>
     <div class="container">
         <div class="header" style="position: relative;">
-            {% if user_prefs and (user_prefs.division or user_prefs.team) %}
+            {% if user_prefs and (user_prefs.division or user_prefs.team or user_prefs.player) %}
             <div class="preferences-indicator">
                 <a href="/preferences" title="Manage your preferences">⚙️ Preferences</a><br>
                 {% if user_prefs.division %}
                 <small>📊 <strong>Division:</strong> <span class="pref-badge">{{ user_prefs.division }}</span></small><br>
                 {% endif %}
                 {% if user_prefs.team %}
-                <small>🏀 <strong>Team:</strong> <span class="pref-badge">{{ user_prefs.team }}</span></small>
+                <small>🏀 <strong>Team:</strong> <span class="pref-badge">{{ user_prefs.team }}</span></small><br>
+                {% endif %}
+                {% if user_prefs.player %}
+                <small>👤 <strong>Player:</strong> <span class="pref-badge">{{ user_prefs.player }}</span></small>
                 {% endif %}
             </div>
             {% else %}

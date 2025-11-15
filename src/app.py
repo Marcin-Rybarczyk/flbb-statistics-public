@@ -205,6 +205,7 @@ def inject_season_info():
     user_prefs = {
         'division': session.get('preferred_division'),
         'team': session.get('preferred_team'),
+        'player': session.get('preferred_player'),
         'theme': session.get('preferred_theme', 'default')
     }
     
