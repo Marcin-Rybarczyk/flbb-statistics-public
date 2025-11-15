@@ -29,7 +29,7 @@ from .utils import (calculate_standings_by_division, get_highest_scoring_games,
                    get_division_hover_stats, calculate_referee_performance_index, get_closest_games_by_team, CSV_FILEPATH)
 from .version import get_version_info
 from .user_database import (authenticate_user, get_user_preferences, update_user_preferences,
-                            create_user, list_users, update_user_password, delete_user)
+                            create_user, list_users, update_user_password, delete_user, update_user_level)
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
 
@@ -60,10 +60,7 @@ def ratelimit_handler(e):
     if '/login' in request.path:
         # Return to login page with error message
         error_msg = "Too many login attempts. Please try again in 15 minutes."
-        if '/admin/login' in request.path:
-            return render_template('admin_login.html', error=error_msg), 429
-        elif '/user/login' in request.path:
-            return render_template('user_login.html', error=error_msg), 429
+        return render_template('login.html', error=error_msg), 429
     
     # For other endpoints, return a generic error
     return jsonify({
@@ -151,20 +148,16 @@ from functools import wraps
 
 def is_admin_authenticated():
     """Check if the current user is authenticated as admin"""
-    return session.get('admin_authenticated', False)
+    return session.get('user_level') == 'admin'
 
 def is_user_authenticated():
     """Check if the current user is authenticated as regular user or admin"""
-    return session.get('user_authenticated', False) or is_admin_authenticated()
+    user_level = session.get('user_level', 'guest')
+    return user_level in ('user', 'admin')
 
 def get_user_level():
     """Get the current user's authorization level: 'guest', 'user', or 'admin'"""
-    if is_admin_authenticated():
-        return 'admin'
-    elif is_user_authenticated():
-        return 'user'
-    else:
-        return 'guest'
+    return session.get('user_level', 'guest')
 
 def login_required(f):
     """Decorator to require admin authentication for a route"""
@@ -180,7 +173,7 @@ def user_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not is_user_authenticated():
-            return redirect(url_for('user_login', next=request.url))
+            return redirect(url_for('login', next=request.url))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -189,7 +182,7 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not is_admin_authenticated():
-            return redirect(url_for('admin_login'))
+            return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -746,20 +739,20 @@ def help_page():
     return render_template('help.html',
                          data_source_info=data_source_info)
 
-@app.route('/user/login', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST'])
 @limiter.limit("5 per 15 minutes", methods=["POST"])
-def user_login():
-    """User login page and authentication"""
+def login():
+    """Unified login page and authentication for all user levels"""
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
         
-        # Try database authentication first
+        # Try database authentication
         auth_success, user_data = authenticate_user(username, password)
         
         if auth_success:
             # Database authentication successful
-            session['user_authenticated'] = True
+            session['user_level'] = user_data.get('user_level', 'user')
             session['username'] = user_data['username']
             session.permanent = True  # Make session persistent
             
@@ -769,82 +762,56 @@ def user_login():
             if user_data.get('team_name'):
                 session['preferred_team'] = user_data['team_name']
             
-            # Redirect to next URL if provided, otherwise to index
+            # Redirect to next URL if provided, otherwise to index (or admin for admins)
             next_url = request.args.get('next')
             if next_url and next_url.startswith('/'):
                 return redirect(next_url)
-            return redirect(url_for('index'))
-        
-        # Fallback to environment variable authentication (for backward compatibility)
-        user_username = os.environ.get('USER_USERNAME', '')
-        user_password = os.environ.get('USER_PASSWORD', '')
-        
-        if user_username and user_password:
-            if username == user_username and password == user_password:
-                session['user_authenticated'] = True
-                session['username'] = username
-                session.permanent = True  # Make session persistent
-                # Redirect to next URL if provided, otherwise to index
-                next_url = request.args.get('next')
-                if next_url and next_url.startswith('/'):
-                    return redirect(next_url)
+            elif user_data.get('user_level') == 'admin':
+                return redirect(url_for('admin'))
+            else:
                 return redirect(url_for('index'))
         
         # Authentication failed
-        return render_template('user_login.html', 
+        return render_template('login.html', 
                              error='Invalid username or password. Please try again.')
     
     # GET request - show login form
-    # If already authenticated, redirect to home
+    # If already authenticated, redirect appropriately
     if is_user_authenticated():
+        if is_admin_authenticated():
+            return redirect(url_for('admin'))
         return redirect(url_for('index'))
     
-    return render_template('user_login.html')
+    return render_template('login.html')
 
-@app.route('/user/logout')
-def user_logout():
-    """User logout"""
-    session.pop('user_authenticated', None)
-    session.pop('username', None)
-    # Also clear admin authentication if present
-    session.pop('admin_authenticated', None)
-    return redirect(url_for('index'))
+# Keep old routes for backward compatibility (redirect to new unified login)
+@app.route('/user/login', methods=['GET', 'POST'])
+def user_login():
+    """Redirect to unified login page"""
+    return redirect(url_for('login', next=request.args.get('next')))
 
 @app.route('/admin/login', methods=['GET', 'POST'])
-@limiter.limit("5 per 15 minutes", methods=["POST"])
 def admin_login():
-    """Admin login page and authentication"""
-    if request.method == 'POST':
-        password = request.form.get('password', '')
-        admin_password = os.environ.get('ADMIN_PASSWORD', '')
-        
-        # Check if admin password is configured
-        if not admin_password:
-            return render_template('admin_login.html', 
-                                 error='Admin authentication is not configured. Please set ADMIN_PASSWORD environment variable.')
-        
-        # Verify password
-        if password == admin_password:
-            session['admin_authenticated'] = True
-            session.permanent = True  # Make session persistent
-            return redirect(url_for('admin'))
-        else:
-            return render_template('admin_login.html', 
-                                 error='Invalid password. Please try again.')
-    
-    # GET request - show login form
-    # If already authenticated, redirect to admin
-    if is_admin_authenticated():
-        return redirect(url_for('admin'))
-    
-    return render_template('admin_login.html')
+    """Redirect to unified login page"""
+    return redirect(url_for('login', next=request.args.get('next')))
+
+@app.route('/logout')
+def logout():
+    """Unified logout for all user levels"""
+    session.pop('user_level', None)
+    session.pop('username', None)
+    return redirect(url_for('index'))
+
+# Keep old logout routes for backward compatibility
+@app.route('/user/logout')
+def user_logout():
+    """Redirect to unified logout"""
+    return redirect(url_for('logout'))
 
 @app.route('/admin/logout')
 def admin_logout():
-    """Admin logout"""
-    session.pop('admin_authenticated', None)
-    session.pop('user_authenticated', None)
-    return redirect(url_for('index'))
+    """Redirect to unified logout"""
+    return redirect(url_for('logout'))
 
 @app.route('/admin')
 def admin():
@@ -1050,11 +1017,16 @@ def admin_users():
 def admin_create_user():
     """Create a new user with default password"""
     username = request.form.get('username', '').strip()
+    user_level = request.form.get('user_level', 'user').strip()
     division_name = request.form.get('division_name', '').strip() or None
     team_name = request.form.get('team_name', '').strip() or None
     
     if not username:
         return jsonify({'success': False, 'error': 'Username is required'}), 400
+    
+    # Validate user level
+    if user_level not in ('guest', 'user', 'admin'):
+        return jsonify({'success': False, 'error': 'Invalid user level'}), 400
     
     # Default password as specified in requirements
     default_password = "kurwa"
@@ -1063,6 +1035,7 @@ def admin_create_user():
     success, message = create_user(
         username=username,
         password=default_password,
+        user_level=user_level,
         division_name=division_name,
         team_name=team_name
     )
@@ -1070,7 +1043,32 @@ def admin_create_user():
     if success:
         return jsonify({
             'success': True,
-            'message': f"User '{username}' created successfully with default password"
+            'message': f"User '{username}' created successfully with level '{user_level}'"
+        })
+    else:
+        return jsonify({'success': False, 'error': message}), 400
+
+@app.route('/admin/users/update-level', methods=['POST'])
+@admin_required
+@limiter.limit("10 per hour")
+def admin_update_user_level():
+    """Update user authorization level"""
+    username = request.form.get('username', '').strip()
+    user_level = request.form.get('user_level', '').strip()
+    
+    if not username:
+        return jsonify({'success': False, 'error': 'Username is required'}), 400
+    
+    if not user_level:
+        return jsonify({'success': False, 'error': 'User level is required'}), 400
+    
+    # Update the user level
+    success, message = update_user_level(username, user_level)
+    
+    if success:
+        return jsonify({
+            'success': True,
+            'message': message
         })
     else:
         return jsonify({'success': False, 'error': message}), 400
