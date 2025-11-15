@@ -28,6 +28,7 @@ from .utils import (calculate_standings_by_division, get_highest_scoring_games,
                    get_player_hover_stats, get_team_hover_stats, get_referee_hover_stats, get_game_hover_stats,
                    calculate_referee_performance_index, get_closest_games_by_team, CSV_FILEPATH)
 from .version import get_version_info
+from .user_database import authenticate_user, get_user_preferences, update_user_preferences
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
 
@@ -671,9 +672,13 @@ def preferences():
     """User preferences page for setting default filters"""
     if request.method == 'POST':
         # Save preferences to session
-        session['preferred_division'] = request.form.get('division') or None
-        session['preferred_team'] = request.form.get('team') or None
-        session['preferred_player'] = request.form.get('player') or None
+        division = request.form.get('division') or None
+        team = request.form.get('team') or None
+        player = request.form.get('player') or None
+        session['preferred_division'] = division
+        session['preferred_team'] = team
+        session['preferred_player'] = player
+
         
         # Validate and save theme preference
         theme = request.form.get('theme', 'default')
@@ -681,6 +686,17 @@ def preferences():
             session['preferred_theme'] = theme
         else:
             session['preferred_theme'] = 'default'
+        
+        # Save to database if user is logged in with database account
+        username = session.get('username')
+        if username:
+            success, message = update_user_preferences(
+                username=username,
+                division_name=division,
+                team_name=team
+            )
+            if not success:
+                logger.warning(f"Failed to update preferences in database: {message}")
         
         # Always redirect to preferences page (don't use user-provided URL)
         return redirect(url_for('preferences'))
@@ -722,27 +738,45 @@ def user_login():
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
         
-        # Get predefined user credentials from environment
-        user_username = os.environ.get('USER_USERNAME', '')
-        user_password = os.environ.get('USER_PASSWORD', '')
+        # Try database authentication first
+        auth_success, user_data = authenticate_user(username, password)
         
-        # Check if user credentials are configured
-        if not user_username or not user_password:
-            return render_template('user_login.html', 
-                                 error='User authentication is not configured. Please set USER_USERNAME and USER_PASSWORD environment variables.')
-        
-        # Verify credentials
-        if username == user_username and password == user_password:
+        if auth_success:
+            # Database authentication successful
             session['user_authenticated'] = True
+            session['username'] = user_data['username']
             session.permanent = True  # Make session persistent
+            
+            # Load user preferences into session
+            if user_data.get('division_name'):
+                session['preferred_division'] = user_data['division_name']
+            if user_data.get('team_name'):
+                session['preferred_team'] = user_data['team_name']
+            
             # Redirect to next URL if provided, otherwise to index
             next_url = request.args.get('next')
             if next_url and next_url.startswith('/'):
                 return redirect(next_url)
             return redirect(url_for('index'))
-        else:
-            return render_template('user_login.html', 
-                                 error='Invalid username or password. Please try again.')
+        
+        # Fallback to environment variable authentication (for backward compatibility)
+        user_username = os.environ.get('USER_USERNAME', '')
+        user_password = os.environ.get('USER_PASSWORD', '')
+        
+        if user_username and user_password:
+            if username == user_username and password == user_password:
+                session['user_authenticated'] = True
+                session['username'] = username
+                session.permanent = True  # Make session persistent
+                # Redirect to next URL if provided, otherwise to index
+                next_url = request.args.get('next')
+                if next_url and next_url.startswith('/'):
+                    return redirect(next_url)
+                return redirect(url_for('index'))
+        
+        # Authentication failed
+        return render_template('user_login.html', 
+                             error='Invalid username or password. Please try again.')
     
     # GET request - show login form
     # If already authenticated, redirect to home
@@ -755,6 +789,7 @@ def user_login():
 def user_logout():
     """User logout"""
     session.pop('user_authenticated', None)
+    session.pop('username', None)
     # Also clear admin authentication if present
     session.pop('admin_authenticated', None)
     return redirect(url_for('index'))
