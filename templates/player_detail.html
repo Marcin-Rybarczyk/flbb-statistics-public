@@ -73,7 +73,7 @@
         
         .player-info-header h2 {
             font-size: 2.5em;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             color: white;
         }
         
@@ -83,7 +83,10 @@
         
         .player-info-header .team-info {
             font-size: 1.3em;
-            opacity: 0.9;
+            opacity: 0.95;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         
         .performance-chart {
@@ -326,8 +329,12 @@
         <div class="player-info-header">
             <h2>{{ player_stats.basic_stats.player_name }}</h2>
             <div class="team-info">
-                <a href="/team-detail?team={{ player_stats.basic_stats.team|urlencode }}" style="color: white; text-decoration: none; opacity: 0.9; transition: opacity 0.3s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">
-                    {{ player_stats.basic_stats.team }}
+                {% set team_logo_url = get_team_logo_url(player_stats.basic_stats.team) %}
+                <a href="/team-detail?team={{ player_stats.basic_stats.team|urlencode }}" style="color: white; text-decoration: none; opacity: 0.9; transition: opacity 0.3s; display: inline-flex; align-items: center; gap: 10px;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">
+                    {% if team_logo_url %}
+                    <img src="{{ team_logo_url }}" alt="{{ player_stats.basic_stats.team }} logo" style="width: 40px; height: 40px; object-fit: contain; border-radius: 6px; background: rgba(255, 255, 255, 0.15); padding: 4px;">
+                    {% endif %}
+                    <span style="font-size: 1.15em; font-weight: 600;">{{ player_stats.basic_stats.team }}</span>
                 </a>
             </div>
         </div>
@@ -524,7 +531,11 @@
                     {% for game in player_stats.game_by_game %}
                     <tr>
                         <td>{{ game.GameDate }}</td>
-                        <td>{{ game.GameDivision }}</td>
+                        <td>
+                            <a href="/standings?division={{ game.GameDivision|urlencode }}" class="division-link hoverable-item" data-type="division" data-id="{{ game.GameDivision }}">
+                                {{ game.GameDivision }}
+                            </a>
+                        </td>
                         <td>
                             <div style="margin-bottom: 4px;">
                                 {% if game.HotnessIcon %}
