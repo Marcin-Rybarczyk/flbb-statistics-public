@@ -3432,6 +3432,11 @@ def get_fixtures_matrix_data(data, division_filter=None):
     # Get closest games for each team to determine which games are "next" for which team
     closest_games = get_closest_games_by_team(data, division_filter)
     
+    # Calculate standings for hotness calculation of future games
+    standings_df = None
+    if division_filter is not None:
+        standings_df = calculate_standings_by_division(data, division_filter)
+    
     # Get unique teams with normalization
     home_teams = set(normalize_team_name_for_display(name) for name in filtered_data['HomeTeamName'].dropna())
     away_teams = set(normalize_team_name_for_display(name) for name in filtered_data['AwayTeamName'].dropna())
@@ -3469,12 +3474,14 @@ def get_fixtures_matrix_data(data, division_filter=None):
             # Parse location to get name and Google Maps link
             location_info = parse_location_with_link(game['GameLocation'])
             
-            # Calculate hotness for finished games
+            # Calculate hotness for finished and future games
             hotness_score = 0
             hotness_icon = "❄️"
             is_finished = pd.notna(game.get('FinalHomeScore')) and pd.notna(game.get('FinalAwayScore'))
+            is_future = game.get('IsFutureGame', False)
             
             if is_finished:
+                # Calculate actual hotness for finished games
                 try:
                     import ast
                     events = ast.literal_eval(game['GameEvents']) if isinstance(game['GameEvents'], str) else game['GameEvents']
@@ -3485,6 +3492,24 @@ def get_fixtures_matrix_data(data, division_filter=None):
                     hotness_icon = get_hotness_icon(hotness_score)
                 except:
                     pass
+            elif is_future:
+                # Calculate expected hotness for future games based on standings
+                game_division = game.get('GameDivisionDisplay')
+                
+                # Get standings for this game's division if not already calculated
+                if game_division and (standings_df is None or division_filter != game_division):
+                    game_standings = calculate_standings_by_division(data, game_division)
+                else:
+                    game_standings = standings_df
+                
+                if raw_home and raw_away and game_standings is not None and not game_standings.empty:
+                    hotness_score, hotness_icon = calculate_future_game_hotness(
+                        raw_home, raw_away, game_standings
+                    )
+                else:
+                    # Default neutral hotness if we can't calculate
+                    hotness_score = 50
+                    hotness_icon = '🌡️'
             
             # Get enhanced game info
             # Convert scores to int to avoid float display issues
@@ -5667,9 +5692,9 @@ def calculate_future_game_hotness(home_team, away_team, standings_df):
     proximity_factor = 1 - min(proximity_normalized, 1)  # Closer = higher value
     
     # 3. Top-of-table Bonus: Extra excitement for top teams playing
-    # Only apply significant bonus for top 2 teams, smaller bonus for top 3-4
-    top_tier_1 = 2  # Top 2 teams
-    top_tier_2 = 4  # Top 4 teams
+    # Increased bonuses to make future games appear hotter
+    top_tier_1 = 3  # Top 3 teams (increased from 2)
+    top_tier_2 = 5  # Top 5 teams (increased from 4)
     
     home_is_top1 = home_rank <= top_tier_1
     away_is_top1 = away_rank <= top_tier_1
@@ -5677,17 +5702,17 @@ def calculate_future_game_hotness(home_team, away_team, standings_df):
     away_is_top2 = away_rank <= top_tier_2
     
     if home_is_top1 and away_is_top1:
-        top_bonus = 0.25  # Both in top 2 = very hot
+        top_bonus = 0.28  # Both in top 3 = very hot (increased from 0.25)
     elif home_is_top2 and away_is_top2:
-        top_bonus = 0.12  # Both in top 4 = warm bonus
+        top_bonus = 0.16  # Both in top 5 = warm bonus (increased from 0.12)
     elif home_is_top1 or away_is_top1:
-        top_bonus = 0.08  # One in top 2 = small bonus
+        top_bonus = 0.10  # One in top 3 = small bonus (increased from 0.08)
     else:
-        top_bonus = 0.0  # Neither in top tier = no bonus
+        top_bonus = 0.03  # Neither in top tier = minimal bonus (increased from 0.0)
     
-    # Combine factors with weights
-    # 50% ranking quality, 35% proximity/competitiveness, 15% base + top bonus
-    base_score = (0.50 * ranking_factor + 0.35 * proximity_factor + 0.15)
+    # Combine factors with weights (adjusted for higher scores)
+    # 50% ranking quality, 33% proximity/competitiveness, 17% base + top bonus
+    base_score = (0.50 * ranking_factor + 0.33 * proximity_factor + 0.17)
     
     # Add top bonus and scale to 0-100
     hotness_score = int(min(100, (base_score + top_bonus) * 100))
