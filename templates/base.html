@@ -1045,7 +1045,6 @@
             <a href="/" {% if request and request.endpoint == 'index' %}class="active"{% endif %}>🏠 Home</a>
             <a href="/standings" {% if request and request.endpoint == 'standings' %}class="active"{% endif %}>🏆 Standings</a>
             <a href="/fixtures" {% if request and request.endpoint == 'fixtures' %}class="active"{% endif %}>📅 Fixtures</a>
-            <a href="/help" {% if request and request.endpoint == 'help_page' %}class="active"{% endif %}>📚 Help</a>
             
             {% if is_user_authenticated %}
             <a href="/statistics" {% if request and request.endpoint == 'statistics' %}class="active"{% endif %}>🎮 Game Stats</a>
@@ -1063,6 +1062,8 @@
             {% if is_admin_authenticated %}
             <a href="/admin" {% if request and request.endpoint == 'admin' %}class="active"{% endif %}>🔐 Admin</a>
             {% endif %}
+            
+            <a href="/help" {% if request and request.endpoint == 'help_page' %}class="active"{% endif %}>📚 Help</a>
             
             {% if is_user_authenticated or is_admin_authenticated %}
             <a href="/user/logout" style="background: rgba(220, 53, 69, 0.1); color: #dc3545;">🔓 Logout</a>
