@@ -349,6 +349,7 @@
                         <tr>
                             <th>Rank</th>
                             <th>Player Combination</th>
+                            <th>Team</th>
                             <th>Games Together</th>
                             <th>Win Rate</th>
                             <th>Combined Avg Points</th>
@@ -360,6 +361,9 @@
                         <tr>
                             <td><strong>{{ loop.index }}</strong></td>
                             <td><strong><a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['Player1'] }}</a> + <a href="/player-detail?player={{ row['PlayerName']|urlencode }}" class="player-link">{{ row['Player2'] }}</a></strong></td>
+                            <td>
+                                {{ team_button(row['Team']) }}
+                            </td>
                             <td>{{ row['GamesTogether'] }}</td>
                             <td class="positive">{{ "%.1f"|format(row['WinRate']) }}%</td>
                             <td>{{ row.get('CombinedAvgPoints', 'N/A') }}</td>
