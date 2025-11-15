@@ -626,7 +626,11 @@
                     {% endif %}
                     <tr class="{{ row_class }}" onclick="window.location.href='/game-detail/{{ row['GameId'] }}'" style="cursor: pointer;">
                         <td>
-                            <a href="/game-detail/{{ row['GameId'] }}" class="game-link hoverable-item" data-type="game" data-id="{{ row['GameId'] }}">{{ row['GameId'] }}</a>
+                            {% if row.get('IsFinished') and row.get('HotnessIcon') %}
+                                <a href="/game-detail/{{ row['GameId'] }}" class="game-link completed-game hoverable-item" data-type="game" data-id="{{ row['GameId'] }}" data-hotness-icon="{{ row['HotnessIcon'] }}" title="Hotness: {{ row.get('HotnessScore', 'N/A') }}/100">{{ row['GameId'] }}</a>
+                            {% else %}
+                                <a href="/game-detail/{{ row['GameId'] }}" class="game-link future-game hoverable-item" data-type="game" data-id="{{ row['GameId'] }}">{{ row['GameId'] }}</a>
+                            {% endif %}
                             {% if is_closest %}
                                 <span class="closest-game-badge">NEXT</span>
                             {% endif %}

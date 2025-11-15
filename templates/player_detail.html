@@ -527,12 +527,15 @@
                         <td>{{ game.GameDivision }}</td>
                         <td>
                             <div style="margin-bottom: 4px;">
+                                {% if game.HotnessIcon %}
+                                <a href="/game-detail/{{ game.GameId }}" class="game-link completed-game hoverable-item" data-type="game" data-id="{{ game.GameId }}" data-hotness-icon="{{ game.HotnessIcon }}" title="Hotness: {{ game.HotnessScore }}/100" style="font-size: 0.85em;">
+                                    Game {{ game.GameId }}
+                                </a>
+                                {% else %}
                                 <a href="/game-detail/{{ game.GameId }}" class="game-link hoverable-item" data-type="game" data-id="{{ game.GameId }}" style="font-size: 0.85em;">
                                     Game {{ game.GameId }}
-                                    {% if game.HotnessIcon %}
-                                    <span style="font-size: 1.3em; margin-left: 5px;" title="Game Hotness: {{ game.HotnessScore }}/100">{{ game.HotnessIcon }}</span>
-                                    {% endif %}
                                 </a>
+                                {% endif %}
                             </div>
                             <div>
                                 <a href="/team-detail?team={{ game.Team }}" class="team-link">
