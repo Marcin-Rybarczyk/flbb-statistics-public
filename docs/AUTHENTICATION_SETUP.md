@@ -160,6 +160,52 @@ ADMIN_PASSWORD=AdminSecurePassword456!
    - Enable HTTPS/SSL for your application
    - Consider using a secrets management service for sensitive data
 
+## Brute-Force Protection
+
+The application includes built-in protection against brute-force login attacks:
+
+### Rate Limiting Features
+- **Maximum Attempts**: 5 login attempts per 15 minutes per IP address
+- **Applied To**: Both `/user/login` and `/admin/login` endpoints
+- **Scope**: POST requests only (viewing the login page doesn't count)
+- **Lockout Duration**: 15 minutes after 5 failed attempts
+- **Error Response**: HTTP 429 (Too Many Requests) with user-friendly message
+
+### How It Works
+1. Each IP address can make up to 5 login POST requests within a 15-minute window
+2. Both successful and failed login attempts count toward the limit
+3. After 5 attempts, the IP is blocked from making further login attempts for 15 minutes
+4. Users will see a clear error message: "Too many login attempts. Please try again in 15 minutes."
+5. The rate limit automatically resets after the time window expires
+
+### Important Notes
+- Rate limits are tracked per IP address, protecting against both single-source and distributed attacks
+- The limit applies regardless of whether credentials are correct or incorrect
+- GET requests to login pages are not rate-limited, so users can still view the login form
+- This protection is applied at the application level and works on any hosting platform
+
+### For System Administrators
+If you need to customize the rate limiting behavior:
+
+1. **Adjust Rate Limits**: Edit `src/app.py` and modify the `@limiter.limit()` decorator:
+   ```python
+   @limiter.limit("5 per 15 minutes", methods=["POST"])  # Current setting
+   # Change to, for example:
+   @limiter.limit("3 per 30 minutes", methods=["POST"])  # Stricter
+   @limiter.limit("10 per 15 minutes", methods=["POST"]) # More lenient
+   ```
+
+2. **Production Considerations**: For high-traffic deployments or multi-instance setups, consider:
+   - Using Redis or Memcached as the rate limit storage backend instead of in-memory storage
+   - Implementing additional security measures like CAPTCHA for repeated failures
+   - Monitoring login attempt patterns for security analysis
+
+### Testing Rate Limiting
+You can test the rate limiting functionality using the provided test suite:
+```bash
+python3 tests/test_rate_limiting.py
+```
+
 ## Related Documentation
 
 - [Deployment Guide](README_DEPLOYMENT.md) - Full deployment instructions

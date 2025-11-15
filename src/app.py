@@ -37,6 +37,39 @@ VALID_THEMES = ['default', 'ocean', 'sunset', 'forest', 'minimal', 'cherry']
 # Configure logging for tracking code validation
 logger = logging.getLogger(__name__)
 
+# Configure rate limiting for brute-force protection
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+# Initialize rate limiter
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",
+    strategy="fixed-window"
+)
+
+# Custom error handler for rate limit exceeded
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    """Handle rate limit exceeded errors with a user-friendly message"""
+    # Check if this is a login endpoint
+    if '/login' in request.path:
+        # Return to login page with error message
+        error_msg = "Too many login attempts. Please try again in 15 minutes."
+        if '/admin/login' in request.path:
+            return render_template('admin_login.html', error=error_msg), 429
+        elif '/user/login' in request.path:
+            return render_template('user_login.html', error=error_msg), 429
+    
+    # For other endpoints, return a generic error
+    return jsonify({
+        'error': 'Rate limit exceeded',
+        'message': 'Too many requests. Please try again later.'
+    }), 429
+
+
 def validate_tracking_code(code):
     """
     Validate tracking code from environment variable for basic security.
@@ -670,6 +703,7 @@ def preferences():
                          data_source_info=data_source_info)
 
 @app.route('/user/login', methods=['GET', 'POST'])
+@limiter.limit("5 per 15 minutes", methods=["POST"])
 def user_login():
     """User login page and authentication"""
     if request.method == 'POST':
@@ -714,6 +748,7 @@ def user_logout():
     return redirect(url_for('index'))
 
 @app.route('/admin/login', methods=['GET', 'POST'])
+@limiter.limit("5 per 15 minutes", methods=["POST"])
 def admin_login():
     """Admin login page and authentication"""
     if request.method == 'POST':
