@@ -72,10 +72,12 @@
                         <td class="col-essential">
                             <span class="team-name-container">
                             {% set team_logo_url = get_team_logo_url(row['Team']) %}
+                            <a href="/team-detail?team={{ row['Team'] }}" class="team-link">
                             {% if team_logo_url %}
                                 <img src="{{ team_logo_url }}" alt="{{ row['Team'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
                             {% endif %}
-                            <a href="/team-detail?team={{ row['Team'] }}" class="team-link">{{ row['Team'] }}</a>
+                            {{ row['Team'] }}
+                            </a>
                             </span>
                         </td>
                         <td class="col-optional">{{ row['TotalGames'] }}</td>
@@ -115,10 +117,12 @@
                         <td>
                             <span class="team-name-container">
                             {% set team_logo_url = get_team_logo_url(row['Team']) %}
+                            <a href="/team-detail?team={{ row['Team'] }}" class="team-link">
                             {% if team_logo_url %}
                                 <img src="{{ team_logo_url }}" alt="{{ row['Team'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
                             {% endif %}
-                            <a href="/team-detail?team={{ row['Team'] }}" class="team-link">{{ row['Team'] }}</a>
+                            {{ row['Team'] }}
+                            </a>
                             </span>
                         </td>
                         <td><strong>{{ "%.1f"|format(row['AvgPointsScored']) }}</strong></td>
@@ -149,10 +153,12 @@
                         <td>
                             <span class="team-name-container">
                             {% set team_logo_url = get_team_logo_url(row['Team']) %}
+                            <a href="/team-detail?team={{ row['Team'] }}" class="team-link">
                             {% if team_logo_url %}
                                 <img src="{{ team_logo_url }}" alt="{{ row['Team'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
                             {% endif %}
-                            <a href="/team-detail?team={{ row['Team'] }}" class="team-link">{{ row['Team'] }}</a>
+                            {{ row['Team'] }}
+                            </a>
                             </span>
                         </td>
                         <td><strong>{{ "%.1f"|format(row['AvgPointsAllowed']) }}</strong></td>
