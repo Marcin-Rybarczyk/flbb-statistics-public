@@ -6219,9 +6219,9 @@ def get_division_hover_stats(data, division_name):
             team_row = standings.iloc[idx]
             top_teams.append({
                 'name': team_row['Team Name'],
-                'wins': team_row['Wins'],
-                'losses': team_row['Losses'],
-                'points': team_row.get('League Points', 0)
+                'wins': int(team_row['W']),
+                'losses': int(team_row['L']),
+                'points': int(team_row.get('Points', 0))
             })
     
     # Get top 3 scorers based on average score per game
