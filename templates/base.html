@@ -689,24 +689,92 @@
             font-size: 0.9em;
         }
 
-        /* Standardized clickable entity links */
-        .player-link, .team-link, .game-link, .referee-link {
-            color: #667eea;
+        /* Standardized clickable entity links with badge styling */
+        .player-link, .team-link, .game-link, .referee-link, .division-link {
+            color: #2c3e50;
             text-decoration: none;
-            font-weight: bold;
+            font-weight: 600;
             transition: all 0.2s ease;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
             white-space: nowrap;
+            padding: 4px 10px;
+            border-radius: 8px;
+            background: rgba(200, 200, 200, 0.25);
+            border: 1px solid rgba(150, 150, 150, 0.2);
         }
 
-        .player-link:hover, .team-link:hover, .game-link:hover, .referee-link:hover {
-            color: #764ba2;
-            background-color: rgba(102, 126, 234, 0.1);
-            text-decoration: none;
-            padding: 2px 4px;
-            border-radius: 3px;
+        /* Specific colors for each type */
+        .player-link {
+            background: rgba(102, 126, 234, 0.12);
+            border-color: rgba(102, 126, 234, 0.25);
+            color: #4a5fc1;
+        }
+
+        .team-link {
+            background: rgba(46, 204, 113, 0.12);
+            border-color: rgba(46, 204, 113, 0.25);
+            color: #27ae60;
+        }
+
+        .game-link {
+            background: rgba(230, 126, 34, 0.12);
+            border-color: rgba(230, 126, 34, 0.25);
+            color: #d35400;
+        }
+
+        .referee-link {
+            background: rgba(155, 89, 182, 0.12);
+            border-color: rgba(155, 89, 182, 0.25);
+            color: #8e44ad;
+        }
+
+        .division-link {
+            background: rgba(52, 152, 219, 0.12);
+            border-color: rgba(52, 152, 219, 0.25);
+            color: #2980b9;
+        }
+
+        /* Hover states with darker backgrounds */
+        .player-link:hover {
+            background: rgba(102, 126, 234, 0.22);
+            border-color: rgba(102, 126, 234, 0.4);
+            color: #3a4aa8;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+        }
+
+        .team-link:hover {
+            background: rgba(46, 204, 113, 0.22);
+            border-color: rgba(46, 204, 113, 0.4);
+            color: #1e8449;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(46, 204, 113, 0.3);
+        }
+
+        .game-link:hover {
+            background: rgba(230, 126, 34, 0.22);
+            border-color: rgba(230, 126, 34, 0.4);
+            color: #ba4a00;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(230, 126, 34, 0.3);
+        }
+
+        .referee-link:hover {
+            background: rgba(155, 89, 182, 0.22);
+            border-color: rgba(155, 89, 182, 0.4);
+            color: #71368a;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(155, 89, 182, 0.3);
+        }
+
+        .division-link:hover {
+            background: rgba(52, 152, 219, 0.22);
+            border-color: rgba(52, 152, 219, 0.4);
+            color: #21618c;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
         }
 
         /* Icons for clickable entity links */
@@ -714,18 +782,38 @@
             content: "⛹️";
             font-size: 1.1em;
             display: inline-block;
+            flex-shrink: 0;
         }
 
         .game-link::before {
             content: "🏀";
-            font-size: 0.9em;
+            font-size: 0.95em;
             display: inline-block;
+            flex-shrink: 0;
+        }
+
+        /* Special styling for future games - will be added via class */
+        .game-link.future-game::before {
+            content: "🏀";
+        }
+
+        /* Special styling for completed games with hotness */
+        .game-link.completed-game::before {
+            content: attr(data-hotness-icon);
         }
 
         .referee-link::before {
             content: "👨‍⚖️";
             font-size: 0.9em;
             display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .division-link::before {
+            content: "🏆";
+            font-size: 0.9em;
+            display: inline-block;
+            flex-shrink: 0;
         }
 
         /* Team link with optional logo */
@@ -736,11 +824,12 @@
         }
 
         .team-logo-icon {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             object-fit: contain;
             border-radius: 3px;
             vertical-align: middle;
+            flex-shrink: 0;
         }
 
         /* Prevent line breaks between team logo and team name */
@@ -752,20 +841,22 @@
         /* Keep logo and team name together on same line */
         .team-name-container {
             white-space: nowrap;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
         /* For team buttons styled as links */
         button.team-link {
-            background: none;
-            border: none;
+            border: 1px solid rgba(46, 204, 113, 0.25);
             cursor: pointer;
             font-size: inherit;
-            padding: 0;
+            padding: 4px 10px;
         }
 
         button.team-link:hover {
-            padding: 2px 4px;
+            background: rgba(46, 204, 113, 0.22);
+            border-color: rgba(46, 204, 113, 0.4);
         }
 
         /* Hover Tooltip Styles */
@@ -907,18 +998,10 @@
             cursor: pointer;
         }
 
-        /* Division names styling */
+        /* Division names styling - use division-link class for consistent styling */
         .division-name {
             cursor: pointer;
-            padding: 2px 6px;
-            border-radius: 4px;
-            transition: all 0.2s ease;
             display: inline-block;
-        }
-
-        .division-name:hover {
-            background: rgba(102, 126, 234, 0.1);
-            transform: translateY(-1px);
         }
 
         {% block extra_styles %}{% endblock %}
