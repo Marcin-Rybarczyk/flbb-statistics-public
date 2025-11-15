@@ -5666,21 +5666,28 @@ def calculate_future_game_hotness(home_team, away_team, standings_df):
     proximity_normalized = rank_difference / max(total_teams, 1)
     proximity_factor = 1 - min(proximity_normalized, 1)  # Closer = higher value
     
-    # 3. Top-of-table Bonus: Extra excitement for top 3 teams
-    top_threshold = 3
-    home_is_top = home_rank <= top_threshold
-    away_is_top = away_rank <= top_threshold
+    # 3. Top-of-table Bonus: Extra excitement for top teams playing
+    # Only apply significant bonus for top 2 teams, smaller bonus for top 3-4
+    top_tier_1 = 2  # Top 2 teams
+    top_tier_2 = 4  # Top 4 teams
     
-    if home_is_top and away_is_top:
-        top_bonus = 0.3  # Both in top 3 = big bonus
-    elif home_is_top or away_is_top:
-        top_bonus = 0.15  # One in top 3 = medium bonus
+    home_is_top1 = home_rank <= top_tier_1
+    away_is_top1 = away_rank <= top_tier_1
+    home_is_top2 = home_rank <= top_tier_2
+    away_is_top2 = away_rank <= top_tier_2
+    
+    if home_is_top1 and away_is_top1:
+        top_bonus = 0.25  # Both in top 2 = very hot
+    elif home_is_top2 and away_is_top2:
+        top_bonus = 0.12  # Both in top 4 = warm bonus
+    elif home_is_top1 or away_is_top1:
+        top_bonus = 0.08  # One in top 2 = small bonus
     else:
-        top_bonus = 0.0  # Neither in top 3 = no bonus
+        top_bonus = 0.0  # Neither in top tier = no bonus
     
     # Combine factors with weights
-    # 40% ranking quality, 40% proximity/competitiveness, 20% base + top bonus
-    base_score = (0.4 * ranking_factor + 0.4 * proximity_factor + 0.2)
+    # 50% ranking quality, 35% proximity/competitiveness, 15% base + top bonus
+    base_score = (0.50 * ranking_factor + 0.35 * proximity_factor + 0.15)
     
     # Add top bonus and scale to 0-100
     hotness_score = int(min(100, (base_score + top_bonus) * 100))
