@@ -5702,17 +5702,17 @@ def calculate_future_game_hotness(home_team, away_team, standings_df):
     away_is_top2 = away_rank <= top_tier_2
     
     if home_is_top1 and away_is_top1:
-        top_bonus = 0.35  # Both in top 3 = very hot (increased from 0.25)
+        top_bonus = 0.28  # Both in top 3 = very hot (increased from 0.25)
     elif home_is_top2 and away_is_top2:
-        top_bonus = 0.20  # Both in top 5 = warm bonus (increased from 0.12)
+        top_bonus = 0.16  # Both in top 5 = warm bonus (increased from 0.12)
     elif home_is_top1 or away_is_top1:
-        top_bonus = 0.15  # One in top 3 = small bonus (increased from 0.08)
+        top_bonus = 0.10  # One in top 3 = small bonus (increased from 0.08)
     else:
-        top_bonus = 0.05  # Neither in top tier = minimal bonus (increased from 0.0)
+        top_bonus = 0.03  # Neither in top tier = minimal bonus (increased from 0.0)
     
     # Combine factors with weights (adjusted for higher scores)
-    # 45% ranking quality, 30% proximity/competitiveness, 25% base + top bonus
-    base_score = (0.45 * ranking_factor + 0.30 * proximity_factor + 0.25)
+    # 50% ranking quality, 33% proximity/competitiveness, 17% base + top bonus
+    base_score = (0.50 * ranking_factor + 0.33 * proximity_factor + 0.17)
     
     # Add top bonus and scale to 0-100
     hotness_score = int(min(100, (base_score + top_bonus) * 100))
