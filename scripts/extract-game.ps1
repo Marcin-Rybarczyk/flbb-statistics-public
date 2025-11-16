@@ -412,9 +412,19 @@ function Get-GameLocation($htmlDoc) {
     $location = $gameLocationNode.InnerText.Trim()
     $coordinates = $gameLocationNode.GetAttributeValue('href', '')
     
+    # Check for forfeit in location
+    $isForfeit = $false
+    $forfeitTeam = $null
+    if ($location -match "FORFAIT\s+(.+)$") {
+        $isForfeit = $true
+        $forfeitTeam = $matches[1].Trim()
+    }
+    
     $gameLocation = @{
-        "Name"        = $location 
-        "Google Link" = $coordinates
+        "Name"         = $location 
+        "Google Link"  = $coordinates
+        "IsForfeit"    = $isForfeit
+        "ForfeitTeam"  = $forfeitTeam
     }
     return $gameLocation
 }
@@ -427,7 +437,7 @@ function Get-CalculateLeaguePoints($firstTeamScore, $secondTeamScore) {
     }
     return 1
 }
-function Get-GameDescription($htmlDoc) {
+function Get-GameDescription($htmlDoc, $gameLocation = $null) {
     $scores = $htmlDoc.DocumentNode.SelectNodes("//div[@id='refrgame']/div[2]/div[contains(@class, 'match-score')]/div")
     $homeScore = $scores[0].InnerText.Trim()
     $awayScore = $scores[1].InnerText.Trim()
@@ -436,6 +446,28 @@ function Get-GameDescription($htmlDoc) {
     # $homeScore = $htmlDoc.DocumentNode.SelectSingleNode("//div[@id='refrgame']/div[2]/div[2]/div").InnerText.Trim()
     # $awayScore = $htmlDoc.DocumentNode.SelectSingleNode("//div[@id='refrgame']/div[2]/div[3]/div").InnerText.Trim()
     $awayTeamName = $htmlDoc.DocumentNode.SelectSingleNode("//div[@id='refrgame']/div[2]/div[@class='col-4 my-auto text-right']/a").InnerText.Trim()
+    
+    # Check if this is a forfeit game and adjust scores accordingly
+    if ($null -ne $gameLocation -and $gameLocation["IsForfeit"] -eq $true) {
+        $forfeitTeam = $gameLocation["ForfeitTeam"]
+        # Check if forfeit team matches away team (case-insensitive, partial match)
+        if ($awayTeamName -match [regex]::Escape($forfeitTeam) -or $forfeitTeam -match [regex]::Escape($awayTeamName)) {
+            # Away team forfeited, home team wins 20-0
+            $homeScore = "20"
+            $awayScore = "0"
+            Write-Host "Forfeit detected: $forfeitTeam (away team) forfeited. Score adjusted to $homeScore : $awayScore"
+        }
+        # Check if forfeit team matches home team (case-insensitive, partial match)
+        elseif ($homeTeamName -match [regex]::Escape($forfeitTeam) -or $forfeitTeam -match [regex]::Escape($homeTeamName)) {
+            # Home team forfeited, away team wins 20-0
+            $homeScore = "0"
+            $awayScore = "20"
+            Write-Host "Forfeit detected: $forfeitTeam (home team) forfeited. Score adjusted to $homeScore : $awayScore"
+        }
+        else {
+            Write-Warning "Forfeit team '$forfeitTeam' could not be matched to home team '$homeTeamName' or away team '$awayTeamName'"
+        }
+    }
     
     $gameDescription = @{
         "Division"             = $gameDivision
@@ -458,7 +490,8 @@ function New-FullGameStatsJson($content, $gameId, $appConfig) {
     $htmlDoc = New-Object HtmlAgilityPack.HtmlDocument
     $htmlDoc.LoadHtml($content)
     
-    $gameDescritpion = Get-GameDescription -htmlDoc $htmlDoc
+    $gameLocation = Get-GameLocation -htmlDoc $htmlDoc
+    $gameDescritpion = Get-GameDescription -htmlDoc $htmlDoc -gameLocation $gameLocation
     if ($gameDescritpion['FinalScore'] -eq $GAME_NOT_STARTED_SCORE) {
         Write-Warning "Game $gameId is not started yet."
         return $null
@@ -466,7 +499,6 @@ function New-FullGameStatsJson($content, $gameId, $appConfig) {
     $referres = Get-Referres -htmlDoc $htmlDoc
     $teams = Get-Teams -htmlDoc $htmlDoc -appConfig $appConfig -gameDescription $gameDescritpion
     $dateTime = Get-MatchDatetime -htmlDoc $htmlDoc 
-    $gameLocation = Get-GameLocation -htmlDoc $htmlDoc
     # $gameContext = @{
     #     "HomeTeamName"      = $teams[0]["Team Name"]
     #     "HomeTeamShortName" = $teams[0]["Team Name Short"]
@@ -509,9 +541,15 @@ function New-FullGameStatsJsonWithMeasurement($content, $gameId, $appConfig) {
     $htmlDoc = New-Object HtmlAgilityPack.HtmlDocument
     $htmlDoc.LoadHtml($content)
     
+    # Measure Get-GameLocation execution time
+    $gameLocationTime = Measure-Command {
+        $gameLocation = Get-GameLocation -htmlDoc $htmlDoc
+    }
+    Write-Host "Get-GameLocation Execution Time: $($gameLocationTime.TotalMilliseconds) milliseconds"
+
     # Measure Get-GameDescription execution time
     $gameDescriptionTime = Measure-Command {
-        $gameDescription = Get-GameDescription -htmlDoc $htmlDoc
+        $gameDescription = Get-GameDescription -htmlDoc $htmlDoc -gameLocation $gameLocation
     }
     Write-Host "Get-GameDescription Execution Time: $($gameDescriptionTime.TotalMilliseconds) milliseconds"
 
@@ -537,12 +575,6 @@ function New-FullGameStatsJsonWithMeasurement($content, $gameId, $appConfig) {
         $dateTime = Get-MatchDatetime -htmlDoc $htmlDoc 
     }
     Write-Host "Get-MatchDatetime Execution Time: $($dateTimeTime.TotalMilliseconds) milliseconds"
-
-    # Measure Get-GameLocation execution time
-    $gameLocationTime = Measure-Command {
-        $gameLocation = Get-GameLocation -htmlDoc $htmlDoc
-    }
-    Write-Host "Get-GameLocation Execution Time: $($gameLocationTime.TotalMilliseconds) milliseconds"
 
     # Measure Get-GameEvents execution time
     $eventsTime = Measure-Command {
