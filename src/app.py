@@ -143,6 +143,15 @@ if not os.environ.get('SECRET_KEY'):
 else:
     app.secret_key = os.environ.get('SECRET_KEY')
 
+# Configure session to persist properly across page navigation
+from datetime import timedelta
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=31)  # Session expires after 31 days
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Allow cookies on same-site navigation
+app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent JavaScript access for security
+# Enable secure cookies in production when HTTPS is forced
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FORCE_HTTPS', 'false').lower() == 'true'
+app.config['SESSION_REFRESH_EACH_REQUEST'] = True  # Refresh session on each request to keep it alive
+
 # Admin and User authentication
 from functools import wraps
 

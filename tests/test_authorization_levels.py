@@ -35,8 +35,7 @@ def test_guest_access():
         ('/', 'Home page'),
         ('/standings', 'Standings page'),
         ('/fixtures', 'Fixtures page'),
-        ('/user/login', 'User login page'),
-        ('/admin/login', 'Admin login page'),
+        ('/login', 'Login page'),
     ]
     
     print("\n✓ Testing accessible routes for guests:")
@@ -44,6 +43,18 @@ def test_guest_access():
         response = client.get(route)
         assert response.status_code == 200, f"{description} ({route}) should be accessible, got {response.status_code}"
         print(f"   ✓ {description} ({route}) - Accessible")
+    
+    # Legacy login routes should redirect to unified login
+    print("\n✓ Testing legacy login routes (should redirect to /login):")
+    legacy_routes = [
+        ('/user/login', 'User login page'),
+        ('/admin/login', 'Admin login page'),
+    ]
+    for route, description in legacy_routes:
+        response = client.get(route, follow_redirects=False)
+        assert response.status_code == 302, f"{description} ({route}) should redirect, got {response.status_code}"
+        assert '/login' in response.location, f"Should redirect to /login, got {response.location}"
+        print(f"   ✓ {description} ({route}) - Redirects to /login")
     
     # Routes that SHOULD NOT be accessible to guests (should redirect to login)
     protected_routes = [
@@ -63,14 +74,15 @@ def test_guest_access():
     for route, description in protected_routes:
         response = client.get(route, follow_redirects=False)
         assert response.status_code == 302, f"{description} ({route}) should redirect, got {response.status_code}"
-        assert '/user/login' in response.location, f"Should redirect to login, got {response.location}"
+        assert '/login' in response.location, f"Should redirect to login, got {response.location}"
         print(f"   ✓ {description} ({route}) - Redirects to login")
     
-    # Admin panel should be accessible (but admin actions protected)
-    print("\n✓ Testing admin panel access for guests:")
-    response = client.get('/admin')
-    assert response.status_code == 200, f"Admin page should be accessible, got {response.status_code}"
-    print("   ✓ Admin page - Accessible (but admin actions will be protected)")
+    # Admin panel should be protected for guests
+    print("\n✓ Testing admin panel access for guests (should redirect):")
+    response = client.get('/admin', follow_redirects=False)
+    assert response.status_code == 302, f"Admin page should redirect, got {response.status_code}"
+    assert '/login' in response.location, f"Should redirect to login, got {response.location}"
+    print("   ✓ Admin page - Redirects to login for guests")
     
     print("\n" + "=" * 70)
     print("✅ GUEST ACCESS TESTS PASSED")
@@ -87,7 +99,7 @@ def test_user_login():
     
     # Test invalid login - wrong username
     print("\n1. Testing login with invalid username...")
-    response = client.post('/user/login', data={'username': 'wronguser', 'password': 'user123'}, follow_redirects=False)
+    response = client.post('/login', data={'username': 'wronguser', 'password': 'user123'}, follow_redirects=False)
     assert response.status_code == 200, f"Expected 200 (error page), got {response.status_code}"
     response_data = response.data.decode('utf-8')
     assert 'Invalid' in response_data or 'error' in response_data.lower(), "Expected error message"
@@ -95,7 +107,7 @@ def test_user_login():
     
     # Test invalid login - wrong password
     print("\n2. Testing login with invalid password...")
-    response = client.post('/user/login', data={'username': 'testuser', 'password': 'wrongpassword'}, follow_redirects=False)
+    response = client.post('/login', data={'username': 'testuser', 'password': 'wrongpassword'}, follow_redirects=False)
     assert response.status_code == 200, f"Expected 200 (error page), got {response.status_code}"
     response_data = response.data.decode('utf-8')
     assert 'Invalid' in response_data or 'error' in response_data.lower(), "Expected error message"
@@ -103,7 +115,7 @@ def test_user_login():
     
     # Test valid login
     print("\n3. Testing login with valid credentials...")
-    response = client.post('/user/login', data={'username': 'testuser', 'password': 'user123'}, follow_redirects=False)
+    response = client.post('/login', data={'username': 'testuser', 'password': 'user123'}, follow_redirects=False)
     assert response.status_code == 302, f"Expected 302 (redirect), got {response.status_code}"
     print("   ✓ Valid credentials accepted and redirected")
     
