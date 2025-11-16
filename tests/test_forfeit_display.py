@@ -12,7 +12,7 @@ import pandas as pd
 from utils import calculate_standings
 
 def test_forfeit_detection():
-    """Test that forfeit games are correctly marked with 'F' in Last 5 Games"""
+    """Test that forfeit games are correctly marked with 'F' in Last 5 Games for the forfeiting team"""
     
     # Create sample data with a forfeit game
     test_data = pd.DataFrame([
@@ -25,18 +25,20 @@ def test_forfeit_detection():
             'AwayTeamLeaguePoints': 1,
             'GameId': 'game1',
             'DateTime': '2025-01-01 18:00:00',
-            'GameEvents': '[]'  # Regular game
+            'GameEvents': '[]',  # Regular game
+            'GameLocation': 'Hall A'
         },
         {
             'HomeTeamName': 'Team A',
             'AwayTeamName': 'Team C',
             'FinalHomeScore': 0,
             'FinalAwayScore': 0,
-            'HomeTeamLeaguePoints': 1,
-            'AwayTeamLeaguePoints': 1,
+            'HomeTeamLeaguePoints': 2,
+            'AwayTeamLeaguePoints': 0,
             'GameId': 'game2',
             'DateTime': '2025-01-08 18:00:00',
-            'GameEvents': "[{'EventAction': 'Forfeit', 'EventDateTime': '2025-01-08', 'EventActor': '* System *'}]"  # Forfeit game
+            'GameEvents': "[{'EventAction': 'Forfeit', 'EventDateTime': '2025-01-08', 'EventActor': '* System *'}]",  # Forfeit game
+            'GameLocation': 'Hall B - FORFAIT Team C'  # Team C forfeited
         },
         {
             'HomeTeamName': 'Team A',
@@ -47,7 +49,8 @@ def test_forfeit_detection():
             'AwayTeamLeaguePoints': 2,
             'GameId': 'game3',
             'DateTime': '2025-01-15 18:00:00',
-            'GameEvents': '[]'  # Regular game
+            'GameEvents': '[]',  # Regular game
+            'GameLocation': 'Hall C'
         }
     ])
     
@@ -58,29 +61,48 @@ def test_forfeit_detection():
     print("\nStandings table:")
     print(standings[['Team Name', 'Games', 'W', 'L', 'Points']])
     
-    # Check Team A's last 5 games
+    # Check Team A's last 5 games (won by forfeit)
     team_a_row = standings[standings['Team Name'] == 'Team A']
+    team_c_row = standings[standings['Team Name'] == 'Team C']
+    
+    success = True
+    
     if not team_a_row.empty:
         last_5_games = team_a_row['Last 5 Games'].iloc[0]
         print(f"\nTeam A's Last 5 Games (most recent first):")
         for game in last_5_games:
             print(f"  Game {game['game_id']}: {game['result']}")
         
-        # Verify forfeit is marked with 'F'
         results = [game['result'] for game in last_5_games]
-        if 'F' in results:
-            print("\n✓ SUCCESS: Forfeit game correctly marked with 'F'")
-            forfeit_index = results.index('F')
-            forfeit_game = last_5_games[forfeit_index]
-            print(f"  Forfeit game ID: {forfeit_game['game_id']}")
-            return True
+        # Team A won by forfeit, should have 'W' for game2
+        game2_result = next((g['result'] for g in last_5_games if g['game_id'] == 'game2'), None)
+        if game2_result == 'W':
+            print("\n✓ SUCCESS: Team A (winner by forfeit) correctly marked with 'W'")
         else:
-            print("\n✗ FAILURE: Forfeit game not marked with 'F'")
-            print(f"  Expected 'F' in results, got: {results}")
-            return False
+            print(f"\n✗ FAILURE: Team A should have 'W' for forfeit win, got: {game2_result}")
+            success = False
     else:
         print("\n✗ FAILURE: Team A not found in standings")
-        return False
+        success = False
+    
+    if not team_c_row.empty:
+        last_5_games_c = team_c_row['Last 5 Games'].iloc[0]
+        print(f"\nTeam C's Last 5 Games (most recent first):")
+        for game in last_5_games_c:
+            print(f"  Game {game['game_id']}: {game['result']}")
+        
+        # Team C forfeited, should have 'F' for game2
+        game2_result = next((g['result'] for g in last_5_games_c if g['game_id'] == 'game2'), None)
+        if game2_result == 'F':
+            print("\n✓ SUCCESS: Team C (forfeited) correctly marked with 'F'")
+        else:
+            print(f"\n✗ FAILURE: Team C should have 'F' for forfeit, got: {game2_result}")
+            success = False
+    else:
+        print("\n✗ FAILURE: Team C not found in standings")
+        success = False
+    
+    return success
 
 if __name__ == '__main__':
     success = test_forfeit_detection()

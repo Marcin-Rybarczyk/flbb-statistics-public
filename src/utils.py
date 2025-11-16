@@ -326,8 +326,9 @@ def calculate_standings(df):
         away_score = row['FinalAwayScore']
         game_id = row.get('GameId', '')
         
-        # Check if this is a forfeit game
+        # Check if this is a forfeit game and identify which team forfeited
         is_forfeit = False
+        forfeiting_team = None
         game_events = row.get('GameEvents', '')
         if game_events:
             try:
@@ -342,6 +343,19 @@ def calculate_standings(df):
                     for event in events_data:
                         if isinstance(event, dict) and event.get('EventAction') == 'Forfeit':
                             is_forfeit = True
+                            # Parse GameLocation to identify which team forfeited
+                            # Format: "...FORFAIT TeamName..."
+                            location = str(row.get('GameLocation', ''))
+                            if 'FORFAIT' in location.upper():
+                                # Extract team name after FORFAIT
+                                parts = location.split('FORFAIT')
+                                if len(parts) > 1:
+                                    forfeit_info = parts[1].strip()
+                                    # Check which team name appears in the forfeit info
+                                    if home_team in forfeit_info:
+                                        forfeiting_team = home_team
+                                    elif away_team in forfeit_info:
+                                        forfeiting_team = away_team
                             break
             except (ValueError, SyntaxError):
                 # If parsing fails, treat as non-forfeit
@@ -356,12 +370,23 @@ def calculate_standings(df):
         standings[home_team]['A'] += away_score
         standings[away_team]['A'] += home_score
 
-        if is_forfeit:
-            # For forfeit games, mark both teams with 'F' in Last 5 Games
-            team_games[home_team].append({'result': 'F', 'game_id': game_id})
-            team_games[away_team].append({'result': 'F', 'game_id': game_id})
-            # Note: League points are already set correctly in the data (both teams get 1 point)
-            # We add them to the Points total here
+        if is_forfeit and forfeiting_team:
+            # For forfeit games:
+            # - The team that forfeited gets 'F' and is marked as a loss
+            # - The team that won by forfeit gets 'W' and is marked as a win
+            if forfeiting_team == home_team:
+                # Home team forfeited, away team wins
+                standings[home_team]['L'] += 1
+                standings[away_team]['W'] += 1
+                team_games[home_team].append({'result': 'F', 'game_id': game_id})
+                team_games[away_team].append({'result': 'W', 'game_id': game_id})
+            else:
+                # Away team forfeited, home team wins
+                standings[home_team]['W'] += 1
+                standings[away_team]['L'] += 1
+                team_games[home_team].append({'result': 'W', 'game_id': game_id})
+                team_games[away_team].append({'result': 'F', 'game_id': game_id})
+            # League points from the data
             standings[home_team]['Points'] += row.get('HomeTeamLeaguePoints', 1)
             standings[away_team]['Points'] += row.get('AwayTeamLeaguePoints', 1)
         elif home_score > away_score:  # Home team wins
