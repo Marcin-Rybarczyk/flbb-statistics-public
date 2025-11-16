@@ -6,6 +6,68 @@
 {% block page_description %}Complete game information and statistics{% endblock %}
 
 {% block extra_styles %}
+    .search-container {
+        text-align: center;
+        margin: 30px 0;
+    }
+    
+    .search-box {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+        max-width: 800px;
+    }
+    
+    #gameSearch {
+        width: 100%;
+        padding: 15px 20px;
+        font-size: 1.1em;
+        border: 2px solid #ddd;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+    
+    #gameSearch:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .autocomplete-suggestions {
+        position: absolute;
+        width: 100%;
+        max-height: 400px;
+        overflow-y: auto;
+        background: white;
+        border: 2px solid #667eea;
+        border-top: none;
+        border-radius: 0 0 10px 10px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        display: none;
+    }
+    
+    .autocomplete-suggestion {
+        padding: 12px 20px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+        transition: all 0.2s ease;
+    }
+    
+    .autocomplete-suggestion:hover {
+        background: rgba(102, 126, 234, 0.1);
+    }
+    
+    .autocomplete-suggestion strong {
+        color: #667eea;
+    }
+    
+    .autocomplete-suggestion small {
+        color: #7f8c8d;
+        display: block;
+        margin-top: 5px;
+    }
+
     .game-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -231,22 +293,6 @@
         font-weight: 500;
     }
 
-    .back-button {
-        display: inline-block;
-        background: #667eea;
-        color: white;
-        padding: 10px 20px;
-        border-radius: 20px;
-        text-decoration: none;
-        margin-bottom: 20px;
-        transition: all 0.3s ease;
-    }
-
-    .back-button:hover {
-        background: #764ba2;
-        transform: translateY(-2px);
-    }
-
     @media (max-width: 768px) {
         .teams-grid {
             grid-template-columns: 1fr;
@@ -263,7 +309,16 @@
 {% endblock %}
 
 {% block content %}
-    <a href="/fixtures" class="back-button">← Back to Fixtures</a>
+    <div class="search-container">
+        <div class="search-box">
+            <input type="text" 
+                   id="gameSearch" 
+                   placeholder="🔍 Search for a game by teams, game ID, division, or date..." 
+                   autocomplete="off"
+                   value="{{ game_id if game_id else '' }}">
+            <div id="autocompleteSuggestions" class="autocomplete-suggestions"></div>
+        </div>
+    </div>
 
     {% if error %}
         <div class="error-message">{{ error }}</div>
@@ -277,13 +332,20 @@
                 📅 Upcoming Game
             </p>
             {% endif %}
-            <p><span class="division-name hoverable-item" data-type="division" data-id="{{ game.basic_info.division }}">{{ game.basic_info.division }}</span></p>
+            <p><span class="division-name division-link hoverable-item" data-type="division" data-id="{{ game.basic_info.division }}">{{ game.basic_info.division }}</span></p>
             <p style="margin-top: 15px; font-size: 1.1em;">
-                📅 {{ game.basic_info.date_time }} | 📍 {{ game.basic_info.location.Name.replace(' - FINAL RESULT', '') if game.basic_info.location and game.basic_info.location.Name else 'TBD' }}
+                📅 {{ game.basic_info.date_time }} | 📍 
                 {% if game.basic_info.location and game.basic_info.location.get('Google Link') %}
-                <a href="{{ game.basic_info.location.get('Google Link').strip() }}" target="_blank" rel="noopener noreferrer" 
-                   style="color: #4CAF50; text-decoration: none; margin-left: 5px;" 
-                   title="View on Google Maps">🗺️</a>
+                <span class="hoverable-item location-link" 
+                      data-type="location" 
+                      data-id="{{ game.basic_info.location.get('Google Link').strip() }}"
+                      style="cursor: pointer; text-decoration: underline; text-decoration-style: dotted;"
+                      title="Right-click for options">
+                    {{ game.basic_info.location.Name.replace(' - FINAL RESULT', '') if game.basic_info.location.Name else 'TBD' }}
+                    <span style="color: #4CAF50; margin-left: 5px;">🌐</span>
+                </span>
+                {% else %}
+                {{ game.basic_info.location.Name.replace(' - FINAL RESULT', '') if game.basic_info.location and game.basic_info.location.Name else 'TBD' }}
                 {% endif %}
             </p>
             {% if game.referees and game.referees|length > 0 %}
@@ -806,4 +868,71 @@
         });
     </script>
     {% endif %}
+    
+    <script>
+        // Game data for autocomplete
+        const allGames = {{ all_games|tojson }};
+        
+        const searchInput = document.getElementById('gameSearch');
+        const suggestionsDiv = document.getElementById('autocompleteSuggestions');
+        
+        // Show suggestions on input
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            
+            if (searchTerm.length < 2) {
+                suggestionsDiv.style.display = 'none';
+                return;
+            }
+            
+            // Filter games
+            const matches = allGames.filter(game => 
+                String(game.GameId).toLowerCase().includes(searchTerm) ||
+                game.HomeTeam.toLowerCase().includes(searchTerm) ||
+                game.AwayTeam.toLowerCase().includes(searchTerm) ||
+                game.Division.toLowerCase().includes(searchTerm) ||
+                (game.Date && game.Date.toLowerCase().includes(searchTerm))
+            );
+            
+            if (matches.length === 0) {
+                suggestionsDiv.style.display = 'none';
+                return;
+            }
+            
+            // Display suggestions
+            suggestionsDiv.innerHTML = matches.slice(0, 15).map(game => `
+                <div class="autocomplete-suggestion" onclick="selectGame('${String(game.GameId).replace(/'/g, "\\'")}')">
+                    <strong>${game.HomeTeam} vs ${game.AwayTeam}</strong>
+                    <span style="color: #2c3e50; margin-left: 10px;">(${game.FinalScore})</span>
+                    <small>📅 ${game.Date || 'Date N/A'} | 🏆 ${game.Division} | ID: ${game.GameId}</small>
+                </div>
+            `).join('');
+            
+            suggestionsDiv.style.display = 'block';
+        });
+        
+        // Select game
+        function selectGame(gameId) {
+            searchInput.value = gameId;
+            suggestionsDiv.style.display = 'none';
+            window.location.href = `/game-detail/${encodeURIComponent(gameId)}`;
+        }
+        
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+                suggestionsDiv.style.display = 'none';
+            }
+        });
+        
+        // Handle Enter key
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const firstSuggestion = suggestionsDiv.querySelector('.autocomplete-suggestion');
+                if (firstSuggestion) {
+                    firstSuggestion.click();
+                }
+            }
+        });
+    </script>
 {% endblock %}

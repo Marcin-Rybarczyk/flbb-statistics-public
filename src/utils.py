@@ -1616,6 +1616,19 @@ def get_referee_detail_stats(data, referee_name):
         except:
             pass
         
+        # Calculate hotness for this game
+        hotness_score = 0
+        hotness_icon = "❄️"
+        try:
+            # Use the already parsed events_data
+            teams_data = ast.literal_eval(game['Teams']) if isinstance(game['Teams'], str) else game['Teams']
+            score_evolution = _calculate_score_evolution(events_data, game['HomeTeamName'], game['AwayTeamName'], teams_data)
+            game_stats = _calculate_game_statistics(score_evolution)
+            hotness_score = calculate_hotness_score(game_stats['lead_changes'], game_stats['tied_scores'], game_stats.get('close_game_ratio'))
+            hotness_icon = get_hotness_icon(hotness_score)
+        except:
+            pass
+        
         # Add game to referee's game list
         game_info = {
             'game_id': game['GameId'],
@@ -1629,7 +1642,9 @@ def get_referee_detail_stats(data, referee_name):
             'winner': game['GameWinner'],
             'location': game['GameLocation'],
             'fouls_called': game_fouls,
-            'foul_types': dict(game_foul_types)
+            'foul_types': dict(game_foul_types),
+            'hotness_score': hotness_score,
+            'hotness_icon': hotness_icon
         }
         referee_games.append(game_info)
     
@@ -3276,9 +3291,116 @@ def get_all_fixtures_data(data, division_filter=None):
         # Combine finished and future games
         if not future_games_df.empty:
             all_games = pd.concat([finished_games, future_games_df], ignore_index=True)
+            
+            # Add time_until columns for future games
+            all_games['TimeUntilText'] = ''
+            all_games['TimeUntilColorClass'] = ''
+            all_games['TimeUntilHours'] = float('inf')
+            
+            # Calculate hotness for future games based on standings
+            # Get standings for the division filter if provided, otherwise None
+            standings_df = None
+            if division_filter is not None:
+                standings_df = calculate_standings_by_division(filtered_data, division_filter)
+            
+            for idx, row in all_games.iterrows():
+                if row.get('IsFutureGame', False):
+                    time_until = calculate_time_until_game(row.get('DateTime'))
+                    all_games.at[idx, 'TimeUntilText'] = time_until['text']
+                    all_games.at[idx, 'TimeUntilColorClass'] = time_until['color_class']
+                    all_games.at[idx, 'TimeUntilHours'] = time_until['hours']
+                    
+                    # Calculate hotness based on league standings
+                    home_team = row.get('HomeTeamName')
+                    away_team = row.get('AwayTeamName')
+                    game_division = row.get('GameDivisionDisplay')
+                    
+                    # Get standings for this game's division if not already calculated
+                    if game_division and (standings_df is None or division_filter != game_division):
+                        game_standings = calculate_standings_by_division(filtered_data, game_division)
+                    else:
+                        game_standings = standings_df
+                    
+                    if home_team and away_team and game_standings is not None and not game_standings.empty:
+                        hotness_score, hotness_icon = calculate_future_game_hotness(
+                            home_team, away_team, game_standings
+                        )
+                        all_games.at[idx, 'HotnessScore'] = hotness_score
+                        all_games.at[idx, 'HotnessIcon'] = hotness_icon
+                    else:
+                        # Default neutral hotness if we can't calculate
+                        all_games.at[idx, 'HotnessScore'] = 50
+                        all_games.at[idx, 'HotnessIcon'] = '🌡️'
+            
             return all_games
     
     return finished_games
+
+
+def calculate_time_until_game(game_datetime_str):
+    """
+    Calculate time remaining until a game and return formatted string with color class.
+    
+    Parameters:
+    game_datetime_str (str): The game datetime string
+    
+    Returns:
+    dict: Dictionary with keys:
+        - 'text': Formatted time remaining text (e.g., "in 2 days", "in 5 hours")
+        - 'color_class': CSS class for color coding based on urgency
+        - 'hours': Total hours until game (for sorting)
+    """
+    from datetime import datetime, timedelta
+    
+    if not game_datetime_str or game_datetime_str == 'TBD':
+        return {'text': '', 'color_class': '', 'hours': float('inf')}
+    
+    try:
+        # Parse the game datetime
+        game_dt = pd.to_datetime(game_datetime_str)
+        now = datetime.now()
+        
+        # Calculate time difference
+        time_diff = game_dt - now
+        
+        # If game is in the past, return empty
+        if time_diff.total_seconds() < 0:
+            return {'text': '', 'color_class': '', 'hours': -1}
+        
+        total_hours = time_diff.total_seconds() / 3600
+        # Round up for partial days to show more accurate day count
+        import math
+        total_days = math.ceil(total_hours / 24)
+        
+        # Format the text based on time remaining
+        if total_hours < 1:
+            minutes = int(time_diff.total_seconds() / 60)
+            text = f"in {minutes} min" if minutes > 0 else "starting soon"
+            color_class = 'time-very-soon'
+        elif total_hours < 24:
+            hours = int(total_hours)
+            text = f"in {hours}h"
+            color_class = 'time-today'
+        elif total_hours >= 24 and total_hours < 36:  # Between 1-1.5 days (reasonable "tomorrow" range)
+            text = "tomorrow"
+            color_class = 'time-tomorrow'
+        elif total_days <= 3:
+            text = f"in {total_days} days"
+            color_class = 'time-few-days'
+        elif total_days <= 7:
+            text = f"in {total_days} days"
+            color_class = 'time-week'
+        else:
+            text = f"in {total_days} days"
+            color_class = 'time-later'
+        
+        return {
+            'text': text,
+            'color_class': color_class,
+            'hours': total_hours
+        }
+    except Exception as e:
+        return {'text': '', 'color_class': '', 'hours': float('inf')}
 
 
 def get_fixtures_matrix_data(data, division_filter=None):
@@ -3325,6 +3447,11 @@ def get_fixtures_matrix_data(data, division_filter=None):
     # Get closest games for each team to determine which games are "next" for which team
     closest_games = get_closest_games_by_team(data, division_filter)
     
+    # Calculate standings for hotness calculation of future games
+    standings_df = None
+    if division_filter is not None:
+        standings_df = calculate_standings_by_division(data, division_filter)
+    
     # Get unique teams with normalization
     home_teams = set(normalize_team_name_for_display(name) for name in filtered_data['HomeTeamName'].dropna())
     away_teams = set(normalize_team_name_for_display(name) for name in filtered_data['AwayTeamName'].dropna())
@@ -3362,12 +3489,14 @@ def get_fixtures_matrix_data(data, division_filter=None):
             # Parse location to get name and Google Maps link
             location_info = parse_location_with_link(game['GameLocation'])
             
-            # Calculate hotness for finished games
+            # Calculate hotness for finished and future games
             hotness_score = 0
             hotness_icon = "❄️"
             is_finished = pd.notna(game.get('FinalHomeScore')) and pd.notna(game.get('FinalAwayScore'))
+            is_future = game.get('IsFutureGame', False)
             
             if is_finished:
+                # Calculate actual hotness for finished games
                 try:
                     import ast
                     events = ast.literal_eval(game['GameEvents']) if isinstance(game['GameEvents'], str) else game['GameEvents']
@@ -3378,6 +3507,24 @@ def get_fixtures_matrix_data(data, division_filter=None):
                     hotness_icon = get_hotness_icon(hotness_score)
                 except:
                     pass
+            elif is_future:
+                # Calculate expected hotness for future games based on standings
+                game_division = game.get('GameDivisionDisplay')
+                
+                # Get standings for this game's division if not already calculated
+                if game_division and (standings_df is None or division_filter != game_division):
+                    game_standings = calculate_standings_by_division(data, game_division)
+                else:
+                    game_standings = standings_df
+                
+                if raw_home and raw_away and game_standings is not None and not game_standings.empty:
+                    hotness_score, hotness_icon = calculate_future_game_hotness(
+                        raw_home, raw_away, game_standings
+                    )
+                else:
+                    # Default neutral hotness if we can't calculate
+                    hotness_score = 50
+                    hotness_icon = '🌡️'
             
             # Get enhanced game info
             # Convert scores to int to avoid float display issues
@@ -3390,6 +3537,11 @@ def get_fixtures_matrix_data(data, division_filter=None):
             game_id = game['GameId']
             is_next_for_home = closest_games.get(raw_home) == game_id
             is_next_for_away = closest_games.get(raw_away) == game_id
+            
+            # Calculate time until game for future games
+            time_until = {'text': '', 'color_class': '', 'hours': float('inf')}
+            if game.get('IsFutureGame', False):
+                time_until = calculate_time_until_game(game['DateTime'])
             
             game_info = {
                 'game_id': game_id,
@@ -3408,7 +3560,8 @@ def get_fixtures_matrix_data(data, division_filter=None):
                 'hotness_icon': hotness_icon,
                 'is_future': game.get('IsFutureGame', False),
                 'is_next_for_home': is_next_for_home,
-                'is_next_for_away': is_next_for_away
+                'is_next_for_away': is_next_for_away,
+                'time_until': time_until
             }
             
             matrix[home_team][away_team].append(game_info)
@@ -3799,6 +3952,95 @@ def list_available_archives(archive_dir='.'):
     return archives
 
 
+def export_season_archive(output_path=None, include_raw=False):
+    """
+    Export current season data to a ZIP archive.
+    
+    Parameters:
+    output_path (str): Path for output ZIP file (optional, auto-generated if not provided)
+    include_raw (bool): Include raw HTML data directories (default: False)
+    
+    Returns:
+    dict: Export result with success status and details
+    """
+    result = {
+        'success': False,
+        'archive_path': None,
+        'files_added': 0,
+        'archive_size': 0,
+        'errors': []
+    }
+    
+    try:
+        # Load configuration
+        config = load_config()
+        season_id = config.get("seasonId", "unknown")
+        
+        # Determine output path
+        if output_path is None:
+            timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+            archives_dir = "archives"
+            os.makedirs(archives_dir, exist_ok=True)
+            
+            if season_id != "unknown":
+                output_path = os.path.join(archives_dir, f"raw-data-{season_id}-{timestamp}.zip")
+            else:
+                output_path = os.path.join(archives_dir, f"raw-data-{timestamp}.zip")
+        else:
+            # Ensure parent directory exists
+            parent_dir = os.path.dirname(output_path)
+            if parent_dir:
+                os.makedirs(parent_dir, exist_ok=True)
+        
+        # Files to include
+        essential_files = [
+            CSV_FILEPATH,
+            "data/gamesDB.json",
+            "data/gameScheduleDB.json",
+            PLAYERS_DATABASE_CSV_FILEPATH,
+        ]
+        
+        # Create the archive
+        files_added = 0
+        with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
+            # Add essential files
+            for filepath in essential_files:
+                if os.path.exists(filepath):
+                    zipf.write(filepath, filepath)
+                    files_added += 1
+            
+            # Add raw data directories if requested
+            if include_raw:
+                raw_directories = [
+                    config.get("directories", {}).get("gameScheduleRaw", "data/game-schedule-raw"),
+                    config.get("directories", {}).get("fullGameStatsRaw", "data/full-game-stats-raw"),
+                    config.get("directories", {}).get("fullGameStatsOutput", "data/full-game-stats-output"),
+                ]
+                
+                for dir_path in raw_directories:
+                    if os.path.exists(dir_path) and os.path.isdir(dir_path):
+                        for root, dirs, files in os.walk(dir_path):
+                            for file in files:
+                                file_path = os.path.join(root, file)
+                                arcname = file_path
+                                zipf.write(file_path, arcname)
+                                files_added += 1
+        
+        # Get final archive size
+        archive_size = os.path.getsize(output_path)
+        
+        result['success'] = True
+        result['archive_path'] = output_path
+        result['files_added'] = files_added
+        result['archive_size'] = archive_size
+        result['season_id'] = season_id
+        
+    except Exception as e:
+        result['errors'].append(f"Error creating archive: {str(e)}")
+    
+    return result
+
+
 def get_website_config():
     """
     Get website configuration including title and description.
@@ -4115,13 +4357,42 @@ def _analyze_player_quarters(data, player_name):
     return quarter_stats
 
 
-def _extract_team_player_stats(team_games, team_name):
+def _get_multi_team_players(data):
+    """
+    Identify players who play for multiple teams.
+    
+    Parameters:
+    data (DataFrame): The game data
+    
+    Returns:
+    dict: Dictionary mapping player names to list of teams they play for
+    """
+    if data.empty:
+        return {}
+    
+    # Extract all player stats to get player-team relationships
+    player_stats = extract_all_player_stats(data)
+    
+    if player_stats.empty:
+        return {}
+    
+    # Group by player name and get unique teams
+    player_teams = player_stats.groupby('PlayerName')['Team'].apply(lambda x: sorted(set(x))).to_dict()
+    
+    # Filter to only include players with more than one team
+    multi_team_players = {player: teams for player, teams in player_teams.items() if len(teams) > 1}
+    
+    return multi_team_players
+
+
+def _extract_team_player_stats(team_games, team_name, multi_team_players=None):
     """
     Extract comprehensive player statistics for a team from their games.
     
     Parameters:
     team_games (DataFrame): Games filtered for the team
     team_name (str): Name of the team
+    multi_team_players (dict): Optional dictionary of players who play for multiple teams
     
     Returns:
     dict: Dictionary containing:
@@ -4131,6 +4402,9 @@ def _extract_team_player_stats(team_games, team_name):
     """
     import ast
     from collections import defaultdict
+    
+    if multi_team_players is None:
+        multi_team_players = {}
     
     # Initialize data structures
     player_totals = defaultdict(lambda: {
@@ -4251,8 +4525,18 @@ def _extract_team_player_stats(team_games, team_name):
         
         # Calculate averages
         games = stats['games_played']
+        player_name = stats['name']
+        
+        # Check if player plays for multiple teams
+        plays_multiple_teams = player_name in multi_team_players
+        other_teams = []
+        if plays_multiple_teams:
+            # Get list of other teams (excluding current team)
+            all_teams = multi_team_players[player_name]
+            other_teams = [t for t in all_teams if normalize_name_for_matching(t) != normalize_name_for_matching(team_name)]
+        
         player_dict = {
-            'name': stats['name'],
+            'name': player_name,
             'number': stats['number'],
             'games_played': games,
             'total_points': stats['total_points'],
@@ -4264,7 +4548,9 @@ def _extract_team_player_stats(team_games, team_name):
             'total_1p': stats['total_1p'],
             'starting_percentage': round(stats['starting_five_count'] / games * 100, 1) if games > 0 else 0,
             'quarters': dict(stats['quarters']),
-            'last_5_games': stats['last_5_games']
+            'last_5_games': stats['last_5_games'],
+            'plays_multiple_teams': plays_multiple_teams,
+            'other_teams': other_teams
         }
         all_players.append(player_dict)
     
@@ -4435,8 +4721,11 @@ def get_team_detail_stats(data, team_name):
         game_dict['HotnessIcon'] = hotness_icon
         game_by_game.append(game_dict)
     
+    # Get multi-team players information
+    multi_team_players = _get_multi_team_players(data)
+    
     # Extract player statistics for this team
-    player_stats = _extract_team_player_stats(team_games, team_name)
+    player_stats = _extract_team_player_stats(team_games, team_name, multi_team_players)
     
     # Get next 5 upcoming games for this team
     next_games = get_team_next_games(team_name, limit=5)
@@ -5359,6 +5648,96 @@ def get_hotness_icon(hotness_score):
         return "🔥🔥"
 
 
+def calculate_future_game_hotness(home_team, away_team, standings_df):
+    """
+    Calculate hotness score for a future game based on league standings.
+    
+    The hotness is based on:
+    1. Team Rankings: Higher when both teams are highly ranked
+    2. Ranking Proximity: Higher when teams are close in standings (competitive matchup)
+    3. Top-of-table Factor: Extra weight for games involving top 3 teams
+    
+    Parameters:
+    home_team (str): Home team name
+    away_team (str): Away team name
+    standings_df (DataFrame): Standings table with 'Team Name' column and index as rank
+    
+    Returns:
+    tuple: (hotness_score (int 0-100), hotness_icon (str))
+    """
+    # Default for cases where we can't calculate
+    if standings_df is None or standings_df.empty:
+        return 50, "🌡️"  # Neutral/unknown
+    
+    # Normalize team names for matching
+    home_team_normalized = normalize_team_name_for_matching(home_team)
+    away_team_normalized = normalize_team_name_for_matching(away_team)
+    
+    # Find teams in standings
+    home_rank = None
+    away_rank = None
+    total_teams = len(standings_df)
+    
+    for rank, row in standings_df.iterrows():
+        team_name = row['Team Name']
+        team_normalized = normalize_team_name_for_matching(team_name)
+        
+        if team_normalized == home_team_normalized:
+            home_rank = rank
+        if team_normalized == away_team_normalized:
+            away_rank = rank
+    
+    # If either team is not found in standings, return neutral hotness
+    if home_rank is None or away_rank is None:
+        return 50, "🌡️"
+    
+    # Calculate hotness components
+    
+    # 1. Average Ranking Factor (0-1): Lower average rank = higher hotness
+    # Normalize ranks to 0-1 range (1st place = 0, last place = 1)
+    home_rank_normalized = (home_rank - 1) / max(total_teams - 1, 1)
+    away_rank_normalized = (away_rank - 1) / max(total_teams - 1, 1)
+    avg_rank_normalized = (home_rank_normalized + away_rank_normalized) / 2
+    ranking_factor = 1 - avg_rank_normalized  # Invert so top teams = high value
+    
+    # 2. Proximity Factor (0-1): Closer ranks = more competitive = higher hotness
+    rank_difference = abs(home_rank - away_rank)
+    # Normalize by total teams (difference of half the league = 0.5)
+    proximity_normalized = rank_difference / max(total_teams, 1)
+    proximity_factor = 1 - min(proximity_normalized, 1)  # Closer = higher value
+    
+    # 3. Top-of-table Bonus: Extra excitement for top teams playing
+    # Increased bonuses to make future games appear hotter
+    top_tier_1 = 3  # Top 3 teams (increased from 2)
+    top_tier_2 = 5  # Top 5 teams (increased from 4)
+    
+    home_is_top1 = home_rank <= top_tier_1
+    away_is_top1 = away_rank <= top_tier_1
+    home_is_top2 = home_rank <= top_tier_2
+    away_is_top2 = away_rank <= top_tier_2
+    
+    if home_is_top1 and away_is_top1:
+        top_bonus = 0.28  # Both in top 3 = very hot (increased from 0.25)
+    elif home_is_top2 and away_is_top2:
+        top_bonus = 0.16  # Both in top 5 = warm bonus (increased from 0.12)
+    elif home_is_top1 or away_is_top1:
+        top_bonus = 0.10  # One in top 3 = small bonus (increased from 0.08)
+    else:
+        top_bonus = 0.03  # Neither in top tier = minimal bonus (increased from 0.0)
+    
+    # Combine factors with weights (adjusted for higher scores)
+    # 50% ranking quality, 33% proximity/competitiveness, 17% base + top bonus
+    base_score = (0.50 * ranking_factor + 0.33 * proximity_factor + 0.17)
+    
+    # Add top bonus and scale to 0-100
+    hotness_score = int(min(100, (base_score + top_bonus) * 100))
+    
+    # Get icon for the score
+    hotness_icon = get_hotness_icon(hotness_score)
+    
+    return hotness_score, hotness_icon
+
+
 def get_player_hover_stats(data, player_name):
     """
     Get basic statistics for a player to display in hover tooltip.
@@ -5846,3 +6225,76 @@ def get_game_hover_stats(data, game_id):
     
     # Game not found in either finished or future games
     return None
+
+def get_division_hover_stats(data, division_name):
+    """
+    Get basic statistics for a division to display in hover tooltip.
+    
+    Parameters:
+    data (DataFrame): The game data
+    division_name (str): The name of the division
+    
+    Returns:
+    dict: Dictionary containing:
+        - top_teams: List of top 3 teams with wins, losses, and points
+        - top_scorers: List of top 3 scorers with avg score per game
+        - division_name: The division name
+    """
+    if data.empty:
+        return None
+    
+    # Filter games for this division
+    division_games = data[data['GameDivisionDisplay'] == division_name].copy()
+    
+    if division_games.empty:
+        return None
+    
+    # Calculate standings for the division
+    standings = calculate_standings_by_division(data, division_name)
+    
+    # Get top 3 teams from standings
+    top_teams = []
+    if not standings.empty:
+        for idx in range(min(3, len(standings))):
+            team_row = standings.iloc[idx]
+            top_teams.append({
+                'name': team_row['Team Name'],
+                'wins': int(team_row['W']),
+                'losses': int(team_row['L']),
+                'points': int(team_row.get('Points', 0))
+            })
+    
+    # Get top 3 scorers based on average score per game
+    top_scorers = []
+    player_stats = extract_all_player_stats(division_games)
+    
+    if not player_stats.empty:
+        # Group by player name and calculate average points per game
+        player_aggregates = player_stats.groupby('PlayerName').agg({
+            'TotalPoints': ['sum', 'mean'],
+            'GameId': 'count'
+        }).reset_index()
+        
+        # Flatten column names
+        player_aggregates.columns = ['PlayerName', 'TotalPoints', 'AvgPoints', 'GamesPlayed']
+        
+        # Filter players with at least 1 game
+        player_aggregates = player_aggregates[player_aggregates['GamesPlayed'] >= 1]
+        
+        # Sort by average points descending
+        player_aggregates = player_aggregates.sort_values('AvgPoints', ascending=False)
+        
+        # Get top 3 scorers
+        for idx in range(min(3, len(player_aggregates))):
+            player_row = player_aggregates.iloc[idx]
+            top_scorers.append({
+                'name': player_row['PlayerName'],
+                'avg_score': round(player_row['AvgPoints'], 1),
+                'games_played': int(player_row['GamesPlayed'])
+            })
+    
+    return {
+        'division_name': division_name,
+        'top_teams': top_teams,
+        'top_scorers': top_scorers
+    }

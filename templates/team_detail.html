@@ -228,7 +228,6 @@
                         <th>Division</th>
                         <th>Matchup</th>
                         <th>Score</th>
-                        <th>Hotness</th>
                         <th>Result</th>
                         <th>Margin</th>
                     </tr>
@@ -237,61 +236,68 @@
                     {% for game in team_stats['game_by_game']|reverse %}
                     <tr class="{% if game['Result'] == 'W' %}game-row-win{% else %}game-row-loss{% endif %}">
                         <td>{{ game['DateTime'][:10] if game['DateTime'] else 'N/A' }}</td>
-                        <td><span class="division-name hoverable-item" data-type="division" data-id="{{ game['GameDivisionDisplay'] }}">{{ game['GameDivisionDisplay'] }}</span></td>
+                        <td><span class="division-name division-link hoverable-item" data-type="division" data-id="{{ game['GameDivisionDisplay'] }}">{{ game['GameDivisionDisplay'] }}</span></td>
                         <td>
                             <div style="margin-bottom: 4px;">
+                                {% if game.get('HotnessIcon') %}
+                                <a href="/game-detail/{{ game['GameId'] }}" class="game-link completed-game hoverable-item" data-type="game" data-id="{{ game['GameId'] }}" data-hotness-icon="{{ game['HotnessIcon'] }}" title="Hotness: {{ game.get('HotnessScore', 'N/A') }}/100" style="font-size: 0.85em;">Game {{ game['GameId'] }}</a>
+                                {% else %}
                                 <a href="/game-detail/{{ game['GameId'] }}" class="game-link hoverable-item" data-type="game" data-id="{{ game['GameId'] }}" style="font-size: 0.85em;">Game {{ game['GameId'] }}</a>
+                                {% endif %}
                             </div>
                             <div>
                                 {% if game['IsHome'] %}
-                                    {% set home_team_logo_url = get_team_logo_url(team_stats['basic_stats']['team_name']) %}
-                                    {% if home_team_logo_url %}
-                                        <img src="{{ home_team_logo_url }}" alt="{{ team_stats['basic_stats']['team_name'] }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin: 0 4px;">
-                                    {% endif %}
                                     <a href="/team-detail?team={{ team_stats['basic_stats']['team_name']|urlencode }}" 
                                        class="team-link hoverable-item" 
                                        data-type="team" 
                                        data-id="{{ team_stats['basic_stats']['team_name'] }}"
-                                       style="font-weight: bold; color: #2c3e50;">{{ team_stats['basic_stats']['team_name'] }}</a>
+                                       style="font-weight: bold; color: #2c3e50; text-decoration: none; display: inline-flex; align-items: center;">
+                                    {% set home_team_logo_url = get_team_logo_url(team_stats['basic_stats']['team_name']) %}
+                                    {% if home_team_logo_url %}
+                                        <img src="{{ home_team_logo_url }}" alt="{{ team_stats['basic_stats']['team_name'] }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin: 0 4px;">
+                                    {% endif %}
+                                    {{ team_stats['basic_stats']['team_name'] }}
+                                    </a>
                                     vs
-                                    {% set opponent_logo_url = get_team_logo_url(game['Opponent']) %}
-                                    {% if opponent_logo_url %}
-                                        <img src="{{ opponent_logo_url }}" alt="{{ game['Opponent'] }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin: 0 4px;">
-                                    {% endif %}
-                                    <a href="/team-detail?team={{ game['Opponent']|urlencode }}" 
-                                       class="team-link hoverable-item" 
-                                       data-type="team" 
-                                       data-id="{{ game['Opponent'] }}">{{ game['Opponent'] }}</a>
-                                {% else %}
-                                    {% set opponent_logo_url = get_team_logo_url(game['Opponent']) %}
-                                    {% if opponent_logo_url %}
-                                        <img src="{{ opponent_logo_url }}" alt="{{ game['Opponent'] }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin: 0 4px;">
-                                    {% endif %}
                                     <a href="/team-detail?team={{ game['Opponent']|urlencode }}" 
                                        class="team-link hoverable-item" 
                                        data-type="team" 
                                        data-id="{{ game['Opponent'] }}"
-                                       style="font-weight: bold; color: #2c3e50;">{{ game['Opponent'] }}</a>
+                                       style="text-decoration: none; display: inline-flex; align-items: center;">
+                                    {% set opponent_logo_url = get_team_logo_url(game['Opponent']) %}
+                                    {% if opponent_logo_url %}
+                                        <img src="{{ opponent_logo_url }}" alt="{{ game['Opponent'] }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin: 0 4px;">
+                                    {% endif %}
+                                    {{ game['Opponent'] }}
+                                    </a>
+                                {% else %}
+                                    <a href="/team-detail?team={{ game['Opponent']|urlencode }}" 
+                                       class="team-link hoverable-item" 
+                                       data-type="team" 
+                                       data-id="{{ game['Opponent'] }}"
+                                       style="font-weight: bold; color: #2c3e50; text-decoration: none; display: inline-flex; align-items: center;">
+                                    {% set opponent_logo_url = get_team_logo_url(game['Opponent']) %}
+                                    {% if opponent_logo_url %}
+                                        <img src="{{ opponent_logo_url }}" alt="{{ game['Opponent'] }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin: 0 4px;">
+                                    {% endif %}
+                                    {{ game['Opponent'] }}
+                                    </a>
                                     vs
+                                    <a href="/team-detail?team={{ team_stats['basic_stats']['team_name']|urlencode }}" 
+                                       class="team-link hoverable-item" 
+                                       data-type="team" 
+                                       data-id="{{ team_stats['basic_stats']['team_name'] }}"
+                                       style="text-decoration: none; display: inline-flex; align-items: center;">
                                     {% set away_team_logo_url = get_team_logo_url(team_stats['basic_stats']['team_name']) %}
                                     {% if away_team_logo_url %}
                                         <img src="{{ away_team_logo_url }}" alt="{{ team_stats['basic_stats']['team_name'] }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin: 0 4px;">
                                     {% endif %}
-                                    <a href="/team-detail?team={{ team_stats['basic_stats']['team_name']|urlencode }}" 
-                                       class="team-link hoverable-item" 
-                                       data-type="team" 
-                                       data-id="{{ team_stats['basic_stats']['team_name'] }}">{{ team_stats['basic_stats']['team_name'] }}</a>
+                                    {{ team_stats['basic_stats']['team_name'] }}
+                                    </a>
                                 {% endif %}
                             </div>
                         </td>
                         <td><strong>{% if game['IsHome'] %}{{ game['TeamScore'] }} - {{ game['OpponentScore'] }}{% else %}{{ game['OpponentScore'] }} - {{ game['TeamScore'] }}{% endif %}</strong></td>
-                        <td style="text-align: center;">
-                            {% if game['HotnessIcon'] %}
-                                <span style="font-size: 1.5em;" title="Hotness Score: {{ game['HotnessScore'] }}/100">{{ game['HotnessIcon'] }}</span>
-                            {% else %}
-                                <span>-</span>
-                            {% endif %}
-                        </td>
                         <td><strong>{{ game['Result'] }}</strong></td>
                         <td>{{ '+' if game['Margin'] > 0 else '' }}{{ game['Margin'] }}</td>
                     </tr>
@@ -326,6 +332,7 @@
                             {% endif %}
                             <div>
                                 {% if game['is_home'] %}
+                                    <span class="team-name-container">
                                     {% set home_team_logo_url = get_team_logo_url(team_stats['basic_stats']['team_name']) %}
                                     {% if home_team_logo_url %}
                                         <img src="{{ home_team_logo_url }}" alt="{{ team_stats['basic_stats']['team_name'] }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin: 0 4px;">
@@ -335,7 +342,9 @@
                                        data-type="team" 
                                        data-id="{{ team_stats['basic_stats']['team_name'] }}"
                                        style="font-weight: bold; color: #2c3e50;">{{ team_stats['basic_stats']['team_name'] }}</a>
+                                    </span>
                                     vs
+                                    <span class="team-name-container">
                                     {% set opponent_logo_url = get_team_logo_url(game['opponent']) %}
                                     {% if opponent_logo_url %}
                                         <img src="{{ opponent_logo_url }}" alt="{{ game['opponent'] }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin: 0 4px;">
@@ -344,7 +353,9 @@
                                        class="team-link hoverable-item" 
                                        data-type="team" 
                                        data-id="{{ game['opponent'] }}">{{ game['opponent'] }}</a>
+                                    </span>
                                 {% else %}
+                                    <span class="team-name-container">
                                     {% set opponent_logo_url = get_team_logo_url(game['opponent']) %}
                                     {% if opponent_logo_url %}
                                         <img src="{{ opponent_logo_url }}" alt="{{ game['opponent'] }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin: 0 4px;">
@@ -354,7 +365,9 @@
                                        data-type="team" 
                                        data-id="{{ game['opponent'] }}"
                                        style="font-weight: bold; color: #2c3e50;">{{ game['opponent'] }}</a>
+                                    </span>
                                     vs
+                                    <span class="team-name-container">
                                     {% set away_team_logo_url = get_team_logo_url(team_stats['basic_stats']['team_name']) %}
                                     {% if away_team_logo_url %}
                                         <img src="{{ away_team_logo_url }}" alt="{{ team_stats['basic_stats']['team_name'] }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin: 0 4px;">
@@ -363,6 +376,7 @@
                                        class="team-link hoverable-item" 
                                        data-type="team" 
                                        data-id="{{ team_stats['basic_stats']['team_name'] }}">{{ team_stats['basic_stats']['team_name'] }}</a>
+                                    </span>
                                 {% endif %}
                             </div>
                         </td>
@@ -402,12 +416,17 @@
                         <td><strong>{{ player.number }}</strong></td>
                         <td>
                             <a href="/player-detail?player={{ player.name|urlencode }}" 
-                               class="hoverable-item" 
+                               class="player-link hoverable-item" 
                                data-type="player" 
-                               data-id="{{ player.name }}"
-                               style="text-decoration: none; color: inherit; font-weight: bold;">
+                               data-id="{{ player.name }}">
                                 {{ player.name }}
                             </a>
+                            {% if player.plays_multiple_teams %}
+                            <span style="color: #e67e22; font-size: 0.9em; margin-left: 5px;" 
+                                  title="Also plays for: {{ player.other_teams|join(', ') }}">
+                                🔄 Multi-team
+                            </span>
+                            {% endif %}
                         </td>
                         <td>{{ player.games_played }}</td>
                         <td><strong>{{ player.total_points }}</strong></td>
@@ -422,7 +441,7 @@
                     {% endfor %}
                 </tbody>
             </table>
-            <p><em>Players sorted by total points scored</em></p>
+            <p><em>Players sorted by total points scored. 🔄 indicates player also plays for other teams (hover for details).</em></p>
         </div>
         
         <!-- Panel 2: Quarter by Quarter Performance -->
@@ -458,10 +477,9 @@
                         <td><strong>{{ player.number }}</strong></td>
                         <td>
                             <a href="/player-detail?player={{ player.name|urlencode }}" 
-                               class="hoverable-item" 
+                               class="player-link hoverable-item" 
                                data-type="player" 
-                               data-id="{{ player.name }}"
-                               style="text-decoration: none; color: inherit; font-weight: bold;">
+                               data-id="{{ player.name }}">
                                 {{ player.name }}
                             </a>
                         </td>

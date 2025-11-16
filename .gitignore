@@ -13,6 +13,11 @@ logs/**
 /_unrelated-projects/before_2020
 raw-data-*.zip
 
+# Cache files
+cache-*.zip
+data/cache_metadata.json
+data/cache_info.json
+
 # FIBA API cache (can be regenerated)
 data/fiba_cache/
 
@@ -40,3 +45,9 @@ Thumbs.db
 
 # Logo placeholders  
 logos/*_placeholder.txt
+
+# Environment variables (contains sensitive credentials)
+.env
+
+# User database (contains sensitive user data)
+data/users.db

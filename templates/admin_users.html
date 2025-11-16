@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}User Management - FLBB Statistics{% endblock %}
+
+{% block page_title %}👥 User Management{% endblock %}
+{% block page_description %}Manage user accounts and passwords{% endblock %}
+
+{% block content %}
+        <div class="stats-section">
+            <h2>📋 User List</h2>
+            <div style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                {% if users %}
+                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                    <thead>
+                        <tr style="background: #f8f9fa;">
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">ID</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Username</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">User Level</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Division</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Team</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Created</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #dee2e6;">{{ user.id }}</td>
+                            <td style="padding: 10px; border: 1px solid #dee2e6;"><strong>{{ user.username }}</strong></td>
+                            <td style="padding: 10px; border: 1px solid #dee2e6;">
+                                <select onchange="updateUserLevel('{{ user.username }}', this.value)" 
+                                        style="padding: 5px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer;">
+                                    <option value="guest" {% if user.user_level == 'guest' %}selected{% endif %}>👁️ Guest</option>
+                                    <option value="user" {% if user.user_level == 'user' %}selected{% endif %}>👤 User</option>
+                                    <option value="admin" {% if user.user_level == 'admin' %}selected{% endif %}>🔐 Admin</option>
+                                </select>
+                            </td>
+                            <td style="padding: 10px; border: 1px solid #dee2e6;">
+                                {% if user.division_name %}{{ user.division_name }}{% else %}<em style="color: #999;">Not set</em>{% endif %}
+                            </td>
+                            <td style="padding: 10px; border: 1px solid #dee2e6;">
+                                {% if user.team_name %}{{ user.team_name }}{% else %}<em style="color: #999;">Not set</em>{% endif %}
+                            </td>
+                            <td style="padding: 10px; border: 1px solid #dee2e6;">{{ user.created_at[:10] if user.created_at else 'N/A' }}</td>
+                            <td style="padding: 10px; border: 1px solid #dee2e6;">
+                                <button onclick="resetPassword('{{ user.username }}')" 
+                                        style="background: #ffc107; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px; font-size: 0.9em;">
+                                    🔑 Reset Password
+                                </button>
+                                <button onclick="deleteUser('{{ user.username }}')" 
+                                        style="background: #dc3545; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em;">
+                                    🗑️ Delete
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                    <strong>Total Users:</strong> {{ users|length }}
+                </div>
+                {% else %}
+                <p style="color: #666; font-style: italic;">No users found in database</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="stats-section">
+            <h2>➕ Create New User</h2>
+            <div style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                <form id="createUserForm" style="max-width: 600px;">
+                    <div style="margin-bottom: 15px;">
+                        <label for="username" style="display: block; margin-bottom: 5px; font-weight: bold;">Username *</label>
+                        <input type="text" id="username" name="username" required 
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label for="user_level" style="display: block; margin-bottom: 5px; font-weight: bold;">User Level *</label>
+                        <select id="user_level" name="user_level" required
+                                style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+                            <option value="guest">👁️ Guest - Can view public content only</option>
+                            <option value="user" selected>👤 User - Can access statistics and analysis</option>
+                            <option value="admin">🔐 Admin - Full administrative access</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label for="division_name" style="display: block; margin-bottom: 5px; font-weight: bold;">Preferred Division (Optional)</label>
+                        <input type="text" id="division_name" name="division_name"
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label for="team_name" style="display: block; margin-bottom: 5px; font-weight: bold;">Preferred Team (Optional)</label>
+                        <input type="text" id="team_name" name="team_name"
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+                    </div>
+                    <div style="margin-bottom: 15px; padding: 10px; background: #fff3cd; border-radius: 4px; border-left: 4px solid #ffc107;">
+                        <strong>⚠️ Note:</strong> New users will be created with the default password: <code style="background: #f8f9fa; padding: 2px 6px; border-radius: 3px;">kurwa</code>
+                        <br>Users should change their password after first login.
+                    </div>
+                    <button type="submit" style="background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                        ➕ Create User
+                    </button>
+                </form>
+                <div id="createUserStatus" style="margin-top: 15px; padding: 10px; border-radius: 4px; display: none;"></div>
+            </div>
+        </div>
+
+        <div class="stats-section">
+            <h2>ℹ️ User Management Information</h2>
+            <div style="background: white; border-radius: 10px; padding: 20px;">
+                <ul style="line-height: 1.8;">
+                    <li><strong>User Levels:</strong>
+                        <ul style="margin-top: 5px; margin-left: 20px;">
+                            <li>👁️ <strong>Guest</strong> - Can view public content only (standings, fixtures)</li>
+                            <li>👤 <strong>User</strong> - Can access statistics, player stats, and analysis</li>
+                            <li>🔐 <strong>Admin</strong> - Full administrative access including user management</li>
+                        </ul>
+                    </li>
+                    <li><strong>Default Password:</strong> All new users are created with the password "kurwa"</li>
+                    <li><strong>Password Reset:</strong> Resetting a user's password will set it back to the default "kurwa"</li>
+                    <li><strong>User Changes:</strong> Users can change their own password from the <a href="{{ url_for('user_change_password') }}" style="color: #007bff;">Change Password</a> page</li>
+                    <li><strong>Security:</strong> All passwords are stored as secure hashes in the database</li>
+                    <li><strong>User Limit:</strong> The system supports up to 100 users</li>
+                </ul>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; text-align: center;">
+            <a href="{{ url_for('admin') }}" style="display: inline-block; background: #6c757d; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                ← Back to Admin Panel
+            </a>
+        </div>
+
+<script>
+// Create user form submission
+document.getElementById('createUserForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const statusDiv = document.getElementById('createUserStatus');
+    const formData = new FormData(this);
+    
+    try {
+        const response = await fetch('{{ url_for("admin_create_user") }}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#d4edda';
+            statusDiv.style.color = '#155724';
+            statusDiv.style.border = '1px solid #c3e6cb';
+            statusDiv.textContent = '✓ ' + result.message;
+            
+            // Reset form
+            this.reset();
+            
+            // Reload page after 2 seconds to show new user
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#f8d7da';
+            statusDiv.style.color = '#721c24';
+            statusDiv.style.border = '1px solid #f5c6cb';
+            statusDiv.textContent = '✗ ' + result.error;
+        }
+    } catch (error) {
+        statusDiv.style.display = 'block';
+        statusDiv.style.background = '#f8d7da';
+        statusDiv.style.color = '#721c24';
+        statusDiv.style.border = '1px solid #f5c6cb';
+        statusDiv.textContent = '✗ Error: ' + error.message;
+    }
+});
+
+// Update user level function
+async function updateUserLevel(username, newLevel) {
+    try {
+        const formData = new FormData();
+        formData.append('username', username);
+        formData.append('user_level', newLevel);
+        
+        const response = await fetch('{{ url_for("admin_update_user_level") }}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Show success message briefly
+            const msg = document.createElement('div');
+            msg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #d4edda; color: #155724; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 9999;';
+            msg.textContent = '✓ ' + result.message;
+            document.body.appendChild(msg);
+            setTimeout(() => msg.remove(), 3000);
+        } else {
+            alert('✗ ' + result.error);
+            // Reload page to reset the dropdown to previous value
+            window.location.reload();
+        }
+    } catch (error) {
+        alert('✗ Error: ' + error.message);
+        // Reload page to reset the dropdown to previous value
+        window.location.reload();
+    }
+}
+
+// Reset password function
+async function resetPassword(username) {
+    if (!confirm(`Are you sure you want to reset the password for user "${username}"?\n\nThe password will be set to the default: kurwa`)) {
+        return;
+    }
+    
+    try {
+        const formData = new FormData();
+        formData.append('username', username);
+        
+        const response = await fetch('{{ url_for("admin_reset_password") }}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('✓ ' + result.message);
+        } else {
+            alert('✗ ' + result.error);
+        }
+    } catch (error) {
+        alert('✗ Error: ' + error.message);
+    }
+}
+
+// Delete user function
+async function deleteUser(username) {
+    if (!confirm(`Are you sure you want to delete user "${username}"?\n\nThis action cannot be undone!`)) {
+        return;
+    }
+    
+    try {
+        const formData = new FormData();
+        formData.append('username', username);
+        
+        const response = await fetch('{{ url_for("admin_delete_user") }}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('✓ ' + result.message);
+            // Reload page to update user list
+            window.location.reload();
+        } else {
+            alert('✗ ' + result.error);
+        }
+    } catch (error) {
+        alert('✗ Error: ' + error.message);
+    }
+}
+</script>
+{% endblock %}

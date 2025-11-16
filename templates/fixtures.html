@@ -31,6 +31,24 @@
             font-size: 0.9em;
             color: #e74c3c;
             font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .top-scorer a {
+            color: #e74c3c;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .top-scorer a:hover {
+            text-decoration: underline;
+            color: #c0392b;
+        }
+
+        .top-scorer-points {
+            color: #7f8c8d;
+            font-weight: 500;
+            font-size: 0.95em;
         }
 
         .date-time {
@@ -40,6 +58,7 @@
 
         .teams {
             font-weight: 600;
+            white-space: nowrap;
         }
 
         .home-team {
@@ -114,6 +133,16 @@
             font-weight: 500;
         }
 
+        .location-badge {
+            background: #8e44ad;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+            display: inline-block;
+        }
+
         .location {
             color: #8e44ad;
             font-size: 0.9em;
@@ -154,14 +183,18 @@
         }
 
         .matrix-table th {
-            background: #f8f9fa;
-            color: #2c3e50;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
             padding: 8px;
             text-align: center;
             font-weight: 600;
             font-size: 0.9em;
             border: 1px solid #ddd;
             min-width: 100px;
+        }
+
+        .matrix-table th:hover {
+            background: linear-gradient(135deg, #5568d3, #6a3d8f);
         }
 
         .matrix-table th.team-header {
@@ -183,6 +216,7 @@
             text-align: center;
             vertical-align: top;
             min-height: 60px;
+            width: 100px;
             max-width: 100px;
             overflow: hidden;
         }
@@ -204,16 +238,25 @@
             font-size: 1.1em;
         }
 
-        .team-name a,
-        .matrix-table th.team-header a {
+        .team-name a {
             color: #2c3e50;
             text-decoration: none;
             transition: color 0.2s ease;
         }
 
-        .team-name a:hover,
-        .matrix-table th.team-header a:hover {
+        .team-name a:hover {
             color: #667eea;
+            text-decoration: underline;
+        }
+
+        .matrix-table th.team-header a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .matrix-table th.team-header a:hover {
+            color: #ffd700;
             text-decoration: underline;
         }
 
@@ -330,6 +373,47 @@
             background-color: rgba(102, 126, 234, 0.1);
         }
 
+        /* Time until game styling with very light color palette */
+        .time-counter {
+            font-size: 0.7em;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin: 2px 0;
+            display: inline-block;
+        }
+
+        /* Very light color palette based on urgency */
+        .time-very-soon {
+            background-color: rgba(255, 107, 107, 0.15);  /* Very light red */
+            color: #c92a2a;
+        }
+
+        .time-today {
+            background-color: rgba(255, 159, 67, 0.15);  /* Very light orange */
+            color: #d9480f;
+        }
+
+        .time-tomorrow {
+            background-color: rgba(255, 212, 59, 0.15);  /* Very light yellow */
+            color: #e67700;
+        }
+
+        .time-few-days {
+            background-color: rgba(130, 201, 30, 0.15);  /* Very light green */
+            color: #5c940d;
+        }
+
+        .time-week {
+            background-color: rgba(34, 139, 230, 0.15);  /* Very light blue */
+            color: #1971c2;
+        }
+
+        .time-later {
+            background-color: rgba(174, 182, 191, 0.15);  /* Very light gray */
+            color: #495057;
+        }
+
         .filter-section {
             margin-bottom: 20px;
             text-align: center;
@@ -392,7 +476,7 @@
     <div class="stats-summary">
         <h3>📊 Season Overview</h3>
         <p>Teams: {{ matrix_data.teams|length }} | 
-           Division: {% if selected_division == 'ALL' %}All Divisions{% else %}<span class="division-name hoverable-item" data-type="division" data-id="{{ selected_division }}">{{ selected_division }}</span>{% endif %}
+           Division: {% if selected_division == 'ALL' %}All Divisions{% else %}<span class="division-name division-link hoverable-item" data-type="division" data-id="{{ selected_division }}">{{ selected_division }}</span>{% endif %}
         </p>
     </div>
 
@@ -430,11 +514,13 @@
                             {% for away_team in matrix_data.teams %}
                                 <th class="team-header">
                                     <a href="/team-detail?team={{ away_team }}" title="View {{ away_team }} details">
+                                        <span class="team-name-container">
                                         {% set away_logo_url = get_team_logo_url(away_team) %}
                                         {% if away_logo_url %}
                                             <img src="{{ away_logo_url }}" alt="{{ away_team }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin-right: 2px;">
                                         {% endif %}
                                         {{ away_team }}
+                                        </span>
                                     </a>
                                 </th>
                             {% endfor %}
@@ -446,11 +532,13 @@
                         <tr>
                             <td class="team-name">
                                 <a href="/team-detail?team={{ home_team }}" title="View {{ home_team }} details">
+                                    <span class="team-name-container">
                                     {% set home_logo_url = get_team_logo_url(home_team) %}
                                     {% if home_logo_url %}
                                         <img src="{{ home_logo_url }}" alt="{{ home_team }} logo" class="team-logo" style="width: 16px; height: 16px; object-fit: contain; vertical-align: middle; margin-right: 4px;">
                                     {% endif %}
                                     {{ home_team }}
+                                    </span>
                                 </a>
                             </td>
                             {% for away_team in matrix_data.teams %}
@@ -479,12 +567,15 @@
                                              tabindex="0" 
                                              role="button" 
                                              aria-label="View details for {{ home_team }} vs {{ away_team }} on {{ game.date[:10] if game.date != 'TBD' else 'TBD' }}">
-                                            {% if game.is_finished %}
+                                             {% if game.is_finished %}
                                                 <div class="game-score">{{ game.home_score }} - {{ game.away_score }}</div>
                                                 {% if game.hotness_icon %}
                                                     <div style="font-size: 1.2em;" title="Hotness: {{ game.hotness_score }}/100">{{ game.hotness_icon }}</div>
                                                 {% endif %}
                                             {% else %}
+                                                {% if game.time_until.text %}
+                                                    <div class="time-counter {{ game.time_until.color_class }}">{{ game.time_until.text }}</div>
+                                                {% endif %}
                                                 {% if game.is_next_for_home or game.is_next_for_away %}
                                                     <div class="next-game-indicator">
                                                         {% if game.is_next_for_home %}
@@ -544,7 +635,6 @@
                         <th>Date & Time</th>
                         <th>Teams</th>
                         <th>Score</th>
-                        <th>Hotness</th>
                         <th>Top Scorer</th>
                         <th>Division</th>
                         <th>Location</th>
@@ -562,7 +652,17 @@
                     {% endif %}
                     <tr class="{{ row_class }}" onclick="window.location.href='/game-detail/{{ row['GameId'] }}'" style="cursor: pointer;">
                         <td>
-                            <a href="/game-detail/{{ row['GameId'] }}" class="game-link hoverable-item" data-type="game" data-id="{{ row['GameId'] }}">{{ row['GameId'] }}</a>
+                            {% if row.get('IsFinished') and row.get('HotnessIcon') %}
+                                <a href="/game-detail/{{ row['GameId'] }}" class="game-link completed-game hoverable-item" data-type="game" data-id="{{ row['GameId'] }}" data-hotness-icon="{{ row['HotnessIcon'] }}" title="Hotness: {{ row.get('HotnessScore', 'N/A') }}/100">
+                                    <span style="font-size: 1.3em; margin-right: 4px;" title="Hotness Score: {{ row.get('HotnessScore', 'N/A') }}/100">{{ row['HotnessIcon'] }}</span>{{ row['GameId'] }}
+                                </a>
+                            {% elif row.get('IsFutureGame') and row.get('HotnessIcon') %}
+                                <a href="/game-detail/{{ row['GameId'] }}" class="game-link future-game hoverable-item" data-type="game" data-id="{{ row['GameId'] }}">
+                                    <span style="font-size: 1.3em; margin-right: 4px;" title="Expected Hotness (based on standings): {{ row.get('HotnessScore', 'N/A') }}/100">{{ row['HotnessIcon'] }}</span>{{ row['GameId'] }}
+                                </a>
+                            {% else %}
+                                <a href="/game-detail/{{ row['GameId'] }}" class="game-link future-game hoverable-item" data-type="game" data-id="{{ row['GameId'] }}">{{ row['GameId'] }}</a>
+                            {% endif %}
                             {% if is_closest %}
                                 <span class="closest-game-badge">NEXT</span>
                             {% endif %}
@@ -570,6 +670,10 @@
                         <td class="date-time">
                             {% if row['DateTime'] %}
                                 {{ row['DateTime'][:16].replace('T', ' ') if 'T' in (row['DateTime'] or '') else row['DateTime'][:16] }}
+                                {% if row.get('IsFutureGame') and row.get('TimeUntilText') %}
+                                    <br>
+                                    <span class="time-counter {{ row.get('TimeUntilColorClass', '') }}">{{ row['TimeUntilText'] }}</span>
+                                {% endif %}
                             {% else %}
                                 TBD
                             {% endif %}
@@ -578,19 +682,23 @@
                             {% set home_team = row.get('HomeTeamName', row.get('HomeTeam')) %}
                             {% set away_team = row.get('AwayTeamName', row.get('AwayTeam')) %}
                             <a href="/team-detail?team={{ home_team | urlencode }}" class="team-link home-team hoverable-item" data-type="team" data-id="{{ home_team }}">
+                                <span class="team-name-container">
                                 {% set home_logo_url = get_team_logo_url(home_team) %}
                                 {% if home_logo_url %}
                                     <img src="{{ home_logo_url }}" alt="{{ home_team }} logo" class="team-logo" style="width: 18px; height: 18px; object-fit: contain; vertical-align: middle; margin-right: 4px;">
                                 {% endif %}
                                 {{ home_team }}
+                                </span>
                             </a>
                             <span class="vs">vs</span>
                             <a href="/team-detail?team={{ away_team | urlencode }}" class="team-link away-team hoverable-item" data-type="team" data-id="{{ away_team }}">
+                                <span class="team-name-container">
                                 {% set away_logo_url = get_team_logo_url(away_team) %}
                                 {% if away_logo_url %}
                                     <img src="{{ away_logo_url }}" alt="{{ away_team }} logo" class="team-logo" style="width: 18px; height: 18px; object-fit: contain; vertical-align: middle; margin-right: 4px;">
                                 {% endif %}
                                 {{ away_team }}
+                                </span>
                             </a>
                         </td>
                         <td>
@@ -602,16 +710,9 @@
                                 <span class="unfinished">-</span>
                             {% endif %}
                         </td>
-                        <td style="text-align: center;">
-                            {% if row.get('IsFinished') and row.get('HotnessIcon') %}
-                                <span style="font-size: 1.5em;" title="Hotness Score: {{ row['HotnessScore'] }}/100">{{ row['HotnessIcon'] }}</span>
-                            {% else %}
-                                <span class="unfinished">-</span>
-                            {% endif %}
-                        </td>
                         <td>
                             {% if row.get('IsFinished') and row.get('TopScorerName') and row['TopScorerName'] != 'N/A' %}
-                                <div class="top-scorer">
+                                <span class="top-scorer">
                                     <a href="{{ url_for('player_detail', player=row['TopScorerName']) }}" 
                                        class="hoverable-item" 
                                        data-type="player" 
@@ -619,22 +720,33 @@
                                         {{ row['TopScorerName'] }}
                                     </a>
                                     {% if row['TopScorerPoints'] > 0 %}
-                                        ({{ row['TopScorerPoints'] }}pts)
+                                        <span class="top-scorer-points">({{ row['TopScorerPoints'] }}pts)</span>
                                     {% endif %}
-                                </div>
+                                </span>
                             {% else %}
                                 <span class="unfinished">-</span>
                             {% endif %}
                         </td>
                         <td>
-                            <span class="division-badge division-name hoverable-item" data-type="division" data-id="{{ row.get('Division', row.get('GameDivisionDisplay', 'Unknown')) }}">{{ row.get('Division', row.get('GameDivisionDisplay', 'Unknown')) }}</span>
+                            <span class="division-badge division-name division-link hoverable-item" data-type="division" data-id="{{ row.get('Division', row.get('GameDivisionDisplay', 'Unknown')) }}">{{ row.get('Division', row.get('GameDivisionDisplay', 'Unknown')) }}</span>
                         </td>
                         <td class="location">
-                            {{ row.get('Location', 'TBD') }}
-                            {% if row.get('LocationGoogleLink') %}
-                            <a href="{{ row.get('LocationGoogleLink') }}" target="_blank" rel="noopener noreferrer" 
-                               style="color: #4CAF50; text-decoration: none; margin-left: 5px;" 
-                               title="View on Google Maps">🗺️</a>
+                            {% set location_value = row.get('Location', '-') %}
+                            {% if location_value and location_value != 'TBD' and location_value|string|lower != 'nan' %}
+                                {% if row.get('LocationGoogleLink') %}
+                                <span class="location-badge hoverable-item location-link" 
+                                      data-type="location" 
+                                      data-id="{{ row.get('LocationGoogleLink') }}"
+                                      style="cursor: pointer;"
+                                      title="Right-click for options">
+                                    {{ location_value }}
+                                    <span style="color: #a3f7bf; margin-left: 3px;">🌐</span>
+                                </span>
+                                {% else %}
+                                <span class="location-badge">{{ location_value }}</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="unfinished">-</span>
                             {% endif %}
                         </td>
                         
@@ -652,11 +764,18 @@
                                 {% endfor %}
                             </div>
                             {% endif %}
-                            <div><strong>📍 Venue:</strong> {{ row['Location'] }}
+                            <div><strong>📍 Venue:</strong> 
                                 {% if row.get('LocationGoogleLink') %}
-                                <a href="{{ row.get('LocationGoogleLink') }}" target="_blank" rel="noopener noreferrer" 
-                                   style="color: #4CAF50; text-decoration: none; margin-left: 5px;" 
-                                   title="View on Google Maps">🗺️</a>
+                                <span class="hoverable-item location-link" 
+                                      data-type="location" 
+                                      data-id="{{ row.get('LocationGoogleLink') }}"
+                                      style="cursor: pointer; text-decoration: underline; text-decoration-style: dotted; color: white;"
+                                      title="Right-click for options">
+                                    {{ row['Location'] }}
+                                    <span style="color: #4CAF50; margin-left: 5px;">🌐</span>
+                                </span>
+                                {% else %}
+                                {{ row['Location'] }}
                                 {% endif %}
                             </div>
                             <div><strong>🏀 Division:</strong> {{ row['Division'] }}</div>

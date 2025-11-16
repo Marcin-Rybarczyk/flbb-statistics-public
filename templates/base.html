@@ -689,42 +689,131 @@
             font-size: 0.9em;
         }
 
-        /* Standardized clickable entity links */
-        .player-link, .team-link, .game-link, .referee-link {
-            color: #667eea;
+        /* Standardized clickable entity links with badge styling */
+        .player-link, .team-link, .game-link, .referee-link, .division-link {
+            color: #2c3e50;
             text-decoration: none;
-            font-weight: bold;
+            font-weight: 600;
             transition: all 0.2s ease;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
+            white-space: nowrap;
+            padding: 4px 10px;
+            border-radius: 8px;
+            background: rgba(200, 200, 200, 0.25);
+            border: 1px solid rgba(150, 150, 150, 0.2);
         }
 
-        .player-link:hover, .team-link:hover, .game-link:hover, .referee-link:hover {
-            color: #764ba2;
-            background-color: rgba(102, 126, 234, 0.1);
-            text-decoration: none;
-            padding: 2px 4px;
-            border-radius: 3px;
+        /* Specific colors for each type */
+        .player-link {
+            background: rgba(102, 126, 234, 0.12);
+            border-color: rgba(102, 126, 234, 0.25);
+            color: #4a5fc1;
+        }
+
+        .team-link {
+            background: rgba(46, 204, 113, 0.12);
+            border-color: rgba(46, 204, 113, 0.25);
+            color: #27ae60;
+        }
+
+        .game-link {
+            background: rgba(230, 126, 34, 0.12);
+            border-color: rgba(230, 126, 34, 0.25);
+            color: #d35400;
+        }
+
+        .referee-link {
+            background: rgba(155, 89, 182, 0.12);
+            border-color: rgba(155, 89, 182, 0.25);
+            color: #8e44ad;
+        }
+
+        .division-link {
+            background: rgba(52, 152, 219, 0.12);
+            border-color: rgba(52, 152, 219, 0.25);
+            color: #2980b9;
+        }
+
+        /* Hover states with darker backgrounds */
+        .player-link:hover {
+            background: rgba(102, 126, 234, 0.22);
+            border-color: rgba(102, 126, 234, 0.4);
+            color: #3a4aa8;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+        }
+
+        .team-link:hover {
+            background: rgba(46, 204, 113, 0.22);
+            border-color: rgba(46, 204, 113, 0.4);
+            color: #1e8449;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(46, 204, 113, 0.3);
+        }
+
+        .game-link:hover {
+            background: rgba(230, 126, 34, 0.22);
+            border-color: rgba(230, 126, 34, 0.4);
+            color: #ba4a00;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(230, 126, 34, 0.3);
+        }
+
+        .referee-link:hover {
+            background: rgba(155, 89, 182, 0.22);
+            border-color: rgba(155, 89, 182, 0.4);
+            color: #71368a;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(155, 89, 182, 0.3);
+        }
+
+        .division-link:hover {
+            background: rgba(52, 152, 219, 0.22);
+            border-color: rgba(52, 152, 219, 0.4);
+            color: #21618c;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
         }
 
         /* Icons for clickable entity links */
         .player-link::before {
-            content: "👤";
-            font-size: 0.9em;
+            content: "⛹️";
+            font-size: 1.1em;
             display: inline-block;
+            flex-shrink: 0;
         }
 
         .game-link::before {
             content: "🏀";
-            font-size: 0.9em;
+            font-size: 0.95em;
             display: inline-block;
+            flex-shrink: 0;
+        }
+
+        /* Special styling for future games - will be added via class */
+        .game-link.future-game::before {
+            content: "🏀";
+        }
+
+        /* Special styling for completed games with hotness */
+        .game-link.completed-game::before {
+            content: attr(data-hotness-icon);
         }
 
         .referee-link::before {
             content: "👨‍⚖️";
             font-size: 0.9em;
             display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .division-link::before {
+            content: "🏆";
+            font-size: 0.9em;
+            display: inline-block;
+            flex-shrink: 0;
         }
 
         /* Team link with optional logo */
@@ -735,24 +824,39 @@
         }
 
         .team-logo-icon {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             object-fit: contain;
             border-radius: 3px;
             vertical-align: middle;
+            flex-shrink: 0;
+        }
+
+        /* Prevent line breaks between team logo and team name */
+        .team-logo {
+            display: inline-block;
+            vertical-align: middle;
+        }
+        
+        /* Keep logo and team name together on same line */
+        .team-name-container {
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
         /* For team buttons styled as links */
         button.team-link {
-            background: none;
-            border: none;
+            border: 1px solid rgba(46, 204, 113, 0.25);
             cursor: pointer;
             font-size: inherit;
-            padding: 0;
+            padding: 4px 10px;
         }
 
         button.team-link:hover {
-            padding: 2px 4px;
+            background: rgba(46, 204, 113, 0.22);
+            border-color: rgba(46, 204, 113, 0.4);
         }
 
         /* Hover Tooltip Styles */
@@ -894,18 +998,10 @@
             cursor: pointer;
         }
 
-        /* Division names styling */
+        /* Division names styling - use division-link class for consistent styling */
         .division-name {
             cursor: pointer;
-            padding: 2px 6px;
-            border-radius: 4px;
-            transition: all 0.2s ease;
             display: inline-block;
-        }
-
-        .division-name:hover {
-            background: rgba(102, 126, 234, 0.1);
-            transform: translateY(-1px);
         }
 
         {% block extra_styles %}{% endblock %}
@@ -914,14 +1010,17 @@
 <body>
     <div class="container">
         <div class="header" style="position: relative;">
-            {% if user_prefs and (user_prefs.division or user_prefs.team) %}
+            {% if user_prefs and (user_prefs.division or user_prefs.team or user_prefs.player) %}
             <div class="preferences-indicator">
                 <a href="/preferences" title="Manage your preferences">⚙️ Preferences</a><br>
                 {% if user_prefs.division %}
                 <small>📊 <strong>Division:</strong> <span class="pref-badge">{{ user_prefs.division }}</span></small><br>
                 {% endif %}
                 {% if user_prefs.team %}
-                <small>🏀 <strong>Team:</strong> <span class="pref-badge">{{ user_prefs.team }}</span></small>
+                <small>🏀 <strong>Team:</strong> <span class="pref-badge">{{ user_prefs.team }}</span></small><br>
+                {% endif %}
+                {% if user_prefs.player %}
+                <small>👤 <strong>Player:</strong> <span class="pref-badge">{{ user_prefs.player }}</span></small>
                 {% endif %}
             </div>
             {% else %}
@@ -946,17 +1045,31 @@
             <a href="/" {% if request and request.endpoint == 'index' %}class="active"{% endif %}>🏠 Home</a>
             <a href="/standings" {% if request and request.endpoint == 'standings' %}class="active"{% endif %}>🏆 Standings</a>
             <a href="/fixtures" {% if request and request.endpoint == 'fixtures' %}class="active"{% endif %}>📅 Fixtures</a>
+            
+            {% if is_user_authenticated %}
             <a href="/statistics" {% if request and request.endpoint == 'statistics' %}class="active"{% endif %}>🎮 Game Stats</a>
             <a href="/player-stats" {% if request and request.endpoint == 'player_stats' %}class="active"{% endif %}>👤 Player Stats</a>
             <a href="/player-detail" {% if request and request.endpoint == 'player_detail' %}class="active"{% endif %}>🔍 Player Detail</a>
             <a href="/team-stats" {% if request and request.endpoint == 'team_stats' %}class="active"{% endif %}>🏀 Team Stats</a>
             <a href="/team-detail" {% if request and request.endpoint == 'team_detail' %}class="active"{% endif %}>🔍 Team Detail</a>
-            <a href="/game-details" {% if request and request.endpoint == 'game_details_search' %}class="active"{% endif %}>🏀 Game Details</a>
+            <a href="/game-details" {% if request and (request.endpoint == 'game_details_search' or request.endpoint == 'game_detail') %}class="active"{% endif %}>🏀 Game Details</a>
             <a href="/referee-stats" {% if request and request.endpoint == 'referee_stats' %}class="active"{% endif %}>👨‍⚖️ Referee Stats</a>
             <a href="/referee-detail" {% if request and request.endpoint == 'referee_detail' %}class="active"{% endif %}>🔍 Referee Detail</a>
             <a href="/deeper-analysis" {% if request and request.endpoint == 'deeper_analysis' %}class="active"{% endif %}>🔍 Deep Analysis</a>
             <a href="/preferences" {% if request and request.endpoint == 'preferences' %}class="active"{% endif %}>⚙️ Preferences</a>
+            {% endif %}
+            
+            {% if is_admin_authenticated %}
             <a href="/admin" {% if request and request.endpoint == 'admin' %}class="active"{% endif %}>🔐 Admin</a>
+            {% endif %}
+            
+            <a href="/help" {% if request and request.endpoint == 'help_page' %}class="active"{% endif %}>📚 Help</a>
+            
+            {% if is_user_authenticated or is_admin_authenticated %}
+            <a href="/logout" style="background: rgba(220, 53, 69, 0.1); color: #dc3545;">🔓 Logout</a>
+            {% else %}
+            <a href="/login" style="background: rgba(102, 126, 234, 0.1); color: #667eea;">🔑 Login</a>
+            {% endif %}
         </div>
 
         {% if error %}
@@ -1510,6 +1623,42 @@
                                 </div>
                             `;
                         }
+                    } else if (type === 'division') {
+                        // Format top 3 teams
+                        let topTeamsHtml = '';
+                        if (data.top_teams && data.top_teams.length > 0) {
+                            topTeamsHtml = '<div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.1);">';
+                            topTeamsHtml += '<div style="font-weight: 600; color: #667eea; margin-bottom: 6px;">Top 3 Teams:</div>';
+                            data.top_teams.forEach((team, idx) => {
+                                const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : '🥉');
+                                topTeamsHtml += `<div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85em;">
+                                    <span>${medal} ${team.name}</span>
+                                    <span style="font-weight: 600; color: #667eea;">${team.wins}W-${team.losses}L</span>
+                                </div>`;
+                            });
+                            topTeamsHtml += '</div>';
+                        }
+                        
+                        // Format top 3 scorers
+                        let topScorersHtml = '';
+                        if (data.top_scorers && data.top_scorers.length > 0) {
+                            topScorersHtml = '<div>';
+                            topScorersHtml += '<div style="font-weight: 600; color: #667eea; margin-bottom: 6px;">Top 3 Scorers (Avg):</div>';
+                            data.top_scorers.forEach((scorer, idx) => {
+                                const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : '🥉');
+                                topScorersHtml += `<div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85em;">
+                                    <span>${medal} ${scorer.name}</span>
+                                    <span style="font-weight: 600; color: #667eea;">${scorer.avg_score} ppg</span>
+                                </div>`;
+                            });
+                            topScorersHtml += '</div>';
+                        }
+                        
+                        content = `
+                            <h4>🏆 ${data.division_name}</h4>
+                            ${topTeamsHtml}
+                            ${topScorersHtml}
+                        `;
                     }
 
                     tooltip.innerHTML = content;
@@ -1555,6 +1704,15 @@
                     menuHtml = `
                         <div class="context-menu-item" data-action="details" data-type="game" data-id="${id}">
                             <i>🔍</i>Open Game Details
+                        </div>
+                    `;
+                } else if (type === 'location') {
+                    menuHtml = `
+                        <div class="context-menu-item" data-action="open-maps" data-type="location" data-id="${id}">
+                            <i>🗺️</i>Open in Google Maps
+                        </div>
+                        <div class="context-menu-item" data-action="copy-link" data-type="location" data-id="${id}">
+                            <i>📋</i>Copy Maps Link
                         </div>
                     `;
                 } else if (type === 'division') {
@@ -1618,6 +1776,38 @@
                                 window.location.href = `/referee-detail?referee=${encodeURIComponent(menuId)}`;
                             } else if (menuType === 'game') {
                                 window.location.href = `/game-detail/${menuId}`;
+                            }
+                        } else if (menuType === 'location') {
+                            // Handle location-specific actions
+                            if (action === 'open-maps') {
+                                window.open(menuId, '_blank', 'noopener,noreferrer');
+                            } else if (action === 'copy-link') {
+                                // Copy the Google Maps link to clipboard
+                                navigator.clipboard.writeText(menuId).then(() => {
+                                    // Show a temporary notification
+                                    const notification = document.createElement('div');
+                                    notification.textContent = '✓ Link copied to clipboard!';
+                                    notification.style.cssText = `
+                                        position: fixed;
+                                        top: 20px;
+                                        right: 20px;
+                                        background: #28a745;
+                                        color: white;
+                                        padding: 15px 20px;
+                                        border-radius: 8px;
+                                        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                                        z-index: 10002;
+                                        animation: slideIn 0.3s ease;
+                                    `;
+                                    document.body.appendChild(notification);
+                                    setTimeout(() => {
+                                        notification.style.animation = 'slideOut 0.3s ease';
+                                        setTimeout(() => notification.remove(), 300);
+                                    }, 2000);
+                                }).catch(err => {
+                                    console.error('Failed to copy link:', err);
+                                    alert('Failed to copy link to clipboard');
+                                });
                             }
                         } else if (menuType === 'division') {
                             // Handle division-specific actions

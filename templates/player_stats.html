@@ -66,17 +66,7 @@
             font-size: 0.9em;
         }
 
-        .player-link {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: bold;
-            transition: all 0.2s ease;
-        }
-
-        .player-link:hover {
-            color: #764ba2;
-            text-decoration: underline;
-        }
+        /* Player link styles inherit from base.html */
         
         .info-tooltip {
             cursor: help;
@@ -139,11 +129,13 @@
         <form method="post" action="/team-stats" style="display: inline;">
             <input type="hidden" name="team" value="{{ team_name }}">
             <button type="submit" class="team-link">
+                <span class="team-name-container">
                 {% set team_logo_url = get_team_logo_url(team_name) %}
                 {% if team_logo_url %}
                 <img src="{{ team_logo_url }}" alt="{{ team_name }} logo" class="team-logo-icon">
                 {% endif %}
                 {{ team_name }}
+                </span>
             </button>
         </form>
         {%- endmacro %}
@@ -177,7 +169,7 @@
             {% if selected_division or selected_team %}
             <p style="margin-top: 10px; color: #667eea; font-weight: 600;">
                 Showing statistics for: 
-                {% if selected_division %}<span class="division-name hoverable-item" data-type="division" data-id="{{ selected_division }}">{{ selected_division }}</span>{% endif %}
+                {% if selected_division %}<span class="division-name division-link hoverable-item" data-type="division" data-id="{{ selected_division }}">{{ selected_division }}</span>{% endif %}
                 {% if selected_division and selected_team %} - {% endif %}
                 {% if selected_team %}{{ selected_team }}{% endif %}
             </p>
@@ -346,7 +338,11 @@
                             <td>{{ row.get('GameDate', 'N/A') }}</td>
                             <td>
                                 {% if row.get('GameId') %}
+                                {% if row.get('HotnessIcon') %}
+                                <a href="/game-detail/{{ row['GameId'] }}" class="game-link completed-game hoverable-item" data-type="game" data-id="{{ row['GameId'] }}" data-hotness-icon="{{ row['HotnessIcon'] }}" title="Hotness: {{ row.get('HotnessScore', 'N/A') }}/100">{{ row['GameId'] }}</a>
+                                {% else %}
                                 <a href="/game-detail/{{ row['GameId'] }}" class="game-link hoverable-item" data-type="game" data-id="{{ row['GameId'] }}">{{ row['GameId'] }}</a>
+                                {% endif %}
                                 {% else %}
                                 N/A
                                 {% endif %}

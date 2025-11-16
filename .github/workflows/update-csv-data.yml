@@ -35,6 +35,15 @@ jobs:
           cd scripts
           pwsh -File download-controller.ps1
         shell: bash
+        env:
+          CACHE_STORAGE_BACKEND: ${{ secrets.CACHE_STORAGE_BACKEND || 'gdrive' }}
+          GOOGLE_DRIVE_CREDENTIALS: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}
+          GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+          MYDEVIL_HOST: ${{ secrets.MYDEVIL_HOST }}
+          MYDEVIL_USERNAME: ${{ secrets.MYDEVIL_USERNAME }}
+          MYDEVIL_SSH_KEY: ${{ secrets.MYDEVIL_SSH_KEY }}
+          MYDEVIL_PASSWORD: ${{ secrets.MYDEVIL_PASSWORD }}
+          MYDEVIL_CACHE_PATH: ${{ secrets.MYDEVIL_CACHE_PATH }}
       
       - name: 🔍 Extract data and generate JSON files
         run: |

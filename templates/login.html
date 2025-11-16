@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Login - FLBB Statistics{% endblock %}
+
+{% block page_title %}🔐 Login{% endblock %}
+{% block page_description %}Enter your credentials to access statistics and analysis{% endblock %}
+
+{% block content %}
+<div class="login-container" style="max-width: 500px; margin: 50px auto; padding: 30px; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);">
+    <h2 style="text-align: center; color: #2c3e50; margin-bottom: 30px;">User Authentication</h2>
+    
+    {% if error %}
+    <div style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #dc3545;">
+        <strong>Error:</strong> {{ error }}
+    </div>
+    {% endif %}
+    
+    <form method="POST" action="{{ url_for('login') }}">
+        <div style="margin-bottom: 20px;">
+            <label for="username" style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">
+                Username:
+            </label>
+            <input 
+                type="text" 
+                id="username" 
+                name="username" 
+                required 
+                autofocus
+                autocomplete="username"
+                style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; transition: border-color 0.3s;"
+                onfocus="this.style.borderColor='#667eea'"
+                onblur="this.style.borderColor='#ddd'"
+            >
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <label for="password" style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">
+                Password:
+            </label>
+            <input 
+                type="password" 
+                id="password" 
+                name="password" 
+                required 
+                autocomplete="current-password"
+                style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; transition: border-color 0.3s;"
+                onfocus="this.style.borderColor='#667eea'"
+                onblur="this.style.borderColor='#ddd'"
+            >
+        </div>
+        
+        <button 
+            type="submit" 
+            style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.2s;"
+            onmouseover="this.style.transform='translateY(-2px)'"
+            onmouseout="this.style.transform='translateY(0)'"
+        >
+            🔓 Login
+        </button>
+    </form>
+    
+    <div style="margin-top: 20px; text-align: center;">
+        <a href="{{ url_for('index') }}" style="color: #667eea; text-decoration: none;">
+            ← Back to Home
+        </a>
+    </div>
+</div>
+{% endblock %}
