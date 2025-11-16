@@ -222,7 +222,8 @@ def inject_season_info():
         'mydevil_stats_code': mydevil_stats_code,
         'is_admin_authenticated': is_admin_authenticated(),
         'is_user_authenticated': is_user_authenticated(),
-        'user_level': get_user_level()
+        'user_level': get_user_level(),
+        'current_username': session.get('username')
     }
 
 # Logo utility functions
