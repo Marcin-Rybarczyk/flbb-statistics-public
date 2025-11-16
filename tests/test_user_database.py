@@ -60,6 +60,17 @@ def test_database_initialization():
     assert DB_FILE.exists(), f"Database file not created at {DB_FILE}"
     print("✓ Database initialized successfully")
     print(f"✓ Database file created at: {DB_FILE}")
+    
+    # Verify default admin user was created
+    count = get_user_count()
+    assert count >= 1, f"Expected at least 1 user (default admin), got {count}"
+    
+    # Verify default admin can authenticate
+    success, user_data = authenticate_user("admin", "kurwa")
+    assert success == True, "Default admin authentication failed"
+    assert user_data['user_level'] == 'admin', f"Default admin should have admin level, got {user_data['user_level']}"
+    print("✓ Default admin user created and verified")
+    print(f"  Username: admin, User Level: {user_data['user_level']}")
 
 
 def test_user_creation():
@@ -209,14 +220,14 @@ def test_user_listing():
         team_name="Arantia"
     )
     
-    # Get user count
+    # Get user count (should be: default admin + testuser1 + testuser2 = 3)
     count = get_user_count()
-    assert count == 2, f"Expected 2 users, got {count}"
+    assert count == 3, f"Expected 3 users (default admin + 2 test users), got {count}"
     print(f"✓ User count: {count}")
     
     # List users
     users = list_users()
-    assert len(users) == 2, f"Expected 2 users in list, got {len(users)}"
+    assert len(users) == 3, f"Expected 3 users in list, got {len(users)}"
     print(f"✓ Listed {len(users)} users")
     
     for user in users:
@@ -234,9 +245,9 @@ def test_user_deletion():
     assert success == True, f"User deletion failed: {message}"
     print(f"✓ Deleted user: {message}")
     
-    # Verify deletion
+    # Verify deletion (should be: default admin + testuser1 = 2)
     count = get_user_count()
-    assert count == 1, f"Expected 1 user after deletion, got {count}"
+    assert count == 2, f"Expected 2 users after deletion (default admin + testuser1), got {count}"
     print(f"✓ User count after deletion: {count}")
     
     # Try to delete non-existent user
