@@ -5,8 +5,24 @@
 The FLBB Statistics application now includes a SQLite database for managing user accounts and preferences. This database supports up to 100 users and stores:
 
 - User credentials (username and securely hashed password)
+- User authorization level (guest, user, or admin)
 - User preferences (preferred division and team)
 - Account metadata (creation and update timestamps)
+
+## Default Admin User
+
+When the database is first initialized, a default admin user is automatically created to provide failsafe access:
+
+- **Username:** `admin`
+- **Password:** `kurwa`
+- **User Level:** `admin`
+
+This default admin user is automatically recreated if all admin accounts are deleted, ensuring you always have administrative access to the system.
+
+**Important:** For security, it's recommended to:
+1. Log in with the default admin credentials
+2. Create your own admin account via the admin panel
+3. Change the default admin password or delete the default admin user
 
 ## Database Schema
 
@@ -19,6 +35,7 @@ The user database (`data/users.db`) contains a single table:
 | id | INTEGER | Primary key (auto-increment) |
 | username | TEXT | Unique username (max 50 characters) |
 | password_hash | TEXT | Hashed password using werkzeug |
+| user_level | TEXT | Authorization level: 'guest', 'user', or 'admin' (default: 'user') |
 | division_name | TEXT | Preferred division (nullable) |
 | team_name | TEXT | Preferred team (nullable) |
 | created_at | TIMESTAMP | Account creation timestamp |
