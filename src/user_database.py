@@ -98,6 +98,15 @@ def init_database():
         
         conn.commit()
         logger.info(f"Database initialized successfully at {DB_FILE}")
+        
+        # Close the connection before calling ensure_default_admin
+        # which will create its own connection
+        conn.close()
+        conn = None
+        
+        # Ensure default admin user exists
+        ensure_default_admin()
+        
         return True
         
     except Exception as e:
@@ -480,6 +489,60 @@ def get_user_count() -> int:
     except Exception as e:
         logger.error(f"Error getting user count: {e}")
         return 0
+    finally:
+        if conn:
+            conn.close()
+
+
+def ensure_default_admin() -> bool:
+    """
+    Ensure a default admin user exists in the database.
+    
+    Creates a default admin user if no admin exists in the database.
+    This provides a failsafe login option for administrators.
+    
+    Default credentials:
+        Username: admin
+        Password: kurwa
+        User Level: admin
+    
+    Returns:
+        bool: True if default admin exists or was created, False on error
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if any admin user exists
+        cursor.execute('''
+            SELECT COUNT(*) as count FROM users WHERE user_level = 'admin'
+        ''')
+        result = cursor.fetchone()
+        admin_count = result['count'] if result else 0
+        
+        # If no admin exists, create the default one
+        if admin_count == 0:
+            logger.info("No admin user found, creating default admin user")
+            
+            # Create default admin with well-known credentials
+            password_hash = generate_password_hash('kurwa')
+            
+            cursor.execute('''
+                INSERT INTO users (username, password_hash, user_level)
+                VALUES (?, ?, ?)
+            ''', ('admin', password_hash, 'admin'))
+            
+            conn.commit()
+            logger.info("Default admin user created successfully (username: admin)")
+            return True
+        else:
+            logger.debug(f"Admin user(s) already exist (count: {admin_count})")
+            return True
+        
+    except Exception as e:
+        logger.error(f"Failed to ensure default admin: {e}")
+        return False
     finally:
         if conn:
             conn.close()

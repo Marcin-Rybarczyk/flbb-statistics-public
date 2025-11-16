@@ -7,6 +7,7 @@ The issue requested:
 2. Support for storing: password, division name, team name
 3. Database meant for up to 100 users
 4. Script to generate passwords
+5. Default admin user with admin privileges
 
 ## Implementation Overview
 
@@ -18,6 +19,7 @@ All requirements have been successfully implemented with the following features:
 - `id` - Primary key (auto-increment)
 - `username` - Unique username (max 50 characters)
 - `password_hash` - Securely hashed password
+- `user_level` - Authorization level (guest/user/admin), defaults to 'user'
 - `division_name` - Preferred division (nullable)
 - `team_name` - Preferred team (nullable)
 - `created_at` - Account creation timestamp
@@ -29,6 +31,7 @@ All requirements have been successfully implemented with the following features:
 - Proper connection management with try-finally blocks
 - Complete CRUD operations
 - Index on username for fast lookups
+- **Default admin user** - Automatically created on first database initialization
 
 **Functions:**
 - `create_user()` - Create new user with hashed password
@@ -40,6 +43,15 @@ All requirements have been successfully implemented with the following features:
 - `list_users()` - List all users (without passwords)
 - `get_user_count()` - Get total user count
 - `init_database()` - Initialize database schema
+- `ensure_default_admin()` - Ensure default admin user exists
+
+**Default Admin User:**
+- **Username:** `admin`
+- **Password:** `kurwa`
+- **User Level:** `admin`
+- Automatically created when the database is initialized if no admin users exist
+- Provides a failsafe login option for administrators
+- Cannot be accidentally removed (recreated on next init if all admins are deleted)
 
 ### 2. Password Generation Script (`scripts/generate_password.py`)
 
