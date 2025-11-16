@@ -3317,7 +3317,7 @@ def get_all_fixtures_data(data, division_filter=None):
                     
                     # Get standings for this game's division if not already calculated
                     if game_division and (standings_df is None or division_filter != game_division):
-                        game_standings = calculate_standings_by_division(filtered_data, game_division)
+                        game_standings = calculate_standings_by_division(data, game_division)
                     else:
                         game_standings = standings_df
                     
