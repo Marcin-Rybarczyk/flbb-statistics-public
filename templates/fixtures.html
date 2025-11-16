@@ -580,6 +580,9 @@
                                                 {% if game.time_until.text %}
                                                     <div class="time-counter {{ game.time_until.color_class }}">{{ game.time_until.text }}</div>
                                                 {% endif %}
+                                                {% if game.hotness_icon %}
+                                                    <div style="font-size: 1.2em;" title="Expected Hotness (based on standings): {{ game.hotness_score }}/100">{{ game.hotness_icon }}</div>
+                                                {% endif %}
                                                 {% if game.is_next_for_home or game.is_next_for_away %}
                                                     <div class="next-game-indicator">
                                                         {% if game.is_next_for_home %}
