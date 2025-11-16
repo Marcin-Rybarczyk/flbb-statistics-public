@@ -52,6 +52,7 @@ def init_database():
     - id: Primary key (auto-increment)
     - username: Unique username (max 50 characters)
     - password_hash: Hashed password (using werkzeug)
+    - user_level: Authorization level (guest/user/admin), defaults to 'user'
     - division_name: Preferred division (nullable)
     - team_name: Preferred team (nullable)
     - created_at: Timestamp when user was created
@@ -71,6 +72,7 @@ def init_database():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
+                user_level TEXT DEFAULT 'user' CHECK(user_level IN ('guest', 'user', 'admin')),
                 division_name TEXT,
                 team_name TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -82,6 +84,17 @@ def init_database():
         cursor.execute('''
             CREATE INDEX IF NOT EXISTS idx_username ON users(username)
         ''')
+        
+        # Migrate existing tables to add user_level column if it doesn't exist
+        cursor.execute("PRAGMA table_info(users)")
+        columns = [column[1] for column in cursor.fetchall()]
+        if 'user_level' not in columns:
+            logger.info("Adding user_level column to existing users table")
+            cursor.execute('''
+                ALTER TABLE users ADD COLUMN user_level TEXT DEFAULT 'user' CHECK(user_level IN ('guest', 'user', 'admin'))
+            ''')
+            conn.commit()
+            logger.info("user_level column added successfully")
         
         conn.commit()
         logger.info(f"Database initialized successfully at {DB_FILE}")
@@ -95,14 +108,15 @@ def init_database():
             conn.close()
 
 
-def create_user(username: str, password: str, division_name: Optional[str] = None, 
-                team_name: Optional[str] = None) -> Tuple[bool, str]:
+def create_user(username: str, password: str, user_level: str = 'user',
+                division_name: Optional[str] = None, team_name: Optional[str] = None) -> Tuple[bool, str]:
     """
     Create a new user in the database.
     
     Args:
         username: Unique username (max 50 characters)
         password: Plain text password (will be hashed)
+        user_level: Authorization level ('guest', 'user', or 'admin'), defaults to 'user'
         division_name: Optional preferred division
         team_name: Optional preferred team
         
@@ -115,6 +129,9 @@ def create_user(username: str, password: str, division_name: Optional[str] = Non
     if not password or len(password) < 5:
         return False, "Password must be at least 5 characters"
     
+    if user_level not in ('guest', 'user', 'admin'):
+        return False, "User level must be 'guest', 'user', or 'admin'"
+    
     conn = None
     try:
         conn = get_db_connection()
@@ -125,13 +142,13 @@ def create_user(username: str, password: str, division_name: Optional[str] = Non
         
         # Insert user
         cursor.execute('''
-            INSERT INTO users (username, password_hash, division_name, team_name)
-            VALUES (?, ?, ?, ?)
-        ''', (username, password_hash, division_name, team_name))
+            INSERT INTO users (username, password_hash, user_level, division_name, team_name)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (username, password_hash, user_level, division_name, team_name))
         
         conn.commit()
-        logger.info(f"User created successfully: {username}")
-        return True, f"User '{username}' created successfully"
+        logger.info(f"User created successfully: {username} with level {user_level}")
+        return True, f"User '{username}' created successfully with level '{user_level}'"
         
     except sqlite3.IntegrityError:
         return False, f"Username '{username}' already exists"
@@ -161,7 +178,7 @@ def authenticate_user(username: str, password: str) -> Tuple[bool, Optional[Dict
         
         # Get user by username
         cursor.execute('''
-            SELECT id, username, password_hash, division_name, team_name
+            SELECT id, username, password_hash, user_level, division_name, team_name
             FROM users
             WHERE username = ?
         ''', (username,))
@@ -177,6 +194,7 @@ def authenticate_user(username: str, password: str) -> Tuple[bool, Optional[Dict
             user_data = {
                 'id': user['id'],
                 'username': user['username'],
+                'user_level': user['user_level'] if user['user_level'] else 'user',
                 'division_name': user['division_name'],
                 'team_name': user['team_name']
             }
@@ -208,7 +226,7 @@ def get_user_preferences(username: str) -> Optional[Dict]:
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT username, division_name, team_name
+            SELECT username, user_level, division_name, team_name
             FROM users
             WHERE username = ?
         ''', (username,))
@@ -218,6 +236,7 @@ def get_user_preferences(username: str) -> Optional[Dict]:
         if user:
             return {
                 'username': user['username'],
+                'user_level': user['user_level'] if user['user_level'] else 'user',
                 'division_name': user['division_name'],
                 'team_name': user['team_name']
             }
@@ -280,6 +299,46 @@ def update_user_preferences(username: str, division_name: Optional[str] = None,
         
     except Exception as e:
         logger.error(f"Error updating preferences: {e}")
+        return False, f"Database error: {str(e)}"
+    finally:
+        if conn:
+            conn.close()
+
+
+def update_user_level(username: str, user_level: str) -> Tuple[bool, str]:
+    """
+    Update user authorization level.
+    
+    Args:
+        username: Username to update
+        user_level: New authorization level ('guest', 'user', or 'admin')
+        
+    Returns:
+        Tuple[bool, str]: (Success status, Message or error description)
+    """
+    if user_level not in ('guest', 'user', 'admin'):
+        return False, "User level must be 'guest', 'user', or 'admin'"
+    
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            UPDATE users 
+            SET user_level = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE username = ?
+        ''', (user_level, username))
+        
+        if cursor.rowcount == 0:
+            return False, f"User '{username}' not found"
+        
+        conn.commit()
+        logger.info(f"User level updated for user: {username} to {user_level}")
+        return True, f"User level updated successfully to '{user_level}'"
+        
+    except Exception as e:
+        logger.error(f"Error updating user level: {e}")
         return False, f"Database error: {str(e)}"
     finally:
         if conn:
@@ -374,7 +433,7 @@ def list_users() -> List[Dict]:
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT id, username, division_name, team_name, created_at, updated_at
+            SELECT id, username, user_level, division_name, team_name, created_at, updated_at
             FROM users
             ORDER BY username
         ''')
@@ -384,6 +443,7 @@ def list_users() -> List[Dict]:
             users.append({
                 'id': row['id'],
                 'username': row['username'],
+                'user_level': row['user_level'] if row['user_level'] else 'user',
                 'division_name': row['division_name'],
                 'team_name': row['team_name'],
                 'created_at': row['created_at'],
