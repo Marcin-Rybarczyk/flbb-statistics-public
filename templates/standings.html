@@ -47,6 +47,17 @@
         transform: translateY(-2px);
         box-shadow: 0 4px 8px rgba(220, 53, 69, 0.4);
     }
+    
+    .forfeit-badge {
+        background: linear-gradient(135deg, #6c757d, #495057);
+        color: white;
+        box-shadow: 0 2px 4px rgba(108, 117, 125, 0.3);
+    }
+    
+    .forfeit-badge:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(108, 117, 125, 0.4);
+    }
 </style>
 {% endblock %}
 
@@ -106,7 +117,14 @@
                             <td class="last-five-cell col-extra">
                                 {% if row['Last 5 Games'] %}
                                     {% for game in row['Last 5 Games'] %}
-                                        <span class="game-result-badge hoverable-item {{ 'win-badge' if game['result'] == 'W' else 'loss-badge' }}" 
+                                        {% if game['result'] == 'W' %}
+                                            {% set badge_class = 'win-badge' %}
+                                        {% elif game['result'] == 'F' %}
+                                            {% set badge_class = 'forfeit-badge' %}
+                                        {% else %}
+                                            {% set badge_class = 'loss-badge' %}
+                                        {% endif %}
+                                        <span class="game-result-badge hoverable-item {{ badge_class }}" 
                                               data-type="game" 
                                               data-id="{{ game['game_id'] }}">{{ game['result'] }}</span>
                                     {% endfor %}

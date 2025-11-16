@@ -1013,6 +1013,9 @@
             {% if user_prefs and (user_prefs.division or user_prefs.team or user_prefs.player) %}
             <div class="preferences-indicator">
                 <a href="/preferences" title="Manage your preferences">⚙️ Preferences</a><br>
+                {% if current_username %}
+                <small>👤 <strong>User:</strong> <span class="pref-badge">{{ current_username }}</span></small><br>
+                {% endif %}
                 {% if user_prefs.division %}
                 <small>📊 <strong>Division:</strong> <span class="pref-badge">{{ user_prefs.division }}</span></small><br>
                 {% endif %}
@@ -1026,6 +1029,9 @@
             {% else %}
             <div class="preferences-indicator">
                 <a href="/preferences" title="Set your preferences">⚙️ Set Preferences</a>
+                {% if current_username %}
+                <br><small>👤 <strong>User:</strong> <span class="pref-badge">{{ current_username }}</span></small>
+                {% endif %}
             </div>
             {% endif %}
             <h1>{% block page_title %}🏀 {{ website_config.title }}{% endblock %}</h1>
