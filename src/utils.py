@@ -5762,9 +5762,9 @@ def calculate_future_game_hotness(home_team, away_team, standings_df):
     proximity_factor = 1 - min(proximity_normalized, 1)  # Closer = higher value
     
     # 3. Top-of-table Bonus: Extra excitement for top teams playing
-    # Increased bonuses to make future games appear hotter
-    top_tier_1 = 3  # Top 3 teams (increased from 2)
-    top_tier_2 = 5  # Top 5 teams (increased from 4)
+    # Very conservative bonuses - future games should be much cooler than finished games
+    top_tier_1 = 3  # Top 3 teams
+    top_tier_2 = 5  # Top 5 teams
     
     home_is_top1 = home_rank <= top_tier_1
     away_is_top1 = away_rank <= top_tier_1
@@ -5772,17 +5772,19 @@ def calculate_future_game_hotness(home_team, away_team, standings_df):
     away_is_top2 = away_rank <= top_tier_2
     
     if home_is_top1 and away_is_top1:
-        top_bonus = 0.28  # Both in top 3 = very hot (increased from 0.25)
+        top_bonus = 0.15  # Both in top 3 = very hot (reduced from 0.20)
     elif home_is_top2 and away_is_top2:
-        top_bonus = 0.16  # Both in top 5 = warm bonus (increased from 0.12)
+        top_bonus = 0.08  # Both in top 5 = warm bonus (reduced from 0.10)
     elif home_is_top1 or away_is_top1:
-        top_bonus = 0.10  # One in top 3 = small bonus (increased from 0.08)
+        top_bonus = 0.03  # One in top 3 = small bonus (reduced from 0.05)
     else:
-        top_bonus = 0.03  # Neither in top tier = minimal bonus (increased from 0.0)
+        top_bonus = 0.0   # Neither in top tier = no bonus
     
-    # Combine factors with weights (adjusted for higher scores)
-    # 50% ranking quality, 33% proximity/competitiveness, 17% base + top bonus
-    base_score = (0.50 * ranking_factor + 0.33 * proximity_factor + 0.17)
+    # Combine factors with weights - very conservative base
+    # 30% ranking quality, 60% proximity/competitiveness, 5% base + top bonus
+    # Proximity is heavily weighted to emphasize only truly competitive matchups
+    # Lower base ensures non-competitive games start cooler
+    base_score = (0.30 * ranking_factor + 0.60 * proximity_factor + 0.05)
     
     # Add top bonus and scale to 0-100
     hotness_score = int(min(100, (base_score + top_bonus) * 100))
