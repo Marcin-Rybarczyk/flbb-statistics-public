@@ -123,7 +123,9 @@ def test_with_real_data():
     
     try:
         import pandas as pd
-        df = pd.read_csv('data/full-game-stats.csv', encoding='utf-8-sig')
+        # Use relative path from test directory
+        csv_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'full-game-stats.csv')
+        df = pd.read_csv(csv_path, encoding='utf-8-sig')
         
         # Get unique combinations of teams and divisions
         home_combos = df[['HomeTeamName', 'GameDivisionDisplay']].drop_duplicates().head(10)

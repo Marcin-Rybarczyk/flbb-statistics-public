@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import json
+import re
 from collections import defaultdict
 import zipfile
 import tempfile
@@ -3151,7 +3152,6 @@ def extract_age_sex_group_from_division(division_name):
         raw_group = 'M'
     
     # Check for age group indicators (U18, U16, U14, U12, etc.)
-    import re
     age_match = re.search(r'U(\d{2})', division_upper)
     if age_match:
         age_num = age_match.group(1)
@@ -3206,26 +3206,20 @@ def get_team_name_with_group_suffix(team_name, division_name, include_default=Fa
     # Extract group information
     group_info = extract_age_sex_group_from_division(division_name)
     
-    # Determine suffix
+    # Determine suffix based on group type
     suffix = None
     
-    # Check if this is the default group (Adult Men)
-    is_default_group = (group_info['sex'] == 'M' or group_info['sex'] is None) and group_info['age_group'] == 'Adult'
-    
-    if is_default_group and not include_default:
-        # Default group - no suffix
-        return team_name
-    
-    # Build suffix for non-default groups or when include_default=True
+    # Age group takes priority (U18, U16, Cadets, etc.)
     if group_info['age_group'] != 'Adult':
-        # Age group takes priority (U18, U16, Cadets, etc.)
         suffix = group_info['age_group']
+    # Women's teams get Women suffix
     elif group_info['sex'] == 'W':
-        # Women's teams
         suffix = 'Women'
+    # Men's teams only get suffix if explicitly requested
     elif group_info['sex'] == 'M' and include_default:
-        # Men's teams when explicitly requested
         suffix = 'Men'
+    # Default case (Adult Men): no suffix unless include_default=True
+    # This is already handled by the elif above
     
     # Add suffix if determined
     if suffix:
