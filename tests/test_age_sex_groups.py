@@ -5,9 +5,9 @@ Test script for age and sex group handling functionality.
 
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from utils import extract_age_sex_group_from_division, get_team_name_with_group_suffix
+from src.utils import extract_age_sex_group_from_division, get_team_name_with_group_suffix
 
 def test_extract_age_sex_group():
     """Test extraction of age/sex groups from division names."""
