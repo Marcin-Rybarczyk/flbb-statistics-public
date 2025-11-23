@@ -3115,6 +3115,125 @@ def normalize_name_for_matching(name):
     return normalized
 
 
+def extract_age_sex_group_from_division(division_name):
+    """
+    Extract age and sex group information from division name.
+    
+    Analyzes the division name to determine the age and/or sex group category.
+    Common patterns:
+    - M-* : Men's/Adult Men
+    - W-* or Damen-* : Women's
+    - U18, U16, U14, etc. : Youth age groups
+    - Mixed combinations possible
+    
+    Parameters:
+    division_name (str): The division name to analyze (e.g., "M-Division 1", "W-Nationale 1", "U18-Division")
+    
+    Returns:
+    dict: Dictionary with 'sex' (M/W/Mixed), 'age_group' (Adult/U18/U16/etc.), and 'raw_group' (original indicator)
+    """
+    if not division_name or not isinstance(division_name, str):
+        return {'sex': None, 'age_group': 'Adult', 'raw_group': None}
+    
+    division_upper = division_name.upper()
+    
+    # Default values
+    sex = None
+    age_group = 'Adult'
+    raw_group = None
+    
+    # Check for sex indicators (check women first to avoid 'DAMEN' matching 'MEN')
+    if division_upper.startswith('W-') or 'WOMEN' in division_upper or 'DAMEN' in division_upper or 'DAMES' in division_upper:
+        sex = 'W'
+        raw_group = 'W'
+    elif division_upper.startswith('M-') or 'MEN' in division_upper or 'MESSIEURS' in division_upper:
+        sex = 'M'
+        raw_group = 'M'
+    
+    # Check for age group indicators (U18, U16, U14, U12, etc.)
+    import re
+    age_match = re.search(r'U(\d{2})', division_upper)
+    if age_match:
+        age_num = age_match.group(1)
+        age_group = f'U{age_num}'
+        raw_group = age_group
+    
+    # Check for other age categories
+    if 'CADET' in division_upper:
+        age_group = 'Cadets'
+        raw_group = 'Cadets'
+    elif 'MINIM' in division_upper:
+        age_group = 'Minimes'
+        raw_group = 'Minimes'
+    elif 'JUNIOR' in division_upper:
+        age_group = 'Juniors'
+        raw_group = 'Juniors'
+    elif 'SENIOR' in division_upper:
+        age_group = 'Seniors'
+        raw_group = 'Seniors'
+    elif 'ESPOIR' in division_upper:
+        age_group = 'Espoirs'
+        raw_group = 'Espoirs'
+    
+    return {
+        'sex': sex,
+        'age_group': age_group,
+        'raw_group': raw_group
+    }
+
+
+def get_team_name_with_group_suffix(team_name, division_name, include_default=False):
+    """
+    Add age/sex group suffix to team name based on division.
+    
+    The main group (Adult Men) remains without suffix by default, unless include_default=True.
+    Other groups get appropriate suffixes for clarity:
+    - Women's teams: "(Women)" or "(W)"
+    - Youth teams: "(U18)", "(U16)", etc.
+    - Special categories: "(Cadets)", "(Juniors)", etc.
+    
+    Parameters:
+    team_name (str): The base team name
+    division_name (str): The division name to extract group from
+    include_default (bool): If True, also add suffix for default group (Adult Men)
+    
+    Returns:
+    str: Team name with appropriate group suffix
+    """
+    if not team_name:
+        return team_name
+    
+    # Extract group information
+    group_info = extract_age_sex_group_from_division(division_name)
+    
+    # Determine suffix
+    suffix = None
+    
+    # Check if this is the default group (Adult Men)
+    is_default_group = (group_info['sex'] == 'M' or group_info['sex'] is None) and group_info['age_group'] == 'Adult'
+    
+    if is_default_group and not include_default:
+        # Default group - no suffix
+        return team_name
+    
+    # Build suffix for non-default groups or when include_default=True
+    if group_info['age_group'] != 'Adult':
+        # Age group takes priority (U18, U16, Cadets, etc.)
+        suffix = group_info['age_group']
+    elif group_info['sex'] == 'W':
+        # Women's teams
+        suffix = 'Women'
+    elif group_info['sex'] == 'M' and include_default:
+        # Men's teams when explicitly requested
+        suffix = 'Men'
+    
+    # Add suffix if determined
+    if suffix:
+        return f"{team_name} ({suffix})"
+    
+    return team_name
+
+
 def normalize_team_name_for_matching(team_name):
     """
     Normalize team name for matching/comparison purposes.
