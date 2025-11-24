@@ -192,7 +192,7 @@ The script provides clear error messages for common issues:
 
 Users created with this script can immediately log in to the Flask application using their username and password. Their preferences (division and team) will be automatically loaded.
 
-See the [User Database Documentation](../docs/USER_DATABASE.md) for more details on the database structure and Flask integration.
+See the [User Database Documentation](USER_DATABASE.md) for more details on the database structure and Flask integration.
 
 ## Security Best Practices
 
@@ -240,6 +240,6 @@ chmod 755 data/
 
 ## See Also
 
-- [User Database Documentation](../docs/USER_DATABASE.md) - Complete database reference
+- [User Database Documentation](USER_DATABASE.md) - Complete database reference
 - [Example Usage](../examples/user_database_demo.py) - Python examples
 - [Flask Integration Tests](../tests/test_flask_user_database.py) - Integration examples

@@ -77,7 +77,7 @@ flbb-statistics-public/
 ### Documentation (3 files)
 - `docs/ARCHIVE_DOWNLOAD_GUIDE.md` - Complete reference guide (412 lines)
 - `docs/ARCHIVE_DOWNLOAD_EXAMPLES.md` - Detailed examples and workflows (464 lines)
-- `scripts/README_ARCHIVE_DOWNLOAD.md` - Quick reference (188 lines)
+- `docs/README_ARCHIVE_DOWNLOAD.md` - Quick reference (188 lines)
 
 ### Tests (1 file)
 - `tests/test_archive_download.py` - Test suite for validation

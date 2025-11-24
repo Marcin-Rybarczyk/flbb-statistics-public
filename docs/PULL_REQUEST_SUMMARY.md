@@ -32,11 +32,11 @@ Created two complementary scripts (PowerShell and Python) that:
 **Documentation:**
 - `docs/ARCHIVE_DOWNLOAD_GUIDE.md` (412 lines) - Complete reference guide
 - `docs/ARCHIVE_DOWNLOAD_EXAMPLES.md` (464 lines) - 30+ detailed examples
-- `scripts/README_ARCHIVE_DOWNLOAD.md` (188 lines) - Quick reference
+- `docs/README_ARCHIVE_DOWNLOAD.md` (188 lines) - Quick reference
 
 **Summaries:**
-- `IMPLEMENTATION_ARCHIVE_DOWNLOAD.md` - Implementation details
-- `SECURITY_SUMMARY_ARCHIVE_DOWNLOAD.md` - Security assessment
+- `docs/IMPLEMENTATION_ARCHIVE_DOWNLOAD.md` - Implementation details
+- `docs/SECURITY_SUMMARY_ARCHIVE_DOWNLOAD.md` - Security assessment
 
 **Updates:**
 - `README.md` - Added documentation for new features
@@ -166,38 +166,38 @@ User Input → Validate Parameters → Backup Config
 - ✅ No hardcoded credentials
 - ✅ User confirmations for destructive operations
 
-See `SECURITY_SUMMARY_ARCHIVE_DOWNLOAD.md` for complete assessment.
+See `docs/SECURITY_SUMMARY_ARCHIVE_DOWNLOAD.md` for complete assessment.
 
 ## Documentation
 
 ### User Documentation (1,064+ lines)
 
-1. **Complete Guide**: `ARCHIVE_DOWNLOAD_GUIDE.md`
+1. **Complete Guide**: `docs/ARCHIVE_DOWNLOAD_GUIDE.md`
    - All options and parameters
    - Installation and prerequisites
    - Data organization structure
    - Troubleshooting guide
 
-2. **Examples Guide**: `ARCHIVE_DOWNLOAD_EXAMPLES.md`
+2. **Examples Guide**: `docs/ARCHIVE_DOWNLOAD_EXAMPLES.md`
    - 30+ detailed examples
    - Workflow examples
    - Integration examples
    - Common scenarios
 
-3. **Quick Reference**: `scripts/README_ARCHIVE_DOWNLOAD.md`
+3. **Quick Reference**: `docs/README_ARCHIVE_DOWNLOAD.md`
    - Quick start commands
    - Common parameters table
    - Script comparison
 
 ### Developer Documentation
 
-1. **Implementation Summary**: `IMPLEMENTATION_ARCHIVE_DOWNLOAD.md`
+1. **Implementation Summary**: `docs/IMPLEMENTATION_ARCHIVE_DOWNLOAD.md`
    - Architecture overview
    - Technical details
    - Integration points
    - Future enhancements
 
-2. **Security Summary**: `SECURITY_SUMMARY_ARCHIVE_DOWNLOAD.md`
+2. **Security Summary**: `docs/SECURITY_SUMMARY_ARCHIVE_DOWNLOAD.md`
    - Security assessment
    - Vulnerability analysis
    - Best practices
@@ -310,7 +310,7 @@ python scripts/download_multiple_years.py
 For questions or issues:
 1. Check `docs/ARCHIVE_DOWNLOAD_GUIDE.md`
 2. See examples in `docs/ARCHIVE_DOWNLOAD_EXAMPLES.md`
-3. Review `scripts/README_ARCHIVE_DOWNLOAD.md`
+3. Review `docs/README_ARCHIVE_DOWNLOAD.md`
 4. Open an issue on GitHub
 
 ## Conclusion
