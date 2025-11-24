@@ -131,7 +131,7 @@ Three comprehensive guides created/updated:
    - Migration guide (6 steps)
    - Production deployment strategies
    
-3. **Security Summary**: `SECURITY_SUMMARY_MONGODB.md` (151 lines)
+3. **Security Summary**: `docs/SECURITY_SUMMARY_MONGODB.md` (151 lines)
    - Security analysis
    - CodeQL scan results
    - Best practices
@@ -152,8 +152,8 @@ Three comprehensive guides created/updated:
 ```
 scripts/export_csv_to_mongodb.py  : 321 lines (NEW)
 tests/test_mongodb_data_source.py : 392 lines (NEW)
-MONGODB_DATA_SOURCE_GUIDE.md      : 333 lines (NEW)
-SECURITY_SUMMARY_MONGODB.md       : 151 lines (NEW)
+docs/MONGODB_DATA_SOURCE_GUIDE.md : 333 lines (NEW)
+docs/SECURITY_SUMMARY_MONGODB.md  : 151 lines (NEW)
 docs/MONGODB_INTEGRATION.md       : +209 lines
 src/utils.py                      : +148 lines
 README.md                         : +41 lines
@@ -306,9 +306,9 @@ Users can move through phases at their own pace.
 
 ## Support & Documentation
 
-- **Quick Start**: See `MONGODB_DATA_SOURCE_GUIDE.md`
+- **Quick Start**: See `docs/MONGODB_DATA_SOURCE_GUIDE.md`
 - **Complete Guide**: See `docs/MONGODB_INTEGRATION.md`
-- **Security**: See `SECURITY_SUMMARY_MONGODB.md`
+- **Security**: See `docs/SECURITY_SUMMARY_MONGODB.md`
 - **Testing**: Run `python tests/test_mongodb_data_source.py`
 - **Issues**: Create GitHub issue with details
 

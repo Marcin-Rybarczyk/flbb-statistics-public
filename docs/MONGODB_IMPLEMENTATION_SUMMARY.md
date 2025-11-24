@@ -34,7 +34,7 @@ This document summarizes the MongoDB integration implementation for the FLBB Sta
    - Basic usage demonstration
    - References to comprehensive docs
 
-5. **`examples/README.md`**
+5. **`docs/EXAMPLES.md`**
    - Examples directory documentation
 
 ### Files Modified

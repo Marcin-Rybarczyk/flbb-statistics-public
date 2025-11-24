@@ -196,7 +196,7 @@ python tests/test_local_flask.py
 ```
 
 **For detailed setup and migration guide:**
-- See **[MONGODB_DATA_SOURCE_GUIDE.md](MONGODB_DATA_SOURCE_GUIDE.md)** - Quick start guide
+- See **[MongoDB Data Source Guide](docs/MONGODB_DATA_SOURCE_GUIDE.md)** - Quick start guide
 - See **[MongoDB Integration Guide](docs/MONGODB_INTEGRATION.md)** - Complete documentation
 
 **Benefits:**
@@ -285,9 +285,8 @@ Comprehensive documentation is available in the `docs/` directory:
 ### Integration & Setup
 - **[Google Drive Setup](docs/GOOGLE_DRIVE_SECRETS_SETUP.md)** - API configuration guide
 - **[MongoDB Integration](docs/MONGODB_INTEGRATION.md)** - MongoDB setup and usage (NEW!)
-- **[MongoDB Data Source Guide](MONGODB_DATA_SOURCE_GUIDE.md)** - Quick start for MongoDB (NEW!)
+- **[MongoDB Data Source Guide](docs/MONGODB_DATA_SOURCE_GUIDE.md)** - Quick start for MongoDB (NEW!)
 - **[GitHub Actions Usage](docs/GITHUB_ACTIONS_USAGE.md)** - Automation workflows
-- **[MongoDB Integration](docs/MONGODB_INTEGRATION.md)** - Store JSON data in MongoDB
 - **[FIBA API Integration](docs/FIBA_API_INTEGRATION.md)** - Extended player data from FIBA
 
 ### Asset Management

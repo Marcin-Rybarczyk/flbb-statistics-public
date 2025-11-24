@@ -482,7 +482,7 @@ cp scripts/config.json.backup scripts/config.json
 
 - [ARCHIVE_DOWNLOAD_GUIDE.md](ARCHIVE_DOWNLOAD_GUIDE.md) - Complete reference guide
 - [DATA_EXPORT_IMPORT.md](DATA_EXPORT_IMPORT.md) - Export and import procedures
-- [scripts/README_ARCHIVE_DOWNLOAD.md](../scripts/README_ARCHIVE_DOWNLOAD.md) - Quick reference
+- [README_ARCHIVE_DOWNLOAD.md](README_ARCHIVE_DOWNLOAD.md) - Quick reference
 
 ## Questions?
 

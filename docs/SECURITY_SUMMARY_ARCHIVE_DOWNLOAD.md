@@ -14,8 +14,8 @@ This document provides a security assessment of the multi-year archive download 
 ### New Documentation
 1. `docs/ARCHIVE_DOWNLOAD_GUIDE.md` - User guide
 2. `docs/ARCHIVE_DOWNLOAD_EXAMPLES.md` - Examples
-3. `scripts/README_ARCHIVE_DOWNLOAD.md` - Quick reference
-4. `IMPLEMENTATION_ARCHIVE_DOWNLOAD.md` - Implementation summary
+3. `docs/README_ARCHIVE_DOWNLOAD.md` - Quick reference
+4. `docs/IMPLEMENTATION_ARCHIVE_DOWNLOAD.md` - Implementation summary
 
 ### Modified Files
 1. `README.md` - Updated with new features
