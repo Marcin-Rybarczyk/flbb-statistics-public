@@ -301,9 +301,96 @@
         padding: 25px;
         margin-bottom: 30px;
         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .game-review::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
+        animation: pulse 4s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 0.5; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+    }
+
+    .review-visual-banner {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: linear-gradient(90deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.8) 100%);
+        border-radius: 10px;
+        flex-wrap: wrap;
+    }
+
+    .event-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 25px;
+        font-weight: 600;
+        font-size: 0.9em;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        animation: bounceIn 0.6s ease-out;
+    }
+
+    @keyframes bounceIn {
+        0% { transform: scale(0); opacity: 0; }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    .event-badge.century {
+        background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+        color: #333;
+    }
+
+    .event-badge.blowout {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        color: white;
+    }
+
+    .event-badge.star {
+        background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+        color: white;
+    }
+
+    .event-badge.nail-biter {
+        background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
+        color: white;
+    }
+
+    .event-badge.tech-foul {
+        background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+        color: white;
+    }
+
+    .event-badge.fouled-out {
+        background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+        color: white;
+    }
+
+    .event-badge.comeback {
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        color: white;
     }
 
     .review-header {
+        position: relative;
+        z-index: 1;
         display: flex;
         align-items: center;
         margin-bottom: 20px;
@@ -314,6 +401,12 @@
     .review-icon {
         font-size: 2.5em;
         margin-right: 15px;
+        animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
     }
 
     .review-headline {
@@ -325,15 +418,20 @@
     }
 
     .review-body {
+        position: relative;
+        z-index: 1;
         font-size: 1.15em;
         line-height: 1.8;
         color: #34495e;
         font-weight: 500;
         font-style: italic;
         padding: 15px 0;
+        white-space: pre-line;
     }
 
     .review-footer {
+        position: relative;
+        z-index: 1;
         margin-top: 15px;
         padding-top: 15px;
         border-top: 1px solid rgba(102, 126, 234, 0.3);
@@ -434,6 +532,27 @@
         <!-- Game Review Section -->
         {% if game_review and game_review.has_content %}
         <div class="game-review">
+            <!-- Visual Event Badges Banner -->
+            <div class="review-visual-banner">
+                {% for event in game_review.detected_events %}
+                    {% if event == 'century_game' %}
+                        <div class="event-badge century">💯 CENTURY CLUB</div>
+                    {% elif event == 'blowout' %}
+                        <div class="event-badge blowout">💥 BLOWOUT</div>
+                    {% elif event == 'star_performance' %}
+                        <div class="event-badge star">⭐ STAR PLAYER</div>
+                    {% elif event == 'nail_biter' %}
+                        <div class="event-badge nail-biter">💓 NAIL-BITER</div>
+                    {% elif event == 'technical_fouls' %}
+                        <div class="event-badge tech-foul">⚠️ TECH FOUL</div>
+                    {% elif event == 'fouled_out' %}
+                        <div class="event-badge fouled-out">🚫 FOULED OUT</div>
+                    {% elif event == 'comeback' %}
+                        <div class="event-badge comeback">🔄 COMEBACK</div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            
             <div class="review-header">
                 <div class="review-icon">📰</div>
                 <h2 class="review-headline">{{ game_review.headline }}</h2>
