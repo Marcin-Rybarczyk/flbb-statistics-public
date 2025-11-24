@@ -662,10 +662,14 @@ def game_detail(game_id):
     if not game_details:
         return render_template('game_detail.html', error=f"Game {game_id} not found", all_games=all_games, game_id=game_id, data_source_info=data_source_info)
     
+    # Generate funny game review
+    game_review = generate_game_review(game_details)
+    
     return render_template('game_detail.html',
                          game=game_details,
                          all_games=all_games,
                          game_id=game_id,
+                         game_review=game_review,
                          data_source_info=data_source_info)
 
 @app.route('/game-details')
