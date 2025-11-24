@@ -3188,8 +3188,9 @@ def get_team_name_with_group_suffix(team_name, division_name, include_default=Fa
     
     The main group (Adult Men) remains without suffix by default, unless include_default=True.
     Other groups get appropriate suffixes for clarity:
-    - Women's teams: "(Women)" or "(W)"
+    - Women's teams: "(Women)"
     - Youth teams: "(U18)", "(U16)", etc.
+    - Youth with sex: "(U18 Boys)", "(U16 Girls)", etc.
     - Special categories: "(Cadets)", "(Juniors)", etc.
     
     Parameters:
@@ -3209,14 +3210,22 @@ def get_team_name_with_group_suffix(team_name, division_name, include_default=Fa
     # Determine suffix based on group type
     suffix = None
     
-    # Age group takes priority (U18, U16, Cadets, etc.)
+    # Check if we have a youth/age group (not Adult)
     if group_info['age_group'] != 'Adult':
-        suffix = group_info['age_group']
-    # Women's teams get Women suffix
+        # If we also have sex information, combine them
+        if group_info['sex'] == 'M':
+            suffix = f"{group_info['age_group']} Boys"
+        elif group_info['sex'] == 'W':
+            suffix = f"{group_info['age_group']} Girls"
+        else:
+            # Age group only, no sex specified
+            suffix = group_info['age_group']
+    # Adult divisions
     elif group_info['sex'] == 'W':
+        # Women's adult teams
         suffix = 'Women'
-    # Men's teams only get suffix if explicitly requested
     elif group_info['sex'] == 'M' and include_default:
+        # Men's adult teams (only if explicitly requested)
         suffix = 'Men'
     # Default case (Adult Men): no suffix unless include_default=True
     # This is already handled by the elif above

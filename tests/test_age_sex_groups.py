@@ -83,7 +83,8 @@ def test_get_team_name_with_suffix():
         # Youth divisions - should add age group
         ("CFBB", "U18-Division 1", False, "CFBB (U18)"),
         ("Racing Luxembourg", "U16-Division 1", False, "Racing Luxembourg (U16)"),
-        ("BC Mess", "M-U18-Division 1", False, "BC Mess (U18)"),
+        ("BC Mess", "M-U18-Division 1", False, "BC Mess (U18 Boys)"),
+        ("AB Contern", "W-U16-Division 1", False, "AB Contern (U16 Girls)"),
         
         # Other age categories
         ("Amicale Steesel", "Cadets Division", False, "Amicale Steesel (Cadets)"),

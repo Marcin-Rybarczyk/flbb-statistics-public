@@ -22,8 +22,9 @@ def demo():
         ("M-Division 1:", "Current Men's Division"),
         ("M-ENOVOS LEAGUE:Tour qualificatif", "Current Men's Elite League"),
         ("W-Division 1", "Future Women's Division"),
-        ("U18-Division 1", "Future Youth U18"),
-        ("U16-Division 1", "Future Youth U16"),
+        ("U18-Division 1", "Future Youth U18 (mixed/unspecified)"),
+        ("M-U18-Division 1", "Future Youth U18 Boys"),
+        ("W-U16-Division 1", "Future Youth U16 Girls"),
         ("Damen-Division 1", "Future Women's Division (German)"),
     ]
     
@@ -53,6 +54,7 @@ def demo():
     print("✓ Men's divisions (default): No suffix added")
     print("✓ Women's divisions: '(Women)' suffix added")
     print("✓ Youth divisions: Age group suffix added (e.g., '(U18)')")
+    print("✓ Youth with sex: Combined suffix (e.g., '(U18 Boys)', '(U16 Girls)')")
     print("✓ Original data remains unchanged")
     print("✓ Backward compatible with existing system")
     

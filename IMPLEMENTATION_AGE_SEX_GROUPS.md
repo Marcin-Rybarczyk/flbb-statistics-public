@@ -47,9 +47,17 @@ name = get_team_name_with_group_suffix("Racing Luxembourg", "M-Division 1:", Fal
 name = get_team_name_with_group_suffix("Racing Luxembourg", "W-Division 1", False)
 # Result: "Racing Luxembourg (Women)"
 
-# Example 3: Youth division
+# Example 3: Youth division (unspecified sex)
 name = get_team_name_with_group_suffix("Racing Luxembourg", "U18-Division", False)
 # Result: "Racing Luxembourg (U18)"
+
+# Example 4: Youth Boys division
+name = get_team_name_with_group_suffix("Racing Luxembourg", "M-U18-Division", False)
+# Result: "Racing Luxembourg (U18 Boys)"
+
+# Example 5: Youth Girls division
+name = get_team_name_with_group_suffix("Racing Luxembourg", "W-U16-Division", False)
+# Result: "Racing Luxembourg (U16 Girls)"
 ```
 
 ### In Jinja Templates

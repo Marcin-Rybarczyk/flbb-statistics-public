@@ -78,9 +78,17 @@ result = get_team_name_with_group_suffix("Racing Luxembourg", "M-Division 1:", F
 result = get_team_name_with_group_suffix("Racing Luxembourg", "W-Division 1", False)
 # Returns: "Racing Luxembourg (Women)"
 
-# Youth division - adds age group
+# Youth division (unspecified sex) - adds age group only
 result = get_team_name_with_group_suffix("Racing Luxembourg", "U18-Division 1", False)
 # Returns: "Racing Luxembourg (U18)"
+
+# Youth Boys division - adds age group and sex
+result = get_team_name_with_group_suffix("Racing Luxembourg", "M-U18-Division 1", False)
+# Returns: "Racing Luxembourg (U18 Boys)"
+
+# Youth Girls division - adds age group and sex
+result = get_team_name_with_group_suffix("Racing Luxembourg", "W-U16-Division 1", False)
+# Returns: "Racing Luxembourg (U16 Girls)"
 
 # Men's division with include_default=True
 result = get_team_name_with_group_suffix("Racing Luxembourg", "M-Division 1:", True)
@@ -97,8 +105,11 @@ result = get_team_name_with_group_suffix("Racing Luxembourg", "M-Division 1:", T
 - **Youth by age**: `U18`, `U16`, `U14`, `U12`, etc.
 - **Named categories**: `CADETS`, `MINIMES`, `JUNIORS`, `SENIORS`, `ESPOIRS`
 
-### Priority
-When both sex and age indicators are present (e.g., "M-U18-Division"), the age group takes priority in the suffix.
+### Combined Sex and Age Groups
+When both sex and age indicators are present (e.g., "M-U18-Division", "W-U16-Division"), the suffix combines both:
+- **Boys/Men Youth**: Shows age with "Boys" (e.g., "(U18 Boys)", "(U16 Boys)")
+- **Girls/Women Youth**: Shows age with "Girls" (e.g., "(U18 Girls)", "(U16 Girls)")
+- **Unspecified sex Youth**: Shows age only (e.g., "(U18)", "(U16)")
 
 ## Usage in Templates
 
