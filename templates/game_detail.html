@@ -293,6 +293,55 @@
         font-weight: 500;
     }
 
+    /* Game Review Styles */
+    .game-review {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        border-left: 5px solid #667eea;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 30px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    .review-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #667eea;
+    }
+
+    .review-icon {
+        font-size: 2.5em;
+        margin-right: 15px;
+    }
+
+    .review-headline {
+        font-size: 1.8em;
+        font-weight: bold;
+        color: #2c3e50;
+        margin: 0;
+        flex: 1;
+    }
+
+    .review-body {
+        font-size: 1.15em;
+        line-height: 1.8;
+        color: #34495e;
+        font-weight: 500;
+        font-style: italic;
+        padding: 15px 0;
+    }
+
+    .review-footer {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid rgba(102, 126, 234, 0.3);
+        font-size: 0.9em;
+        color: #7f8c8d;
+        text-align: right;
+    }
+
     @media (max-width: 768px) {
         .teams-grid {
             grid-template-columns: 1fr;
@@ -304,6 +353,24 @@
 
         .stats-grid {
             grid-template-columns: repeat(2, 1fr);
+        }
+
+        .review-header {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .review-icon {
+            margin-right: 0;
+            margin-bottom: 10px;
+        }
+
+        .review-headline {
+            font-size: 1.4em;
+        }
+
+        .review-body {
+            font-size: 1em;
         }
     }
 {% endblock %}
@@ -364,6 +431,21 @@
             {% endif %}
         </div>
 
+        <!-- Game Review Section -->
+        {% if game_review and game_review.has_content %}
+        <div class="game-review">
+            <div class="review-header">
+                <div class="review-icon">📰</div>
+                <h2 class="review-headline">{{ game_review.headline }}</h2>
+            </div>
+            <div class="review-body">
+                {{ game_review.body }}
+            </div>
+            <div class="review-footer">
+                🎙️ FLBB Press Review - Multilingual Basketball Commentary
+            </div>
+        </div>
+        {% endif %}
 
 
         <!-- Game Statistics -->

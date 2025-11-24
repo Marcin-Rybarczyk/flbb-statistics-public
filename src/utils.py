@@ -6355,3 +6355,214 @@ def get_division_hover_stats(data, division_name):
         'top_teams': top_teams,
         'top_scorers': top_scorers
     }
+
+
+def generate_game_review(game_details):
+    """
+    Generate a funny, multilingual review based on game events and statistics.
+    
+    Parameters:
+    game_details (dict): Complete game details from get_game_details()
+    
+    Returns:
+    dict: Review information including headline, body, and detected events
+    """
+    import random
+    
+    if not game_details or game_details.get('basic_info', {}).get('is_future'):
+        return None
+    
+    basic_info = game_details.get('basic_info', {})
+    game_stats = game_details.get('game_stats', {})
+    teams = game_details.get('teams', [])
+    events = game_details.get('events', [])
+    
+    home_team = basic_info.get('home_team', 'Home')
+    away_team = basic_info.get('away_team', 'Away')
+    home_score = basic_info.get('home_score', 0)
+    away_score = basic_info.get('away_score', 0)
+    winner = basic_info.get('winner', '')
+    
+    review_parts = []
+    detected_events = []
+    headline = ""
+    
+    # Calculate score difference
+    score_diff = abs(home_score - away_score)
+    
+    # Detect key events and generate review parts
+    
+    # 1. Check for 100+ point game
+    if home_score >= 100 or away_score >= 100:
+        detected_events.append("century_game")
+        high_scorer = home_team if home_score >= 100 else away_team
+        phrases = [
+            f"🎯 {high_scorer} broke the century! Basketball nie był gotowy na taką demolkę!",
+            f"💯 SECOLO! {high_scorer} pokazał jak się robi show! Fantastisch!",
+            f"🔥 One hunnit! {high_scorer} went absolutely bonkers! C'est magnifique!",
+            f"⚡ {high_scorer} scored 100+ points! Die anderen konnten nur zuschauen! Madonna!",
+            f"🎪 {high_scorer} arranged a basketball carnival! Verdammt, what a spectacle!"
+        ]
+        review_parts.append(random.choice(phrases))
+    
+    # 2. Check for technical fouls
+    tech_fouls = []
+    for event in events:
+        if event.get('EventAction', '').lower() in ['technical foul', 'technische foul', 'faute technique']:
+            tech_fouls.append(event)
+    
+    if tech_fouls:
+        detected_events.append("technical_fouls")
+        phrases = [
+            f"⚠️ {len(tech_fouls)} technical foul(s)! Referees were not messing around! Kurwa, tensions were high!",
+            f"🟥 {len(tech_fouls)} technische(s)! The emotions went through the roof! Mamma mia!",
+            f"😤 {len(tech_fouls)} tech(s)! Someone woke up on the wrong side! Putain, quel drama!",
+            f"⛔ {len(tech_fouls)} technical(s)! Nerves were on fire! Verdammt nochmal!",
+            f"🎭 Drama alert! {len(tech_fouls)} technical foul(s) - Hollywood couldn't script this better!"
+        ]
+        review_parts.append(random.choice(phrases))
+    
+    # 3. Check for players with 5 fouls (fouled out)
+    fouled_out_players = []
+    for team in teams:
+        for player in team.get('players', []):
+            if int(player.get('Total Fouls', 0)) >= 5:
+                fouled_out_players.append({
+                    'name': player.get('Player Name', 'Unknown'),
+                    'team': team.get('name', ''),
+                    'fouls': player.get('Total Fouls', 0)
+                })
+    
+    if fouled_out_players:
+        detected_events.append("fouled_out")
+        player_names = ", ".join([p['name'] for p in fouled_out_players[:2]])
+        phrases = [
+            f"🚫 {player_names} fouled out! Early shower time! Pech gehabt!",
+            f"👋 {player_names} said goodbye early! Five fouls and you're out! Peccato!",
+            f"🛁 {player_names} took an early bath! Kurwa, too aggressive today!",
+            f"⛔ {player_names} collected all 5! Game over for them! Scheiße!",
+            f"🎫 {player_names} got the exit ticket! C'est fini pour eux!"
+        ]
+        review_parts.append(random.choice(phrases))
+    
+    # 4. Check for big score difference (blowout > 30 points)
+    if score_diff > 30:
+        detected_events.append("blowout")
+        phrases = [
+            f"💥 {score_diff}-point demolition! {winner} absolutely destroyed the opposition! Brutal!",
+            f"🌊 {winner} unleashed a tsunami! {score_diff}-point massacre! Mamma mia che disastro!",
+            f"⚡ {score_diff}-point annihilation! {winner} showed no mercy! Kurwa, that was savage!",
+            f"🔨 {winner} with a {score_diff}-point hammer blow! Absolut zerstört!",
+            f"💣 {score_diff}-point bomb! {winner} left nothing but ruins! Quelle destruction!"
+        ]
+        review_parts.append(random.choice(phrases))
+    
+    # 5. Check for comeback (based on lead changes and final result)
+    elif game_stats.get('lead_changes', 0) >= 8 and score_diff <= 10:
+        detected_events.append("comeback")
+        phrases = [
+            f"🎢 {game_stats.get('lead_changes', 0)} lead changes! Roller coaster pur! What a thriller!",
+            f"🔄 Back and forth {game_stats.get('lead_changes', 0)} times! Heart attack material! Madonna!",
+            f"🎪 {game_stats.get('lead_changes', 0)} lead changes! Absolute madness! Kurwa, my heart!",
+            f"⚡ {winner} with the ultimate comeback! {game_stats.get('lead_changes', 0)} lead changes! Incroyable!",
+            f"🎯 {game_stats.get('lead_changes', 0)} lead changes! Edge-of-your-seat action! Wahnsinn!"
+        ]
+        review_parts.append(random.choice(phrases))
+    
+    # 6. Check for outstanding player performance (30+ points)
+    top_scorers = []
+    for team in teams:
+        for player in team.get('players', []):
+            points = int(player.get('Total Points', 0))
+            if points >= 30:
+                top_scorers.append({
+                    'name': player.get('Player Name', 'Unknown'),
+                    'points': points,
+                    'team': team.get('name', '')
+                })
+    
+    if top_scorers:
+        detected_events.append("star_performance")
+        top_scorer = max(top_scorers, key=lambda x: x['points'])
+        phrases = [
+            f"⭐ {top_scorer['name']} went nuclear with {top_scorer['points']} points! Unstoppable! Che fenomeno!",
+            f"🔥 {top_scorer['name']} dropped {top_scorer['points']} bombs! On fire! Kurwa, what a show!",
+            f"👑 {top_scorer['name']} dominated with {top_scorer['points']} points! King/Queen of the court! Fantastisch!",
+            f"💎 {top_scorer['name']} with {top_scorer['points']} points! Pure class! Magnifique!",
+            f"🎯 {top_scorer['name']} scored {top_scorer['points']} points! Sniper mode activated! Unglaublich!"
+        ]
+        review_parts.append(random.choice(phrases))
+    
+    # 7. Check for close game (score difference <= 5)
+    if 0 < score_diff <= 5 and "comeback" not in detected_events:
+        detected_events.append("nail_biter")
+        phrases = [
+            f"😱 {score_diff}-point game! Nail-biter till the end! Che tensione!",
+            f"🫣 Down to the wire! {score_diff}-point thriller! Kurwa, close call!",
+            f"💓 Heart-stopper! Only {score_diff} points separated them! Incroyable!",
+            f"⚡ {score_diff}-point edge! Every possession mattered! Wahnsinn!",
+            f"🎯 Razor-thin {score_diff}-point margin! Too close to call! Mamma mia!"
+        ]
+        review_parts.append(random.choice(phrases))
+    
+    # Generate headline based on main event
+    if "century_game" in detected_events:
+        headline_options = [
+            f"🎯 CENTURY CLUB: {winner} Breaks the 100-Point Barrier!",
+            f"💯 SECOLO: {winner} Reaches Basketball Heaven!",
+            f"🔥 HUNDERT: {winner} Lights Up the Scoreboard!"
+        ]
+    elif "blowout" in detected_events:
+        headline_options = [
+            f"💥 DEMOLITION: {winner} Wins by {score_diff}!",
+            f"🌊 TSUNAMI: {winner} Crushes Opposition {score_diff} Points!",
+            f"⚡ ANNIHILATION: {winner} Shows No Mercy!"
+        ]
+    elif "comeback" in detected_events or "nail_biter" in detected_events:
+        headline_options = [
+            f"🎢 THRILLER: {winner} Survives {game_stats.get('lead_changes', 0)} Lead Changes!",
+            f"💓 HEART-STOPPER: {winner} Edges Out Victory!",
+            f"⚡ DRAMA: {winner} Wins in Spectacular Fashion!"
+        ]
+    elif "star_performance" in detected_events:
+        top_scorer = max(top_scorers, key=lambda x: x['points'])
+        headline_options = [
+            f"⭐ SUPERSTAR: {top_scorer['name']} Drops {top_scorer['points']} in {winner}'s Win!",
+            f"🔥 ON FIRE: {top_scorer['name']} Dominates with {top_scorer['points']} Points!",
+            f"👑 KING/QUEEN: {top_scorer['name']} Rules the Court!"
+        ]
+    else:
+        headline_options = [
+            f"🏀 GAME DAY: {winner} Takes the W!",
+            f"🎯 VICTORY: {winner} Gets It Done!",
+            f"⚡ WIN: {winner} Comes Out On Top!"
+        ]
+    
+    headline = random.choice(headline_options)
+    
+    # Combine review parts
+    review_body = " ".join(review_parts) if review_parts else "A solid basketball game was played today. Both teams showed up and competed."
+    
+    # Add final spicy closing line
+    closing_lines = [
+        "Basketball at its finest! 🏀",
+        "That's how we do it! 💪",
+        "FLBB delivers again! 🔥",
+        "What a show! 🎪",
+        "Pure basketball magic! ✨",
+        "Spectacular! 🌟",
+        "Unforgettable! 🎯",
+        "Che spettacolo! 🎭",
+        "Quel match! 🏆",
+        "Wahnsinnig! ⚡"
+    ]
+    
+    if review_body != "A solid basketball game was played today. Both teams showed up and competed.":
+        review_body += " " + random.choice(closing_lines)
+    
+    return {
+        'headline': headline,
+        'body': review_body,
+        'detected_events': detected_events,
+        'has_content': len(detected_events) > 0
+    }

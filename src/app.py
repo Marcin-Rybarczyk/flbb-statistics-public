@@ -26,7 +26,8 @@ from .utils import (calculate_standings_by_division, get_highest_scoring_games,
                    get_all_players_list, get_player_detail_stats, get_game_details, get_referee_detail_stats,
                    get_team_detail_stats, get_all_referees_list, get_all_games_list,
                    get_player_hover_stats, get_team_hover_stats, get_referee_hover_stats, get_game_hover_stats,
-                   get_division_hover_stats, calculate_referee_performance_index, get_closest_games_by_team, CSV_FILEPATH)
+                   get_division_hover_stats, calculate_referee_performance_index, get_closest_games_by_team, 
+                   generate_game_review, CSV_FILEPATH)
 from .version import get_version_info
 from .user_database import (authenticate_user, get_user_preferences, update_user_preferences,
                             create_user, list_users, update_user_password, delete_user, update_user_level)
@@ -655,10 +656,14 @@ def game_detail(game_id):
     if not game_details:
         return render_template('game_detail.html', error=f"Game {game_id} not found", all_games=all_games, game_id=game_id, data_source_info=data_source_info)
     
+    # Generate funny game review
+    game_review = generate_game_review(game_details)
+    
     return render_template('game_detail.html',
                          game=game_details,
                          all_games=all_games,
                          game_id=game_id,
+                         game_review=game_review,
                          data_source_info=data_source_info)
 
 @app.route('/game-details')
