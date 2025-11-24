@@ -1,0 +1,284 @@
+{
+  "_comment": "MongoDB Collection Schema for FLBB Basketball Statistics",
+  "_collection_name": "games",
+  "_database_name": "flbb-statistics",
+  "_description": "This file defines the schema for game documents stored in MongoDB. Each document represents one basketball game with complete statistics, metadata, and processing status.",
+  
+  "schema_version": "1.0",
+  "last_updated": "2025-11-24",
+  
+  "document_structure": {
+    "_id": {
+      "type": "ObjectId",
+      "description": "MongoDB unique identifier (auto-generated)",
+      "required": true,
+      "indexed": false
+    },
+    
+    "GameId": {
+      "type": "String",
+      "description": "Unique game identifier from FLBB website",
+      "required": true,
+      "indexed": true,
+      "unique": true,
+      "example": "12345"
+    },
+    
+    "status": {
+      "type": "String",
+      "description": "Processing status of the game",
+      "required": true,
+      "indexed": true,
+      "enum": ["pending", "finished"],
+      "default": "pending",
+      "example": "finished"
+    },
+    
+    "csv_generated": {
+      "type": "Boolean",
+      "description": "Whether CSV data has been generated for this game",
+      "required": false,
+      "default": false,
+      "example": true
+    },
+    
+    "json_data": {
+      "type": "Object",
+      "description": "Complete game statistics and metadata in JSON format",
+      "required": true,
+      "structure": {
+        "GameId": "String",
+        "GameLocation": "Object",
+        "GameDivisionDisplay": "String",
+        "GameTeamsShort": "String",
+        "GameFinalScore": "String",
+        "GameWinner": "String",
+        "GameLoser": "String",
+        "HomeTeamName": "String",
+        "AwayTeamName": "String",
+        "HomeTeamLeaguePoints": "Number",
+        "AwayTeamLeaguePoints": "Number",
+        "FinalHomeScore": "Number",
+        "FinalAwayScore": "Number",
+        "DateTime": "String (ISO 8601)",
+        "Referees": "Array",
+        "Teams": "Array",
+        "GameEvents": "Array"
+      }
+    },
+    
+    "SeasonId": {
+      "type": "String",
+      "description": "Season identifier",
+      "required": false,
+      "indexed": true,
+      "example": "2025-2026"
+    },
+    
+    "GameDivisionDisplay": {
+      "type": "String",
+      "description": "Division name for quick filtering (duplicated from json_data)",
+      "required": false,
+      "indexed": true,
+      "example": "Division 1 Hommes"
+    },
+    
+    "HomeTeamName": {
+      "type": "String",
+      "description": "Home team name (duplicated from json_data)",
+      "required": false,
+      "indexed": false,
+      "example": "Racing Luxembourg"
+    },
+    
+    "AwayTeamName": {
+      "type": "String",
+      "description": "Away team name (duplicated from json_data)",
+      "required": false,
+      "indexed": false,
+      "example": "T71 Dudelange"
+    },
+    
+    "_stored_at": {
+      "type": "DateTime",
+      "description": "Timestamp when document was first created",
+      "required": false,
+      "auto_generated": true,
+      "example": "2025-11-24T21:00:00Z"
+    },
+    
+    "_last_updated": {
+      "type": "String (ISO 8601)",
+      "description": "Timestamp when document was last modified",
+      "required": false,
+      "auto_generated": true,
+      "example": "2025-11-24T21:30:00Z"
+    },
+    
+    "_processed_by": {
+      "type": "String",
+      "description": "Source that processed this game",
+      "required": false,
+      "default": "PowerShell Script",
+      "example": "PowerShell Script"
+    }
+  },
+  
+  "indexes": [
+    {
+      "name": "GameId_unique",
+      "fields": {"GameId": 1},
+      "options": {"unique": true},
+      "description": "Unique index on GameId for fast lookups and deduplication"
+    },
+    {
+      "name": "status_index",
+      "fields": {"status": 1},
+      "options": {},
+      "description": "Index on status for filtering finished/pending games"
+    },
+    {
+      "name": "division_index",
+      "fields": {"GameDivisionDisplay": 1},
+      "options": {},
+      "description": "Index on division for division-specific queries"
+    },
+    {
+      "name": "season_index",
+      "fields": {"SeasonId": 1},
+      "options": {},
+      "description": "Index on season for season-specific queries"
+    },
+    {
+      "name": "game_status_compound",
+      "fields": {"GameId": 1, "status": 1},
+      "options": {},
+      "description": "Compound index for efficient game existence checks"
+    }
+  ],
+  
+  "sample_document": {
+    "_id": "ObjectId('507f1f77bcf86cd799439011')",
+    "GameId": "12345",
+    "status": "finished",
+    "csv_generated": true,
+    "json_data": {
+      "GameId": "12345",
+      "GameLocation": {
+        "Name": "Coque - Hall Sportif",
+        "Google Link": "https://maps.google.com/?q=Coque",
+        "IsForfeit": false,
+        "ForfeitTeam": null
+      },
+      "GameDivisionDisplay": "Division 1 Hommes",
+      "GameTeamsShort": "Racing Luxembourg - T71 Dudelange",
+      "GameFinalScore": "85 : 78",
+      "GameWinner": "Racing Luxembourg",
+      "GameLoser": "T71 Dudelange",
+      "HomeTeamName": "Racing Luxembourg",
+      "AwayTeamName": "T71 Dudelange",
+      "HomeTeamLeaguePoints": 2,
+      "AwayTeamLeaguePoints": 1,
+      "FinalHomeScore": 85,
+      "FinalAwayScore": 78,
+      "DateTime": "2025-11-24 20:00:00",
+      "Referees": [
+        {"Referee Name": "John Doe"},
+        {"Referee Name": "Jane Smith"}
+      ],
+      "Teams": [
+        {
+          "Team Role": "Home",
+          "Team Name": "Racing Luxembourg",
+          "Team Name Short": "RACG",
+          "Players": [
+            {
+              "Player Name": "Player One",
+              "Player Number": 10,
+              "Starting Five": "true",
+              "Total Points": 25,
+              "1P Made Shots": 5,
+              "2P Made Shots": 7,
+              "3P Made Shots": 2
+            }
+          ],
+          "Total Won Points": 85,
+          "Total Lost Points": 78,
+          "League Points": 2,
+          "Result Outcome": "W"
+        }
+      ],
+      "GameEvents": [
+        {
+          "EventDateTime": "2025-11-24 20:05:00",
+          "EventAction": "2P Points Added",
+          "EventActor": "Player One",
+          "EventTeam": "RACG",
+          "EventQuarter": 1,
+          "EventScore": "2 : 0",
+          "EventAdvantage": 2
+        }
+      ]
+    },
+    "SeasonId": "2025-2026",
+    "GameDivisionDisplay": "Division 1 Hommes",
+    "HomeTeamName": "Racing Luxembourg",
+    "AwayTeamName": "T71 Dudelange",
+    "_stored_at": "2025-11-24T21:00:00.000Z",
+    "_last_updated": "2025-11-24T21:30:00.000Z",
+    "_processed_by": "PowerShell Script"
+  },
+  
+  "mongodb_shell_commands": {
+    "create_database": "use flbb-statistics",
+    "create_collection": "db.createCollection('games')",
+    "create_indexes": [
+      "db.games.createIndex({ 'GameId': 1 }, { unique: true })",
+      "db.games.createIndex({ 'status': 1 })",
+      "db.games.createIndex({ 'GameDivisionDisplay': 1 })",
+      "db.games.createIndex({ 'SeasonId': 1 })"
+    ],
+    "query_examples": [
+      "db.games.findOne({ GameId: '12345' })",
+      "db.games.find({ status: 'finished' }).count()",
+      "db.games.find({ GameDivisionDisplay: 'Division 1 Hommes' })",
+      "db.games.find({ SeasonId: '2025-2026', status: 'finished' })"
+    ]
+  },
+  
+  "validation_rules": {
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": ["GameId", "status"],
+      "properties": {
+        "GameId": {
+          "bsonType": "string",
+          "description": "Game ID must be a string"
+        },
+        "status": {
+          "enum": ["pending", "finished"],
+          "description": "Status must be either pending or finished"
+        },
+        "csv_generated": {
+          "bsonType": "bool",
+          "description": "CSV generated flag must be boolean"
+        },
+        "json_data": {
+          "bsonType": "object",
+          "description": "JSON data must be an object"
+        }
+      }
+    }
+  },
+  
+  "notes": [
+    "The GameId field is the primary identifier and must be unique across all documents",
+    "The status field is used for deduplication - games with status 'finished' are skipped during downloads",
+    "The json_data field contains the complete game statistics extracted from HTML",
+    "Some fields (GameDivisionDisplay, HomeTeamName, AwayTeamName) are duplicated from json_data for faster queries",
+    "Indexes are automatically created by the mongodb_helper.py when storing data",
+    "The _stored_at and _last_updated fields track document lifecycle",
+    "Use the Python bridge or PowerShell helper to interact with MongoDB",
+    "See MONGODB_SETUP.md for complete integration documentation"
+  ]
+}
