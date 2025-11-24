@@ -2,9 +2,9 @@
 
 This document describes the Google Drive integration added to store raw information and generated CSV files in Google Drive.
 
-> **📖 For GitHub Actions and Secrets Setup**: See the detailed guides in the `doc/` directory:
-> - [`doc/GOOGLE_DRIVE_SECRETS_SETUP.md`](doc/GOOGLE_DRIVE_SECRETS_SETUP.md) - Complete setup guide for Google Cloud and GitHub Secrets
-> - [`doc/GITHUB_ACTIONS_USAGE.md`](doc/GITHUB_ACTIONS_USAGE.md) - How to use the GitHub Actions workflows
+> **📖 For GitHub Actions and Secrets Setup**: See the detailed guides in the `docs/` directory:
+> - [`GOOGLE_DRIVE_SECRETS_SETUP.md`](GOOGLE_DRIVE_SECRETS_SETUP.md) - Complete setup guide for Google Cloud and GitHub Secrets
+> - [`GITHUB_ACTIONS_USAGE.md`](GITHUB_ACTIONS_USAGE.md) - How to use the GitHub Actions workflows
 
 ## Overview
 
