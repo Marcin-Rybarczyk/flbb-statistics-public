@@ -6358,6 +6358,307 @@ def get_division_hover_stats(data, division_name):
     }
 
 
+def _generate_game_flow_narrative(game_details, home_team, away_team, winner, home_score, away_score, detected_events, top_scorers):
+    """
+    Generate a detailed narrative describing the flow of the game based on events and statistics.
+    
+    Parameters:
+    game_details (dict): Complete game details
+    home_team (str): Home team name
+    away_team (str): Away team name
+    winner (str): Winner team name
+    home_score (int): Final home team score
+    away_score (int): Final away team score
+    detected_events (list): List of detected event types
+    top_scorers (list): List of top scoring players
+    
+    Returns:
+    str: Detailed game flow narrative
+    """
+    narrative_parts = []
+    score_evolution = game_details.get('score_evolution', [])
+    game_stats = game_details.get('game_stats', {})
+    teams = game_details.get('teams', [])
+    quarter_durations = game_details.get('quarter_durations', {})
+    
+    # Get team totals
+    home_team_data = next((t for t in teams if t.get('name') == home_team), None)
+    away_team_data = next((t for t in teams if t.get('name') == away_team), None)
+    
+    # Opening paragraph - set the scene
+    opening_phrases = [
+        f"📰 **Press Review:** What a match we witnessed today between {home_team} and {away_team}!",
+        f"📰 **Game Report:** The showdown between {home_team} and {away_team} had it all!",
+        f"📰 **Match Analysis:** {home_team} faced off against {away_team} in an unforgettable encounter!",
+        f"📰 **Press Conference:** Let's break down the thriller between {home_team} and {away_team}!",
+    ]
+    narrative_parts.append(random.choice(opening_phrases))
+    
+    # Analyze quarter-by-quarter flow if score evolution data is available
+    if score_evolution and len(score_evolution) > 0:
+        quarter_analysis = _analyze_quarters(score_evolution, home_team, away_team, quarter_durations)
+        if quarter_analysis:
+            narrative_parts.append(quarter_analysis)
+    
+    # Team performance analysis
+    if home_team_data and away_team_data:
+        team_analysis = _analyze_team_performance(
+            home_team_data, 
+            away_team_data, 
+            home_team, 
+            away_team,
+            winner,
+            home_score,
+            away_score
+        )
+        if team_analysis:
+            narrative_parts.append(team_analysis)
+    
+    # Key player performances
+    player_analysis = _analyze_key_players(teams, top_scorers, home_team, away_team)
+    if player_analysis:
+        narrative_parts.append(player_analysis)
+    
+    # Game-deciding moments
+    if game_stats.get('lead_changes', 0) > 0 or game_stats.get('tied_scores', 0) > 0:
+        momentum_analysis = _analyze_momentum_shifts(game_stats, winner, detected_events)
+        if momentum_analysis:
+            narrative_parts.append(momentum_analysis)
+    
+    # Final verdict
+    loser = away_team if winner == home_team else home_team
+    score_diff = abs(home_score - away_score)
+    
+    verdict_phrases = [
+        f"In the end, {winner} prevailed with a {score_diff}-point margin. {loser} fought hard but couldn't find the answer.",
+        f"The final whistle confirmed {winner}'s superiority, leaving {loser} wondering what could have been.",
+        f"{winner} walked away victorious, {score_diff} points clear of a resilient {loser} side.",
+        f"Despite {loser}'s efforts, {winner} proved too strong, closing out with a {score_diff}-point advantage.",
+    ]
+    narrative_parts.append(random.choice(verdict_phrases))
+    
+    return "\n\n".join(narrative_parts)
+
+
+def _analyze_quarters(score_evolution, home_team, away_team, quarter_durations):
+    """Analyze quarter-by-quarter performance"""
+    analysis_parts = []
+    
+    # Group scoring events by quarter
+    quarters_data = {}
+    for point in score_evolution:
+        quarter = point.get('quarter', 1)
+        if quarter not in quarters_data:
+            quarters_data[quarter] = {
+                'points': [],
+                'home_score_start': 0,
+                'away_score_start': 0,
+                'home_score_end': 0,
+                'away_score_end': 0
+            }
+        quarters_data[quarter]['points'].append(point)
+    
+    # Set start and end scores for each quarter
+    for quarter in sorted(quarters_data.keys()):
+        points = quarters_data[quarter]['points']
+        if points:
+            quarters_data[quarter]['home_score_start'] = points[0].get('home_score', 0)
+            quarters_data[quarter]['away_score_start'] = points[0].get('away_score', 0)
+            quarters_data[quarter]['home_score_end'] = points[-1].get('home_score', 0)
+            quarters_data[quarter]['away_score_end'] = points[-1].get('away_score', 0)
+    
+    # Find the most significant quarter
+    max_scoring_quarter = None
+    max_total_points = 0
+    
+    for quarter, data in quarters_data.items():
+        home_pts = data['home_score_end'] - data['home_score_start']
+        away_pts = data['away_score_end'] - data['away_score_start']
+        total_pts = home_pts + away_pts
+        
+        if total_pts > max_total_points:
+            max_total_points = total_pts
+            max_scoring_quarter = quarter
+    
+    if max_scoring_quarter and max_total_points > 30:
+        q_data = quarters_data[max_scoring_quarter]
+        home_q_pts = q_data['home_score_end'] - q_data['home_score_start']
+        away_q_pts = q_data['away_score_end'] - q_data['away_score_start']
+        
+        phrases = [
+            f"The game exploded in Q{max_scoring_quarter} with {max_total_points} combined points! "
+            f"{home_team} added {home_q_pts} while {away_team} countered with {away_q_pts}. Absolute fireworks! 🎆",
+            
+            f"Quarter {max_scoring_quarter} was pure chaos - {max_total_points} points scored! "
+            f"Both teams went berserk: {home_team} ({home_q_pts}), {away_team} ({away_q_pts}). Mamma mia!",
+            
+            f"Q{max_scoring_quarter} became a scoring festival with {max_total_points} points! "
+            f"{home_team} dropped {home_q_pts}, {away_team} answered with {away_q_pts}. Unbelievable! 🔥",
+        ]
+        analysis_parts.append(random.choice(phrases))
+    
+    # Check for dominant quarter by one team
+    for quarter, data in quarters_data.items():
+        home_q_pts = data['home_score_end'] - data['home_score_start']
+        away_q_pts = data['away_score_end'] - data['away_score_start']
+        diff = abs(home_q_pts - away_q_pts)
+        
+        if diff >= 10:
+            dominant_team = home_team if home_q_pts > away_q_pts else away_team
+            dominant_pts = max(home_q_pts, away_q_pts)
+            weak_pts = min(home_q_pts, away_q_pts)
+            
+            phrases = [
+                f"Q{quarter} belonged to {dominant_team}! They outscored their opponents {dominant_pts}-{weak_pts}. Dominanz pur!",
+                f"In the {quarter}. Quarter, {dominant_team} took control with a {dominant_pts}-{weak_pts} run. Statement made! 💪",
+                f"Quarter {quarter}: {dominant_team} went on a rampage, crushing them {dominant_pts}-{weak_pts}! Brutal!",
+            ]
+            analysis_parts.append(random.choice(phrases))
+            break  # Only report one dominant quarter to avoid redundancy
+    
+    if analysis_parts:
+        return " ".join(analysis_parts)
+    return None
+
+
+def _analyze_team_performance(home_data, away_data, home_team, away_team, winner, home_score, away_score):
+    """Analyze overall team performance"""
+    analysis = []
+    
+    home_totals = home_data.get('totals', {})
+    away_totals = away_data.get('totals', {})
+    
+    winner_data = home_data if winner == home_team else away_data
+    winner_totals = winner_data.get('totals', {})
+    
+    # Analyze shooting performance
+    winner_3p = winner_totals.get('3p', 0)
+    if winner_3p >= 8:
+        phrases = [
+            f"{winner} rained {winner_3p} three-pointers! The arc was on fire! 🎯",
+            f"From downtown: {winner} nailed {winner_3p} triples! Splash city! 💦",
+            f"{winner} bombed {winner_3p} threes! Long-range artillery at its finest! 🚀",
+        ]
+        analysis.append(random.choice(phrases))
+    
+    # Check fouls differential
+    home_fouls = home_totals.get('fouls', 0)
+    away_fouls = away_totals.get('fouls', 0)
+    foul_diff = abs(home_fouls - away_fouls)
+    
+    if foul_diff >= 5:
+        more_fouls_team = home_team if home_fouls > away_fouls else away_team
+        fewer_fouls_team = away_team if home_fouls > away_fouls else home_team
+        phrases = [
+            f"{more_fouls_team} struggled with discipline - {max(home_fouls, away_fouls)} fouls! "
+            f"{fewer_fouls_team} played it smart with only {min(home_fouls, away_fouls)}.",
+            
+            f"Foul trouble hit {more_fouls_team} hard ({max(home_fouls, away_fouls)} fouls) while "
+            f"{fewer_fouls_team} kept it clean ({min(home_fouls, away_fouls)}). Scheiße!",
+        ]
+        analysis.append(random.choice(phrases))
+    
+    if analysis:
+        return " ".join(analysis)
+    return None
+
+
+def _analyze_key_players(teams, top_scorers, home_team, away_team):
+    """Analyze key individual performances"""
+    analysis = []
+    
+    # Get top scorers from each team
+    home_players = []
+    away_players = []
+    
+    for team in teams:
+        team_name = team.get('name', '')
+        for player in team.get('players', []):
+            points = int(player.get('Total Points', 0))
+            if points >= 15:  # Significant contribution
+                player_info = {
+                    'name': player.get('Player Name', 'Unknown'),
+                    'points': points,
+                    'fouls': int(player.get('Total Fouls', 0)),
+                    'team': team_name
+                }
+                if team_name == home_team:
+                    home_players.append(player_info)
+                else:
+                    away_players.append(player_info)
+    
+    # Sort by points
+    home_players.sort(key=lambda x: x['points'], reverse=True)
+    away_players.sort(key=lambda x: x['points'], reverse=True)
+    
+    # Highlight top performers from each team
+    if home_players:
+        top_home = home_players[0]
+        if len(home_players) > 1:
+            phrases = [
+                f"For {home_team}, {top_home['name']} led the charge with {top_home['points']} points, "
+                f"supported by {home_players[1]['name']}'s {home_players[1]['points']}. Teamwork! 🤝",
+                
+                f"{top_home['name']} spearheaded {home_team}'s offense with {top_home['points']} points, "
+                f"while {home_players[1]['name']} chipped in {home_players[1]['points']}. Bella combinazione!",
+            ]
+            analysis.append(random.choice(phrases))
+        else:
+            phrases = [
+                f"{top_home['name']} carried {home_team} with {top_home['points']} points. One-man show! ⭐",
+                f"{home_team}'s offense ran through {top_home['name']} ({top_home['points']} pts). Solo mission!",
+            ]
+            analysis.append(random.choice(phrases))
+    
+    if away_players:
+        top_away = away_players[0]
+        if len(away_players) > 1:
+            phrases = [
+                f"On the other side, {top_away['name']} paced {away_team} with {top_away['points']} points, "
+                f"with {away_players[1]['name']} adding {away_players[1]['points']}.",
+                
+                f"{away_team} countered through {top_away['name']}'s {top_away['points']} points "
+                f"and {away_players[1]['name']}'s {away_players[1]['points']}. Great effort!",
+            ]
+            analysis.append(random.choice(phrases))
+    
+    if analysis:
+        return " ".join(analysis)
+    return None
+
+
+def _analyze_momentum_shifts(game_stats, winner, detected_events):
+    """Analyze momentum and lead changes"""
+    analysis = []
+    
+    lead_changes = game_stats.get('lead_changes', 0)
+    tied_scores = game_stats.get('tied_scores', 0)
+    
+    if lead_changes >= 5:
+        phrases = [
+            f"The momentum swung back and forth {lead_changes} times! "
+            f"Neither team could establish control. What drama! 🎭",
+            
+            f"With {lead_changes} lead changes, this was a proper battle! "
+            f"Both sides traded blows like prizefighters. Che lotta!",
+            
+            f"{lead_changes} times the lead changed hands! "
+            f"Edge-of-your-seat stuff from start to finish! Wahnsinn!",
+        ]
+        analysis.append(random.choice(phrases))
+    
+    if tied_scores >= 5:
+        phrases = [
+            f"The score was knotted {tied_scores} times! Deadlocked wie verrückt!",
+            f"Teams were tied {tied_scores} times - nobody wanted to give an inch! Incroyable!",
+        ]
+        analysis.append(random.choice(phrases))
+    
+    if analysis:
+        return " ".join(analysis)
+    return None
+
+
 def generate_game_review(game_details):
     """
     Generate a funny, multilingual review based on game events and statistics.
@@ -6388,8 +6689,6 @@ def generate_game_review(game_details):
     
     # Calculate score difference
     score_diff = abs(home_score - away_score)
-    
-    # Detect key events and generate review parts
     
     # 1. Check for 100+ point game
     if home_score >= 100 or away_score >= 100:
@@ -6539,8 +6838,23 @@ def generate_game_review(game_details):
     
     headline = random.choice(headline_options)
     
-    # Combine review parts
-    review_body = " ".join(review_parts) if review_parts else "A solid basketball game was played today. Both teams showed up and competed."
+    # Generate detailed game flow narrative
+    game_flow_narrative = _generate_game_flow_narrative(
+        game_details, 
+        home_team, 
+        away_team, 
+        winner, 
+        home_score, 
+        away_score,
+        detected_events,
+        top_scorers if top_scorers else []
+    )
+    
+    # Combine review parts with game flow narrative
+    if review_parts:
+        review_body = " ".join(review_parts) + "\n\n" + game_flow_narrative
+    else:
+        review_body = game_flow_narrative
     
     # Add final spicy closing line
     closing_lines = [
@@ -6556,8 +6870,7 @@ def generate_game_review(game_details):
         "Wahnsinnig! ⚡"
     ]
     
-    if review_body != "A solid basketball game was played today. Both teams showed up and competed.":
-        review_body += " " + random.choice(closing_lines)
+    review_body += "\n\n" + random.choice(closing_lines)
     
     return {
         'headline': headline,
