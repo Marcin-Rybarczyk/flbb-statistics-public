@@ -8,6 +8,7 @@ from datetime import datetime
 import html
 import unicodedata
 import ast
+import random
 
 
 FULL_GAME_STATS_OUTPUT_DIR = "full-game-stats-output"
@@ -6367,8 +6368,6 @@ def generate_game_review(game_details):
     Returns:
     dict: Review information including headline, body, and detected events
     """
-    import random
-    
     if not game_details or game_details.get('basic_info', {}).get('is_future'):
         return None
     
