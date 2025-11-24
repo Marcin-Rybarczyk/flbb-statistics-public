@@ -26,8 +26,8 @@ from .utils import (calculate_standings_by_division, get_highest_scoring_games,
                    get_all_players_list, get_player_detail_stats, get_game_details, get_referee_detail_stats,
                    get_team_detail_stats, get_all_referees_list, get_all_games_list,
                    get_player_hover_stats, get_team_hover_stats, get_referee_hover_stats, get_game_hover_stats,
-                   get_division_hover_stats, calculate_referee_performance_index, get_closest_games_by_team, 
-                   generate_game_review, CSV_FILEPATH)
+                   get_division_hover_stats, calculate_referee_performance_index, get_closest_games_by_team,
+                   extract_age_sex_group_from_division, get_team_name_with_group_suffix, CSV_FILEPATH)
 from .version import get_version_info
 from .user_database import (authenticate_user, get_user_preferences, update_user_preferences,
                             create_user, list_users, update_user_password, delete_user, update_user_level)
@@ -281,6 +281,12 @@ def get_team_logo_url(team_name):
 
 # Make logo function available to templates
 app.jinja_env.globals.update(get_team_logo_url=get_team_logo_url)
+
+# Make age/sex group functions available to templates
+app.jinja_env.globals.update(
+    extract_age_sex_group_from_division=extract_age_sex_group_from_division,
+    get_team_name_with_group_suffix=get_team_name_with_group_suffix
+)
 
 # Load and process the data
 data = load_game_data()

@@ -30,6 +30,7 @@ This project provides in-depth analysis and visualization of basketball statisti
 
 ### 🤖 Automation & Integration
 - **Automated Data Collection** - Daily scraping from FLBB website via PowerShell
+- **Multi-Year Archive Download** - Download and export data for multiple past years (NEW!)
 - **MongoDB Integration** - Optional MongoDB support for data storage and retrieval (NEW!)
 - **Google Drive Integration** - Automatic backup and file management
 - **GitHub Actions Workflows** - 5+ automated workflows for deployment and data processing
@@ -58,6 +59,8 @@ flbb-statistics/
 │   └── google_drive_helper.py       # Google Drive integration
 ├── 📂 scripts/                      # Data collection and processing scripts
 │   ├── download-controller.ps1      # Main data collection script (PowerShell)
+│   ├── download-archive-years.ps1   # Multi-year archive downloader (PowerShell) (NEW!)
+│   ├── download_multiple_years.py   # Multi-year archive downloader (Python) (NEW!)
 │   ├── extract-game.ps1             # Data extraction and JSON conversion (PowerShell)
 │   ├── post_process.py              # Post-processing automation (Python)
 │   ├── export_data.py               # Export season data to ZIP archive (NEW!)
@@ -83,6 +86,7 @@ flbb-statistics/
 ├── 📂 docs/                         # Comprehensive documentation
 │   ├── README.md                    # Documentation overview
 │   ├── README_DEPLOYMENT.md         # Complete deployment instructions
+│   ├── ARCHIVE_DOWNLOAD_GUIDE.md    # Multi-year archive download guide (NEW!)
 │   ├── DATA_EXPORT_IMPORT.md        # Data export and import guide (NEW!)
 │   ├── MONGODB_INTEGRATION.md       # MongoDB setup and usage guide (NEW!)
 │   ├── GOOGLE_DRIVE_SECRETS_SETUP.md # Google Drive API setup guide
