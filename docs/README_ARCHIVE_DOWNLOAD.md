@@ -120,8 +120,8 @@ season-data/
 ## Documentation
 
 For detailed documentation, see:
-- [Archive Download Guide](../docs/ARCHIVE_DOWNLOAD_GUIDE.md) - Complete guide with examples
-- [Data Export/Import](../docs/DATA_EXPORT_IMPORT.md) - Using exported archives
+- [Archive Download Guide](ARCHIVE_DOWNLOAD_GUIDE.md) - Complete guide with examples
+- [Data Export/Import](DATA_EXPORT_IMPORT.md) - Using exported archives
 
 ## Common Parameters
 
