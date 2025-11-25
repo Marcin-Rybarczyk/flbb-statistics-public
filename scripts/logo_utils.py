@@ -50,10 +50,11 @@ def get_team_logo_path(team_name, relative_path=True):
         
     normalized_name = normalize_team_name(team_name)
     
-    # Check for PNG files (our standard format)
-    png_path = os.path.join(LOGOS_DIR, f"{normalized_name}.png")
-    if os.path.exists(png_path):
-        return png_path if not relative_path else f"{LOGOS_DIR}/{normalized_name}.png"
+    # Check for PNG files (our standard format) - check both .png and .PNG
+    for png_ext in ['.png', '.PNG']:
+        png_path = os.path.join(LOGOS_DIR, f"{normalized_name}{png_ext}")
+        if os.path.exists(png_path):
+            return png_path if not relative_path else f"{LOGOS_DIR}/{normalized_name}{png_ext}"
     
     # Check for other formats
     for ext in ['.jpg', '.jpeg', '.gif', '.svg']:

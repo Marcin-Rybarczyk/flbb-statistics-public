@@ -258,11 +258,12 @@ def get_team_logo_url(team_name):
     normalized_name = normalize_team_name(team_name)
     logos_dir = "logos"
     
-    # Check for PNG files (our standard format)
-    png_file = f"{normalized_name}.png"
-    png_path = os.path.join(logos_dir, png_file)
-    if os.path.exists(png_path):
-        return f"/logos/{png_file}"
+    # Check for PNG files (our standard format) - check both .png and .PNG
+    for png_ext in ['.png', '.PNG']:
+        png_file = f"{normalized_name}{png_ext}"
+        png_path = os.path.join(logos_dir, png_file)
+        if os.path.exists(png_path):
+            return f"/logos/{png_file}"
     
     # Check for other formats
     for ext in ['.jpg', '.jpeg', '.gif', '.svg']:
