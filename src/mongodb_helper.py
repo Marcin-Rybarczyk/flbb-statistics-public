@@ -177,7 +177,7 @@ class MongoDBHelper:
                 return True
             elif game_id:
                 # Fallback: If SeasonId is not provided, warn and use GameId only
-                print(f"WARNING: SeasonId not provided for GameId {game_id}. Using GameId only (not recommended).")
+                print(f"WARNING: SeasonId not provided for GameId {game_id}. Using GameId only (not recommended - may overwrite games from different seasons).")
                 result = collection.update_one(
                     {'GameId': game_id},
                     {'$set': game_data_copy},
@@ -186,7 +186,7 @@ class MongoDBHelper:
                 return True
             else:
                 # Insert without keys (not recommended)
-                print("WARNING: Neither GameId nor SeasonId provided. Inserting without unique key.")
+                print("WARNING: Neither GameId nor SeasonId provided. Inserting without unique key - this may lead to duplicate records.")
                 collection.insert_one(game_data_copy)
                 return True
         except Exception as e:
@@ -288,7 +288,7 @@ class MongoDBHelper:
                 game = collection.find_one({'GameId': game_id, 'SeasonId': season_id})
             else:
                 # Fallback to GameId only (may return wrong game if same ID exists in multiple seasons)
-                print(f"WARNING: Querying GameId {game_id} without SeasonId. This may return incorrect results.")
+                print(f"WARNING: Querying GameId {game_id} without SeasonId. This may return incorrect results if the same GameId exists in multiple seasons. Please provide SeasonId for accurate lookup.")
                 game = collection.find_one({'GameId': game_id})
             
             if game:

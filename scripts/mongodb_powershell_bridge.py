@@ -135,7 +135,7 @@ def upsert_game(args):
             if args.season_id:
                 game_data['SeasonId'] = args.season_id
             else:
-                print("WARNING: SeasonId not provided. Composite key requires both GameId and SeasonId.", file=sys.stderr)
+                print("WARNING: SeasonId not provided. The composite primary key requires both GameId and SeasonId. This may lead to data integrity issues or incorrect overwrites if the same GameId exists in multiple seasons.", file=sys.stderr)
         
         # Add metadata fields
         if args.status:
