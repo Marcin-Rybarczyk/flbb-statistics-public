@@ -64,7 +64,7 @@ Test-MongoDBConnection
 ### Test-GameInMongoDB
 Check if a game exists with specific status.
 ```powershell
-$exists = Test-GameInMongoDB -GameId "12345" -Status "finished"
+$exists = Test-GameInMongoDB -GameId "12345" -SeasonId "2025-2026" -Status "finished"
 if ($exists) {
     Write-Host "Game already processed"
 }
@@ -73,7 +73,7 @@ if ($exists) {
 ### Set-GameInMongoDB
 Store or update a game in MongoDB.
 ```powershell
-Set-GameInMongoDB -GameId "12345" -JsonFilePath "path/to/game.json" -Status "finished" -CsvGenerated $false
+Set-GameInMongoDB -GameId "12345" -SeasonId "2025-2026" -JsonFilePath "path/to/game.json" -Status "finished" -CsvGenerated $false
 ```
 
 ### Get-GamesFromMongoDB
@@ -105,7 +105,7 @@ python scripts/mongodb_powershell_bridge.py test-connection
 
 ### Check if Game Exists
 ```bash
-python scripts/mongodb_powershell_bridge.py check-game --game-id 12345 --status finished
+python scripts/mongodb_powershell_bridge.py check-game --game-id 12345 --season-id "2025-2026" --status finished
 # Exit code 0 = exists, 1 = not found, 2 = error
 ```
 
@@ -113,6 +113,7 @@ python scripts/mongodb_powershell_bridge.py check-game --game-id 12345 --status 
 ```bash
 python scripts/mongodb_powershell_bridge.py upsert-game \
   --game-id 12345 \
+  --season-id "2025-2026" \
   --json-file path/to/game.json \
   --status finished \
   --csv-generated false
@@ -157,15 +158,16 @@ python scripts/mongodb_powershell_bridge.py count-games
 **Collection Name:** `games`
 
 **Key Fields:**
-- `GameId` (String, unique) - Game identifier
+- `GameId` (String) - Game identifier (part of composite primary key)
+- `SeasonId` (String, required) - Season identifier (part of composite primary key)
 - `status` (String) - "pending" or "finished"
 - `csv_generated` (Boolean) - CSV generation flag
 - `json_data` (Object) - Full game statistics
-- `SeasonId` (String) - Season identifier
 - `GameDivisionDisplay` (String) - Division name
 
 **Indexes:**
-- GameId (unique)
+- GameId + SeasonId (composite unique - primary key)
+- GameId (non-unique)
 - status
 - GameDivisionDisplay
 - SeasonId

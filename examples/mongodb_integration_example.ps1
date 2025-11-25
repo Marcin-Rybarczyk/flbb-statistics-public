@@ -128,6 +128,6 @@ Write-Host "   `$env:MONGODB_URI = 'mongodb://localhost:27017/'" -ForegroundColo
 Write-Host "   `$env:MONGODB_DATABASE = 'flbb-statistics'" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "For more information, see:" -ForegroundColor Yellow
-Write-Host "- MONGODB_SETUP.md - Complete setup guide" -ForegroundColor White
+Write-Host "- docs/MONGODB_SETUP.md - Complete setup guide" -ForegroundColor White
 Write-Host "- docs/MONGODB_INTEGRATION.md - Integration documentation" -ForegroundColor White
 Write-Host ""

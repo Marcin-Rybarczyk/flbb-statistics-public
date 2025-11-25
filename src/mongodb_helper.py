@@ -163,10 +163,21 @@ class MongoDBHelper:
             game_data_copy = game_data.copy()
             game_data_copy['_stored_at'] = datetime.utcnow()
             
-            # Use GameId as unique identifier if available
+            # Use composite key (GameId + SeasonId) as unique identifier
             game_id = game_data_copy.get('GameId')
-            if game_id:
-                # Update or insert based on GameId
+            season_id = game_data_copy.get('SeasonId')
+            
+            if game_id and season_id:
+                # Update or insert based on composite key (GameId + SeasonId)
+                result = collection.update_one(
+                    {'GameId': game_id, 'SeasonId': season_id},
+                    {'$set': game_data_copy},
+                    upsert=True
+                )
+                return True
+            elif game_id:
+                # Fallback: If SeasonId is not provided, warn and use GameId only
+                print(f"WARNING: SeasonId not provided for GameId {game_id}. Using GameId only (not recommended - may overwrite games from different seasons).")
                 result = collection.update_one(
                     {'GameId': game_id},
                     {'$set': game_data_copy},
@@ -174,7 +185,8 @@ class MongoDBHelper:
                 )
                 return True
             else:
-                # Insert without GameId
+                # Insert without keys (not recommended)
+                print("WARNING: Neither GameId nor SeasonId provided. Inserting without unique key - this may lead to duplicate records.")
                 collection.insert_one(game_data_copy)
                 return True
         except Exception as e:
@@ -208,9 +220,23 @@ class MongoDBHelper:
                     game_data_copy = game_data.copy()
                     game_data_copy['_stored_at'] = datetime.utcnow()
                     
-                    # Use GameId as unique identifier if available
+                    # Use composite key (GameId + SeasonId) as unique identifier
                     game_id = game_data_copy.get('GameId')
-                    if game_id:
+                    season_id = game_data_copy.get('SeasonId')
+                    
+                    if game_id and season_id:
+                        result = collection.update_one(
+                            {'GameId': game_id, 'SeasonId': season_id},
+                            {'$set': game_data_copy},
+                            upsert=True
+                        )
+                        if result.upserted_id:
+                            stats['inserted'] += 1
+                        else:
+                            stats['updated'] += 1
+                    elif game_id:
+                        # Fallback: If SeasonId is not provided, use GameId only
+                        print(f"WARNING: SeasonId not provided for GameId {game_id}")
                         result = collection.update_one(
                             {'GameId': game_id},
                             {'$set': game_data_copy},
@@ -233,16 +259,22 @@ class MongoDBHelper:
             stats['failed'] = len(games_data)
             return stats
     
-    def get_game_by_id(self, game_id: str, collection_name: str = 'games') -> Optional[Dict[str, Any]]:
+    def get_game_by_id(self, game_id: str, season_id: Optional[str] = None, 
+                       collection_name: str = 'games') -> Optional[Dict[str, Any]]:
         """
-        Retrieve a game by GameId.
+        Retrieve a game by GameId and optionally SeasonId.
         
         Args:
             game_id (str): Game ID
+            season_id (str, optional): Season ID for composite key lookup
             collection_name (str): Collection name (default: 'games')
         
         Returns:
             dict or None: Game data if found, None otherwise
+            
+        Note:
+            If season_id is provided, uses composite key (GameId + SeasonId).
+            If season_id is None, returns first match by GameId only (not recommended).
         """
         if not self.is_connected():
             print("Not connected to MongoDB")
@@ -250,7 +282,15 @@ class MongoDBHelper:
         
         try:
             collection = self.db[collection_name]
-            game = collection.find_one({'GameId': game_id})
+            
+            if season_id:
+                # Use composite key for precise lookup
+                game = collection.find_one({'GameId': game_id, 'SeasonId': season_id})
+            else:
+                # Fallback to GameId only (may return wrong game if same ID exists in multiple seasons)
+                print(f"WARNING: Querying GameId {game_id} without SeasonId. This may return incorrect results if the same GameId exists in multiple seasons. Please provide SeasonId for accurate lookup.")
+                game = collection.find_one({'GameId': game_id})
+            
             if game:
                 # Remove MongoDB's _id field for cleaner output
                 game.pop('_id', None)
@@ -258,6 +298,21 @@ class MongoDBHelper:
         except Exception as e:
             print(f"Error retrieving game: {e}")
             return None
+    
+    def get_game_by_composite_key(self, game_id: str, season_id: str,
+                                   collection_name: str = 'games') -> Optional[Dict[str, Any]]:
+        """
+        Retrieve a game by composite key (GameId + SeasonId).
+        
+        Args:
+            game_id (str): Game ID
+            season_id (str): Season ID
+            collection_name (str): Collection name (default: 'games')
+        
+        Returns:
+            dict or None: Game data if found, None otherwise
+        """
+        return self.get_game_by_id(game_id, season_id, collection_name)
     
     def get_games_by_division(self, division_name: str, 
                               collection_name: str = 'games') -> List[Dict[str, Any]]:
@@ -373,14 +428,33 @@ class MongoDBHelper:
         try:
             collection = self.db[collection_name]
             
-            # Create indexes with background=True for non-blocking operation
-            # Index on GameId for fast lookups (unique)
+            # Create composite unique index on GameId + SeasonId (primary key)
             try:
-                collection.create_index('GameId', unique=True, background=True)
+                collection.create_index(
+                    [('GameId', 1), ('SeasonId', 1)],
+                    unique=True,
+                    background=True,
+                    name='GameId_SeasonId_unique'
+                )
+                print("✅ Created composite unique index on GameId + SeasonId")
             except Exception as e:
                 # Index might already exist, which is fine
                 if 'already exists' not in str(e).lower():
+                    print(f"Note: Composite index: {e}")
+            
+            # Index on GameId alone for queries that don't specify season
+            try:
+                collection.create_index('GameId', background=True)
+            except Exception as e:
+                if 'already exists' not in str(e).lower():
                     print(f"Note: GameId index: {e}")
+            
+            # Index on status for filtering
+            try:
+                collection.create_index('status', background=True)
+            except Exception as e:
+                if 'already exists' not in str(e).lower():
+                    print(f"Note: status index: {e}")
             
             # Index on GameDivisionName for division queries
             try:
@@ -395,6 +469,17 @@ class MongoDBHelper:
             except Exception as e:
                 if 'already exists' not in str(e).lower():
                     print(f"Note: SeasonId index: {e}")
+            
+            # Compound index for efficient game + season + status checks
+            try:
+                collection.create_index(
+                    [('GameId', 1), ('SeasonId', 1), ('status', 1)],
+                    background=True,
+                    name='GameId_SeasonId_status_compound'
+                )
+            except Exception as e:
+                if 'already exists' not in str(e).lower():
+                    print(f"Note: Compound status index: {e}")
             
             print(f"✅ Indexes created/verified on collection: {collection_name}")
         except Exception as e:

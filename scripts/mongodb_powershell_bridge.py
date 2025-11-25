@@ -62,10 +62,14 @@ def check_game_exists(args):
             print("ERROR: Failed to connect to MongoDB", file=sys.stderr)
             return 2
         
-        game = mongo.get_game_by_id(args.game_id, args.collection)
+        # Use composite key if season_id is provided, otherwise fall back to game_id only
+        game = mongo.get_game_by_id(args.game_id, args.season_id, args.collection)
         
         if not game:
-            print(f"NOTFOUND: Game {args.game_id} does not exist")
+            if args.season_id:
+                print(f"NOTFOUND: Game {args.game_id} (Season: {args.season_id}) does not exist")
+            else:
+                print(f"NOTFOUND: Game {args.game_id} does not exist")
             mongo.disconnect()
             return 1
         
@@ -73,7 +77,10 @@ def check_game_exists(args):
         if args.status:
             game_status = game.get('status', '').lower()
             if game_status == args.status.lower():
-                print(f"EXISTS: Game {args.game_id} exists with status '{game_status}'")
+                if args.season_id:
+                    print(f"EXISTS: Game {args.game_id} (Season: {args.season_id}) exists with status '{game_status}'")
+                else:
+                    print(f"EXISTS: Game {args.game_id} exists with status '{game_status}'")
                 mongo.disconnect()
                 return 0
             else:
@@ -81,7 +88,10 @@ def check_game_exists(args):
                 mongo.disconnect()
                 return 1
         else:
-            print(f"EXISTS: Game {args.game_id} exists")
+            if args.season_id:
+                print(f"EXISTS: Game {args.game_id} (Season: {args.season_id}) exists")
+            else:
+                print(f"EXISTS: Game {args.game_id} exists")
             mongo.disconnect()
             return 0
         
@@ -120,6 +130,13 @@ def upsert_game(args):
         if not game_data.get('GameId'):
             game_data['GameId'] = args.game_id
         
+        # Ensure SeasonId is set (required for composite key)
+        if not game_data.get('SeasonId'):
+            if args.season_id:
+                game_data['SeasonId'] = args.season_id
+            else:
+                print("WARNING: SeasonId not provided. The composite primary key requires both GameId and SeasonId. This may lead to data integrity issues or incorrect overwrites if the same GameId exists in multiple seasons.", file=sys.stderr)
+        
         # Add metadata fields
         if args.status:
             game_data['status'] = args.status
@@ -140,7 +157,8 @@ def upsert_game(args):
         success = mongo.store_game_data(game_data, args.collection)
         
         if success:
-            print(f"SUCCESS: Game {args.game_id} stored/updated in MongoDB")
+            season_info = f" (Season: {game_data.get('SeasonId')})" if game_data.get('SeasonId') else ""
+            print(f"SUCCESS: Game {args.game_id}{season_info} stored/updated in MongoDB")
             mongo.disconnect()
             return 0
         else:
@@ -308,12 +326,14 @@ Examples:
     # check-game command
     check_parser = subparsers.add_parser('check-game', help='Check if a game exists')
     check_parser.add_argument('--game-id', required=True, help='Game ID to check')
+    check_parser.add_argument('--season-id', help='Season ID (required for composite key lookup)')
     check_parser.add_argument('--status', help='Check if game has this status (e.g., finished)')
     check_parser.set_defaults(func=check_game_exists)
     
     # upsert-game command
     upsert_parser = subparsers.add_parser('upsert-game', help='Insert or update a game')
     upsert_parser.add_argument('--game-id', required=True, help='Game ID')
+    upsert_parser.add_argument('--season-id', help='Season ID (required for composite key)')
     upsert_parser.add_argument('--json-file', help='Path to JSON file with game data')
     upsert_parser.add_argument('--json-data', help='JSON data as string')
     upsert_parser.add_argument('--status', help='Game status (e.g., finished, pending)')
