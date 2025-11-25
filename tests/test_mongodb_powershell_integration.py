@@ -98,7 +98,7 @@ def test_mongodb_helper_exists():
     files_to_check = [
         'scripts/mongodb_helper.ps1',
         'scripts/mongodb_powershell_bridge.py',
-        'MONGODB_SETUP.md'
+        'docs/MONGODB_SETUP.md'
     ]
     
     all_exist = True
@@ -195,7 +195,7 @@ def test_documentation_completeness():
     print("TEST: Documentation Completeness")
     print("="*60)
     
-    doc_file = 'MONGODB_SETUP.md'
+    doc_file = 'docs/MONGODB_SETUP.md'
     
     if not os.path.exists(doc_file):
         print(f"❌ FAIL: {doc_file} not found")

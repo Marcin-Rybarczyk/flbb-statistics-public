@@ -111,7 +111,7 @@ MONGODB_DATABASE=flbb-statistics
 
 ✅ **games Collection**
 - Stores individual game records
-- Indexes: GameId (unique), GameDivisionName, SeasonId
+- Indexes: GameId + SeasonId (composite unique - primary key), GameId (non-unique), GameDivisionName, SeasonId
 - Automatic metadata: _stored_at timestamp
 
 ### Testing
