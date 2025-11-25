@@ -4,8 +4,8 @@
   "_database_name": "flbb-statistics",
   "_description": "This file defines the schema for game documents stored in MongoDB. Each document represents one basketball game with complete statistics, metadata, and processing status.",
   
-  "schema_version": "1.0",
-  "last_updated": "2025-11-24",
+  "schema_version": "2.0",
+  "last_updated": "2025-11-25",
   
   "document_structure": {
     "_id": {
@@ -17,10 +17,10 @@
     
     "GameId": {
       "type": "String",
-      "description": "Unique game identifier from FLBB website",
+      "description": "Game identifier from FLBB website (part of composite primary key with SeasonId)",
       "required": true,
       "indexed": true,
-      "unique": true,
+      "unique": false,
       "example": "12345"
     },
     
@@ -69,8 +69,8 @@
     
     "SeasonId": {
       "type": "String",
-      "description": "Season identifier",
-      "required": false,
+      "description": "Season identifier (part of composite primary key with GameId)",
+      "required": true,
       "indexed": true,
       "example": "2025-2026"
     },
@@ -126,10 +126,10 @@
   
   "indexes": [
     {
-      "name": "GameId_unique",
-      "fields": {"GameId": 1},
+      "name": "GameId_SeasonId_unique",
+      "fields": {"GameId": 1, "SeasonId": 1},
       "options": {"unique": true},
-      "description": "Unique index on GameId for fast lookups and deduplication"
+      "description": "Composite unique index on GameId and SeasonId - this is the primary key for game identification"
     },
     {
       "name": "status_index",
@@ -150,10 +150,16 @@
       "description": "Index on season for season-specific queries"
     },
     {
-      "name": "game_status_compound",
-      "fields": {"GameId": 1, "status": 1},
+      "name": "game_id_index",
+      "fields": {"GameId": 1},
       "options": {},
-      "description": "Compound index for efficient game existence checks"
+      "description": "Index on GameId alone for queries that don't specify season"
+    },
+    {
+      "name": "game_season_status_compound",
+      "fields": {"GameId": 1, "SeasonId": 1, "status": 1},
+      "options": {},
+      "description": "Compound index for efficient game existence checks with status"
     }
   ],
   
@@ -233,27 +239,33 @@
     "create_database": "use flbb-statistics",
     "create_collection": "db.createCollection('games')",
     "create_indexes": [
-      "db.games.createIndex({ 'GameId': 1 }, { unique: true })",
+      "db.games.createIndex({ 'GameId': 1, 'SeasonId': 1 }, { unique: true })",
       "db.games.createIndex({ 'status': 1 })",
       "db.games.createIndex({ 'GameDivisionDisplay': 1 })",
-      "db.games.createIndex({ 'SeasonId': 1 })"
+      "db.games.createIndex({ 'SeasonId': 1 })",
+      "db.games.createIndex({ 'GameId': 1 })"
     ],
     "query_examples": [
-      "db.games.findOne({ GameId: '12345' })",
+      "db.games.findOne({ GameId: '12345', SeasonId: '2025-2026' })",
       "db.games.find({ status: 'finished' }).count()",
       "db.games.find({ GameDivisionDisplay: 'Division 1 Hommes' })",
-      "db.games.find({ SeasonId: '2025-2026', status: 'finished' })"
+      "db.games.find({ SeasonId: '2025-2026', status: 'finished' })",
+      "db.games.find({ GameId: '12345' })"
     ]
   },
   
   "validation_rules": {
     "$jsonSchema": {
       "bsonType": "object",
-      "required": ["GameId", "status"],
+      "required": ["GameId", "SeasonId", "status"],
       "properties": {
         "GameId": {
           "bsonType": "string",
           "description": "Game ID must be a string"
+        },
+        "SeasonId": {
+          "bsonType": "string",
+          "description": "Season ID must be a string"
         },
         "status": {
           "enum": ["pending", "finished"],
@@ -272,13 +284,15 @@
   },
   
   "notes": [
-    "The GameId field is the primary identifier and must be unique across all documents",
+    "The composite key (GameId + SeasonId) is the primary identifier and must be unique across all documents",
+    "GameId alone is NOT unique - the same GameId can appear in different seasons",
+    "SeasonId is required and must be specified for all game operations",
     "The status field is used for deduplication - games with status 'finished' are skipped during downloads",
     "The json_data field contains the complete game statistics extracted from HTML",
     "Some fields (GameDivisionDisplay, HomeTeamName, AwayTeamName) are duplicated from json_data for faster queries",
     "Indexes are automatically created by the mongodb_helper.py when storing data",
     "The _stored_at and _last_updated fields track document lifecycle",
     "Use the Python bridge or PowerShell helper to interact with MongoDB",
-    "See MONGODB_SETUP.md for complete integration documentation"
+    "See docs/MONGODB_SETUP.md for complete integration documentation"
   ]
 }

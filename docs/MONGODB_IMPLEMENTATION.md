@@ -107,11 +107,13 @@ Single collection storing all game data with the following structure:
 
 ```json
 {
-  "GameId": "12345",              // Unique game identifier
+  "GameId": "12345",              // Game identifier (part of composite key)
+  "SeasonId": "2025-2026",        // Season identifier (part of composite key)
   "status": "finished",           // Processing status (pending/finished)
   "csv_generated": true,          // CSV generation flag
   "json_data": {                  // Full game statistics
     "GameId": "12345",
+    "SeasonId": "2025-2026",
     "GameDivisionDisplay": "Division 1 Hommes",
     "HomeTeamName": "Team A",
     "AwayTeamName": "Team B",
@@ -122,7 +124,6 @@ Single collection storing all game data with the following structure:
     "GameEvents": [...],
     "Referees": [...]
   },
-  "SeasonId": "2025-2026",
   "GameDivisionDisplay": "Division 1 Hommes",
   "_stored_at": "2025-11-24T21:00:00Z",
   "_last_updated": "2025-11-24T21:30:00Z",
@@ -131,11 +132,12 @@ Single collection storing all game data with the following structure:
 ```
 
 ### Indexes
-- GameId (unique)
+- GameId + SeasonId (composite unique - primary key)
+- GameId (non-unique)
 - status
 - GameDivisionDisplay
 - SeasonId
-- GameId + status (compound)
+- GameId + SeasonId + status (compound)
 
 ## Deduplication Workflow
 
@@ -145,7 +147,9 @@ Single collection storing all game data with the following structure:
 ├─────────────────────────────────────────┤
 │ For each game:                          │
 │   ├─ Test-GameInMongoDB                 │
-│   │   GameId=$gameId, Status="finished" │
+│   │   GameId=$gameId,                   │
+│   │   SeasonId=$seasonId,               │
+│   │   Status="finished"                 │
 │   │                                     │
 │   ├─ If EXISTS → Skip download ✅       │
 │   │   (Game already processed)          │
@@ -208,14 +212,14 @@ $env:MONGODB_DATABASE = "flbb-statistics"
 # Test connection
 Test-MongoDBConnection
 
-# Check if game already processed
-if (Test-GameInMongoDB -GameId "12345" -Status "finished") {
+# Check if game already processed (using composite key)
+if (Test-GameInMongoDB -GameId "12345" -SeasonId "2025-2026" -Status "finished") {
     Write-Host "Game already processed, skipping"
     continue
 }
 
 # Store game after parsing
-Set-GameInMongoDB -GameId "12345" -JsonFilePath "game.json" -Status "finished"
+Set-GameInMongoDB -GameId "12345" -SeasonId "2025-2026" -JsonFilePath "game.json" -Status "finished"
 
 # Query finished games
 $games = Get-GamesFromMongoDB -Status "finished"
@@ -227,12 +231,13 @@ Write-Host "Found $($games.Count) finished games"
 # Test connection
 python scripts/mongodb_powershell_bridge.py test-connection
 
-# Check game exists
-python scripts/mongodb_powershell_bridge.py check-game --game-id 12345 --status finished
+# Check game exists (using composite key)
+python scripts/mongodb_powershell_bridge.py check-game --game-id 12345 --season-id "2025-2026" --status finished
 
 # Insert/update game
 python scripts/mongodb_powershell_bridge.py upsert-game \
   --game-id 12345 \
+  --season-id "2025-2026" \
   --json-file path/to/game.json \
   --status finished
 

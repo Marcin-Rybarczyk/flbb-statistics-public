@@ -63,11 +63,11 @@ All game data is stored in a single collection called `games`. Each document rep
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `GameId` | String | Unique game identifier (primary key) |
+| `GameId` | String | Game identifier (part of composite primary key with SeasonId) |
+| `SeasonId` | String | Season identifier (part of composite primary key with GameId, required) |
 | `status` | String | Processing status: `pending`, `finished` |
 | `csv_generated` | Boolean | Whether CSV has been generated |
 | `json_data` | Object | Full game statistics and metadata |
-| `SeasonId` | String | Season identifier (e.g., "2025-2026") |
 | `GameDivisionDisplay` | String | Division name for quick filtering |
 | `HomeTeamName` | String | Home team name |
 | `AwayTeamName` | String | Away team name |
@@ -81,11 +81,13 @@ For optimal performance, create the following indexes:
 
 ```javascript
 // MongoDB shell or Compass
-db.games.createIndex({ "GameId": 1 }, { unique: true })
+// Composite unique index on GameId + SeasonId (primary key)
+db.games.createIndex({ "GameId": 1, "SeasonId": 1 }, { unique: true })
 db.games.createIndex({ "status": 1 })
 db.games.createIndex({ "GameDivisionDisplay": 1 })
 db.games.createIndex({ "SeasonId": 1 })
-db.games.createIndex({ "GameId": 1, "status": 1 })
+db.games.createIndex({ "GameId": 1 })
+db.games.createIndex({ "GameId": 1, "SeasonId": 1, "status": 1 })
 ```
 
 These indexes are automatically created by the Python helper when storing data.
@@ -97,13 +99,13 @@ The deduplication system prevents re-downloading and re-processing games that ar
 ### Workflow
 
 1. **Before Downloading HTML**
-   - Query MongoDB: `db.games.findOne({ GameId: "12345", status: "finished" })`
+   - Query MongoDB: `db.games.findOne({ GameId: "12345", SeasonId: "2025-2026", status: "finished" })`
    - If found → **Skip download and processing**
    - If not found → **Proceed with download**
 
 2. **After Parsing HTML to JSON**
    - Parse HTML and create JSON game data
-   - Insert/update document in MongoDB
+   - Insert/update document in MongoDB using composite key (GameId + SeasonId)
    - Set `status: "finished"`
    - Set `csv_generated: true/false`
    - Store full JSON in `json_data` field
@@ -275,8 +277,8 @@ if (Test-MongoDBConnection) {
 ### Check if Game Exists
 
 ```powershell
-# Check if a game exists with status 'finished'
-$gameExists = Test-GameInMongoDB -GameId "12345" -Status "finished"
+# Check if a game exists with status 'finished' (using composite key)
+$gameExists = Test-GameInMongoDB -GameId "12345" -SeasonId "2025-2026" -Status "finished"
 
 if ($gameExists) {
     Write-Host "Game already processed, skipping"
@@ -291,7 +293,7 @@ if ($gameExists) {
 ```powershell
 # After creating JSON file
 $jsonPath = "data/full-game-stats-output/division1/full-game-stats-12345.json"
-$success = Set-GameInMongoDB -GameId "12345" -JsonFilePath $jsonPath -Status "finished" -CsvGenerated $false
+$success = Set-GameInMongoDB -GameId "12345" -SeasonId "2025-2026" -JsonFilePath $jsonPath -Status "finished" -CsvGenerated $false
 
 if ($success) {
     Write-Host "Game stored successfully"
@@ -333,7 +335,8 @@ python scripts/mongodb_powershell_bridge.py test-connection
 ### Check if Game Exists
 
 ```bash
-python scripts/mongodb_powershell_bridge.py check-game --game-id 12345 --status finished
+# Check with composite key (recommended)
+python scripts/mongodb_powershell_bridge.py check-game --game-id 12345 --season-id "2025-2026" --status finished
 # Exit code 0: Game exists with status
 # Exit code 1: Game doesn't exist or different status
 # Exit code 2: Error occurred
@@ -344,6 +347,7 @@ python scripts/mongodb_powershell_bridge.py check-game --game-id 12345 --status 
 ```bash
 python scripts/mongodb_powershell_bridge.py upsert-game \
   --game-id 12345 \
+  --season-id "2025-2026" \
   --json-file data/full-game-stats-output/game.json \
   --status finished \
   --csv-generated true
@@ -397,8 +401,8 @@ foreach ($game in $games) {
 $games | ForEach-Object -Parallel {
     $game = $_
     
-    # Check if already finished
-    if (-not (Test-GameInMongoDB -GameId $game.GameId -Status "finished")) {
+    # Check if already finished (using composite key)
+    if (-not (Test-GameInMongoDB -GameId $game.GameId -SeasonId $game.SeasonId -Status "finished")) {
         # Download HTML
         Download-GameHTML -GameId $game.GameId
         
@@ -406,7 +410,7 @@ $games | ForEach-Object -Parallel {
         $json = Parse-GameHTML -GameId $game.GameId
         
         # Store in MongoDB (non-blocking for CSV)
-        Set-GameInMongoDB -GameId $game.GameId -JsonFilePath $json -Status "finished"
+        Set-GameInMongoDB -GameId $game.GameId -SeasonId $game.SeasonId -JsonFilePath $json -Status "finished"
     }
 } -ThrottleLimit 10
 
@@ -464,7 +468,7 @@ pip install pymongo
 1. Verify MongoDB is enabled: `Test-MongoDBEnabled`
 2. Check game status in MongoDB: 
    ```javascript
-   db.games.findOne({ GameId: "12345" })
+   db.games.findOne({ GameId: "12345", SeasonId: "2025-2026" })
    ```
 3. Ensure status is exactly "finished" (lowercase)
 
@@ -479,7 +483,7 @@ python scripts/mongodb_powershell_bridge.py test-connection
 
 Or manually in MongoDB:
 ```javascript
-db.games.createIndex({ "GameId": 1 }, { unique: true })
+db.games.createIndex({ "GameId": 1, "SeasonId": 1 }, { unique: true })
 db.games.createIndex({ "status": 1 })
 ```
 
@@ -494,8 +498,8 @@ use flbb-statistics
 // Count all games
 db.games.countDocuments()
 
-// Find a specific game
-db.games.findOne({ GameId: "12345" })
+// Find a specific game (using composite key)
+db.games.findOne({ GameId: "12345", SeasonId: "2025-2026" })
 
 // Find all finished games
 db.games.find({ status: "finished" }).count()
@@ -503,9 +507,9 @@ db.games.find({ status: "finished" }).count()
 // Find games by division
 db.games.find({ GameDivisionDisplay: "Division 1 Hommes" })
 
-// Update game status
+// Update game status (using composite key)
 db.games.updateOne(
-  { GameId: "12345" },
+  { GameId: "12345", SeasonId: "2025-2026" },
   { $set: { status: "finished", csv_generated: true } }
 )
 

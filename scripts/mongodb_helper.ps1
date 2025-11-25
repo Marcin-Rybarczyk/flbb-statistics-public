@@ -106,6 +106,9 @@ function Test-GameInMongoDB {
         [Parameter(Mandatory=$true)]
         [string]$GameId,
         
+        [Parameter(Mandatory=$false)]
+        [string]$SeasonId,
+        
         [string]$Status = "finished",
         
         [string]$Uri,
@@ -131,6 +134,10 @@ function Test-GameInMongoDB {
             "--database", $Database,
             "--collection", $Collection
         )
+        
+        if ($SeasonId) {
+            $arguments += "--season-id", $SeasonId
+        }
         
         if ($Status) {
             $arguments += "--status", $Status
@@ -163,6 +170,9 @@ function Set-GameInMongoDB {
     param(
         [Parameter(Mandatory=$true)]
         [string]$GameId,
+        
+        [Parameter(Mandatory=$false)]
+        [string]$SeasonId,
         
         [Parameter(Mandatory=$true)]
         [string]$JsonFilePath,
@@ -202,6 +212,10 @@ function Set-GameInMongoDB {
             "--database", $Database,
             "--collection", $Collection
         )
+        
+        if ($SeasonId) {
+            $arguments += "--season-id", $SeasonId
+        }
         
         if ($CsvGenerated) {
             $arguments += "--csv-generated", "true"
