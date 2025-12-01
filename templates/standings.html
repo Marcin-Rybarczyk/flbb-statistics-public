@@ -58,6 +58,11 @@
         transform: translateY(-2px);
         box-shadow: 0 4px 8px rgba(108, 117, 125, 0.4);
     }
+    
+    .h2h-info {
+        font-size: 0.85em;
+        color: #666;
+    }
 </style>
 {% endblock %}
 
@@ -116,8 +121,8 @@
                             <td class="col-important">
                                 {{ row['Points'] }}
                                 {% if row['H2H Points']|int > 0 %}
-                                    <span style="font-size: 0.85em; color: #666;">
-                                        (H2H: {{ row['H2H Points']|int }}/{{ row['H2H Diff']|int }})
+                                    <span class="h2h-info">
+                                        (H2H: {{ row['H2H Points']|int }}/{% if row['H2H Diff']|int > 0 %}+{% endif %}{{ row['H2H Diff']|int }})
                                     </span>
                                 {% endif %}
                             </td>
