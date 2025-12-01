@@ -309,6 +309,80 @@ def load_data_from_directories(root_dir):
 
 # data.to_csv(CSV_FILEPATH)
 
+def calculate_head_to_head(df, teams):
+    """
+    Calculate head-to-head (H2H) records between a group of teams.
+    
+    Parameters:
+    df (DataFrame): The game data
+    teams (list): List of team names to calculate H2H for
+    
+    Returns:
+    dict: Dictionary mapping team names to their H2H stats
+          {'team_name': {'h2h_points': int, 'h2h_diff': int}}
+    """
+    h2h_stats = {team: {'h2h_points': 0, 'h2h_diff': 0} for team in teams}
+    
+    # Filter games to only those between the specified teams
+    h2h_games = df[
+        (df['HomeTeamName'].isin(teams)) & 
+        (df['AwayTeamName'].isin(teams))
+    ]
+    
+    # Calculate H2H points and score differences
+    for _, row in h2h_games.iterrows():
+        home_team = row['HomeTeamName']
+        away_team = row['AwayTeamName']
+        home_score = row['FinalHomeScore']
+        away_score = row['FinalAwayScore']
+        
+        # Update score differences
+        h2h_stats[home_team]['h2h_diff'] += (home_score - away_score)
+        h2h_stats[away_team]['h2h_diff'] += (away_score - home_score)
+        
+        # Check if this is a forfeit game
+        is_forfeit = False
+        forfeiting_team = None
+        game_events = row.get('GameEvents', '')
+        if game_events:
+            try:
+                if isinstance(game_events, str):
+                    events_data = ast.literal_eval(game_events)
+                else:
+                    events_data = game_events
+                
+                if isinstance(events_data, list):
+                    for event in events_data:
+                        if isinstance(event, dict) and event.get('EventAction') == 'Forfeit':
+                            is_forfeit = True
+                            location = str(row.get('GameLocation', ''))
+                            if 'FORFAIT' in location.upper():
+                                parts = location.split('FORFAIT')
+                                if len(parts) > 1:
+                                    forfeit_info = parts[1].strip()
+                                    if home_team in forfeit_info:
+                                        forfeiting_team = home_team
+                                    elif away_team in forfeit_info:
+                                        forfeiting_team = away_team
+                            break
+            except (ValueError, SyntaxError):
+                pass
+        
+        # Update H2H points
+        if is_forfeit and forfeiting_team:
+            # Use league points from the data for forfeit games
+            h2h_stats[home_team]['h2h_points'] += row.get('HomeTeamLeaguePoints', 1)
+            h2h_stats[away_team]['h2h_points'] += row.get('AwayTeamLeaguePoints', 1)
+        elif home_score > away_score:
+            h2h_stats[home_team]['h2h_points'] += 2
+            h2h_stats[away_team]['h2h_points'] += 1
+        else:
+            h2h_stats[home_team]['h2h_points'] += 1
+            h2h_stats[away_team]['h2h_points'] += 2
+    
+    return h2h_stats
+
+
 # Function to calculate standings
 def calculate_standings(df):
     standings = defaultdict(lambda: {
@@ -420,9 +494,35 @@ def calculate_standings(df):
         games = list(reversed(games))  # Reverse to show most recent first
         last_five_games.append(games)
     standings_df['Last 5 Games'] = last_five_games
+    
+    # Calculate head-to-head records for tiebreaking
+    # Initialize H2H columns
+    standings_df['H2H Points'] = 0
+    standings_df['H2H Diff'] = 0
+    
+    # Group teams by points to identify ties
+    points_groups = standings_df.groupby('Points')['Team Name'].apply(list).to_dict()
+    
+    # For each group of teams with same points (2 or more teams), calculate H2H
+    for points, teams in points_groups.items():
+        if len(teams) >= 2:
+            # Calculate head-to-head stats for this group
+            h2h_stats = calculate_head_to_head(df, teams)
+            
+            # Update the standings dataframe with H2H stats
+            for team in teams:
+                mask = standings_df['Team Name'] == team
+                standings_df.loc[mask, 'H2H Points'] = h2h_stats[team]['h2h_points']
+                standings_df.loc[mask, 'H2H Diff'] = h2h_stats[team]['h2h_diff']
 
-    # Sort by Points, then Points Diff
-    standings_df.sort_values(by=['Points', 'Points Diff'], ascending=[False, False], inplace=True)
+    # Sort by Points, then H2H Points (for tied teams), then H2H Diff (for tied teams), then overall Points Diff
+    # Note: Pandas sort_values() applies columns hierarchically - H2H stats only affect ranking
+    # when Points are equal, so teams with different Points won't be compared on H2H values
+    standings_df.sort_values(
+        by=['Points', 'H2H Points', 'H2H Diff', 'Points Diff'], 
+        ascending=[False, False, False, False], 
+        inplace=True
+    )
     standings_df.reset_index(drop=True, inplace=True)
     standings_df.index += 1
     standings_df.index.name = 'Rank'
