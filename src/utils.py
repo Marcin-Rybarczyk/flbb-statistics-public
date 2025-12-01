@@ -1871,6 +1871,16 @@ def analyze_game_events(data):
         current_advantage = 0
         previous_leader = None
         
+        # Variables for tracking scoring streaks
+        prev_home_score = 0
+        prev_away_score = 0
+        current_streak_team = None
+        current_streak_points = 0
+        max_streak_points = 0
+        max_streak_team = None
+        max_streak_home_points = 0
+        max_streak_away_points = 0
+        
         for event in sorted_events:
             if not isinstance(event, dict):
                 continue
@@ -1900,10 +1910,84 @@ def analyze_game_events(data):
                     
                 if current_leader is not None:
                     previous_leader = current_leader
+            
+            # Calculate scoring streaks
+            event_score = event.get('EventScore', '')
+            if event_score and ':' in str(event_score):
+                try:
+                    # Parse score "HomeScore : AwayScore"
+                    scores = str(event_score).split(':')
+                    if len(scores) == 2:
+                        home_score = int(scores[0].strip())
+                        away_score = int(scores[1].strip())
+                        
+                        # Determine which team scored and how many points
+                        home_points_scored = home_score - prev_home_score
+                        away_points_scored = away_score - prev_away_score
+                        
+                        # Validate point differences are non-negative (handle score corrections)
+                        # Skip events where scores decreased (likely data issues or corrections)
+                        if home_points_scored < 0 or away_points_scored < 0:
+                            # Update scores but don't count this for streaks
+                            prev_home_score = home_score
+                            prev_away_score = away_score
+                            continue
+                        
+                        if home_points_scored > 0 and away_points_scored == 0:
+                            # Home team scored
+                            if current_streak_team == 'home':
+                                current_streak_points += home_points_scored
+                            else:
+                                current_streak_team = 'home'
+                                current_streak_points = home_points_scored
+                        elif away_points_scored > 0 and home_points_scored == 0:
+                            # Away team scored
+                            if current_streak_team == 'away':
+                                current_streak_points += away_points_scored
+                            else:
+                                current_streak_team = 'away'
+                                current_streak_points = away_points_scored
+                        elif home_points_scored > 0 and away_points_scored > 0:
+                            # Both teams scored (unusual event, likely simultaneous scoring)
+                            # End current streak and start new one for team that scored more
+                            if home_points_scored > away_points_scored:
+                                current_streak_team = 'home'
+                                current_streak_points = home_points_scored
+                            elif away_points_scored > home_points_scored:
+                                current_streak_team = 'away'
+                                current_streak_points = away_points_scored
+                            else:
+                                # Equal points, reset streak
+                                current_streak_team = None
+                                current_streak_points = 0
+                        
+                        # Update max streak if current is larger
+                        if current_streak_points > max_streak_points:
+                            max_streak_points = current_streak_points
+                            max_streak_team = current_streak_team
+                            if current_streak_team == 'home':
+                                max_streak_home_points = current_streak_points
+                                max_streak_away_points = 0
+                            elif current_streak_team == 'away':
+                                max_streak_home_points = 0
+                                max_streak_away_points = current_streak_points
+                        
+                        # Update previous scores
+                        prev_home_score = home_score
+                        prev_away_score = away_score
+                except (ValueError, IndexError):
+                    pass
         
         # Calculate biggest win margin
         win_margin = abs(final_home_score - final_away_score)
         winner = home_team if final_home_score > final_away_score else away_team
+        
+        # Determine which team had the biggest streak
+        streak_team_name = None
+        if max_streak_team == 'home':
+            streak_team_name = home_team
+        elif max_streak_team == 'away':
+            streak_team_name = away_team
         
         game_analysis = {
             'GameId': game_id,
@@ -1917,7 +2001,11 @@ def analyze_game_events(data):
             'MaxAwayLead': max_away_lead,
             'BiggestLead': max(max_home_lead, max_away_lead),
             'WinMargin': win_margin,
-            'Winner': winner
+            'Winner': winner,
+            'BiggestStreak': max_streak_points,
+            'StreakTeam': streak_team_name,
+            'StreakHomePoints': max_streak_home_points,
+            'StreakAwayPoints': max_streak_away_points
         }
         
         game_analyses.append(game_analysis)
@@ -2015,6 +2103,30 @@ def get_biggest_wins(data, top_n=10, division=None):
         return pd.DataFrame()
     
     return game_analysis.nlargest(top_n, 'WinMargin')
+
+def get_biggest_scoring_streaks(data, top_n=10, division=None):
+    """
+    Get games with the biggest scoring streaks (consecutive points by one team).
+    
+    Parameters:
+    data (DataFrame): The game data
+    top_n (int): Number of games to return
+    division (str): Optional division filter
+    
+    Returns:
+    DataFrame: Games with biggest scoring streaks
+    """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
+    game_analysis = analyze_game_events(data)
+    
+    if game_analysis.empty:
+        return pd.DataFrame()
+    
+    return game_analysis.nlargest(top_n, 'BiggestStreak')
+
 
 def get_longest_duration_games(data, top_n=20, division=None):
     """
