@@ -516,6 +516,8 @@ def calculate_standings(df):
                 standings_df.loc[mask, 'H2H Diff'] = h2h_stats[team]['h2h_diff']
 
     # Sort by Points, then H2H Points (for tied teams), then H2H Diff (for tied teams), then overall Points Diff
+    # Note: Pandas sort_values() applies columns hierarchically - H2H stats only affect ranking
+    # when Points are equal, so teams with different Points won't be compared on H2H values
     standings_df.sort_values(
         by=['Points', 'H2H Points', 'H2H Diff', 'Points Diff'], 
         ascending=[False, False, False, False], 
