@@ -17,7 +17,7 @@ from .utils import (calculate_standings_by_division, get_highest_scoring_games,
                    get_top_foulers, get_referee_statistics, get_referee_fouls_per_game,
                    get_referees_least_fouls_per_game, get_biggest_wins, get_biggest_leads,
                    get_most_tie_scores, get_most_lead_changes, get_longest_duration_games,
-                   get_player_shooting_efficiency,
+                   get_player_shooting_efficiency, get_biggest_scoring_streaks,
                    get_starting_five_vs_bench_stats, get_double_digit_scorers, get_consistent_scorers,
                    get_player_game_impact_analysis, get_player_foul_impact_analysis,
                    get_best_player_combinations, get_referee_game_impact_analysis, get_all_fixtures_data,
@@ -351,6 +351,7 @@ def statistics():
     highest_games = get_highest_scoring_games(data, 10, division=selected_division)
     biggest_wins = get_biggest_wins(data, 10, division=selected_division)
     biggest_leads = get_biggest_leads(data, 10, division=selected_division)
+    biggest_streaks = get_biggest_scoring_streaks(data, 10, division=selected_division)
     most_ties = get_most_tie_scores(data, 10, division=selected_division)
     most_lead_changes = get_most_lead_changes(data, 10, division=selected_division)
     longest_duration_games = get_longest_duration_games(data, 20, division=selected_division)
@@ -359,6 +360,7 @@ def statistics():
                          highest_games=highest_games,
                          biggest_wins=biggest_wins,
                          biggest_leads=biggest_leads,
+                         biggest_streaks=biggest_streaks,
                          most_ties=most_ties,
                          most_lead_changes=most_lead_changes,
                          longest_duration_games=longest_duration_games,
