@@ -1924,6 +1924,14 @@ def analyze_game_events(data):
                         home_points_scored = home_score - prev_home_score
                         away_points_scored = away_score - prev_away_score
                         
+                        # Validate point differences are non-negative (handle score corrections)
+                        # Skip events where scores decreased (likely data issues or corrections)
+                        if home_points_scored < 0 or away_points_scored < 0:
+                            # Update scores but don't count this for streaks
+                            prev_home_score = home_score
+                            prev_away_score = away_score
+                            continue
+                        
                         if home_points_scored > 0 and away_points_scored == 0:
                             # Home team scored
                             if current_streak_team == 'home':
@@ -1939,9 +1947,18 @@ def analyze_game_events(data):
                                 current_streak_team = 'away'
                                 current_streak_points = away_points_scored
                         elif home_points_scored > 0 and away_points_scored > 0:
-                            # Both teams scored (unusual, but reset streak)
-                            current_streak_team = None
-                            current_streak_points = 0
+                            # Both teams scored (unusual event, likely simultaneous scoring)
+                            # End current streak and start new one for team that scored more
+                            if home_points_scored > away_points_scored:
+                                current_streak_team = 'home'
+                                current_streak_points = home_points_scored
+                            elif away_points_scored > home_points_scored:
+                                current_streak_team = 'away'
+                                current_streak_points = away_points_scored
+                            else:
+                                # Equal points, reset streak
+                                current_streak_team = None
+                                current_streak_points = 0
                         
                         # Update max streak if current is larger
                         if current_streak_points > max_streak_points:
@@ -1950,7 +1967,7 @@ def analyze_game_events(data):
                             if current_streak_team == 'home':
                                 max_streak_home_points = current_streak_points
                                 max_streak_away_points = 0
-                            else:
+                            elif current_streak_team == 'away':
                                 max_streak_home_points = 0
                                 max_streak_away_points = current_streak_points
                         
