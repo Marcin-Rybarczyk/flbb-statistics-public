@@ -10,6 +10,7 @@ import html
 import unicodedata
 import ast
 import random
+import logging
 
 
 FULL_GAME_STATS_OUTPUT_DIR = "full-game-stats-output"
@@ -5437,7 +5438,8 @@ def _analyze_team_for_recommendations(data, team_name, players, multi_team_playe
     
     # Star player dependency
     if key_players:
-        top_scorer_pct = (key_players[0]['avg_points'] / _calculate_team_avg_points(players)) * 100 if _calculate_team_avg_points(players) > 0 else 0
+        team_avg = _calculate_team_avg_points(players)
+        top_scorer_pct = (key_players[0]['avg_points'] / team_avg) * 100 if team_avg > 0 else 0
         if top_scorer_pct > 35:
             weaknesses.append(f"Heavy reliance on {key_players[0]['name']} ({top_scorer_pct:.0f}% of scoring)")
             strategy_tips.append(f"🛡️ Double-team {key_players[0]['name']} to disrupt their offense")
@@ -5465,7 +5467,7 @@ def _calculate_team_avg_points(players):
     
     # Use the maximum games played to calculate team average
     games_played_list = [p.get('Games Played', 0) for p in players if p.get('Games Played', 0) > 0]
-    max_games = max(games_played_list) if games_played_list else 1
+    max_games = max(games_played_list, default=1)
     total_points = sum(p.get('Total Points', 0) for p in players)
     
     return total_points / max_games if max_games > 0 else 0.0
@@ -5595,7 +5597,6 @@ def get_future_game_details(game_id, game, data=None):
             )
         except Exception as e:
             # If recommendation generation fails, log but don't break
-            import logging
             logging.warning(f"Failed to generate recommendations: {e}")
             recommendations = None
     
