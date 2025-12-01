@@ -293,6 +293,153 @@
         font-weight: 500;
     }
 
+    /* Game Review Styles */
+    .game-review {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        border-left: 5px solid #667eea;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 30px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .game-review::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
+        animation: pulse 4s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 0.5; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+    }
+
+    .review-visual-banner {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: linear-gradient(90deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.8) 100%);
+        border-radius: 10px;
+        flex-wrap: wrap;
+    }
+
+    .event-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 25px;
+        font-weight: 600;
+        font-size: 0.9em;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        animation: bounceIn 0.6s ease-out;
+    }
+
+    @keyframes bounceIn {
+        0% { transform: scale(0); opacity: 0; }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    .event-badge.century {
+        background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+        color: #333;
+    }
+
+    .event-badge.blowout {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        color: white;
+    }
+
+    .event-badge.star {
+        background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+        color: white;
+    }
+
+    .event-badge.nail-biter {
+        background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
+        color: white;
+    }
+
+    .event-badge.tech-foul {
+        background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+        color: white;
+    }
+
+    .event-badge.fouled-out {
+        background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+        color: white;
+    }
+
+    .event-badge.comeback {
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        color: white;
+    }
+
+    .review-header {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #667eea;
+    }
+
+    .review-icon {
+        font-size: 2.5em;
+        margin-right: 15px;
+        animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+    }
+
+    .review-headline {
+        font-size: 1.8em;
+        font-weight: bold;
+        color: #2c3e50;
+        margin: 0;
+        flex: 1;
+    }
+
+    .review-body {
+        position: relative;
+        z-index: 1;
+        font-size: 1.15em;
+        line-height: 1.8;
+        color: #34495e;
+        font-weight: 500;
+        font-style: italic;
+        padding: 15px 0;
+        white-space: pre-line;
+    }
+
+    .review-footer {
+        position: relative;
+        z-index: 1;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid rgba(102, 126, 234, 0.3);
+        font-size: 0.9em;
+        color: #7f8c8d;
+        text-align: right;
+    }
+
     @media (max-width: 768px) {
         .teams-grid {
             grid-template-columns: 1fr;
@@ -304,6 +451,24 @@
 
         .stats-grid {
             grid-template-columns: repeat(2, 1fr);
+        }
+
+        .review-header {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .review-icon {
+            margin-right: 0;
+            margin-bottom: 10px;
+        }
+
+        .review-headline {
+            font-size: 1.4em;
+        }
+
+        .review-body {
+            font-size: 1em;
         }
     }
 {% endblock %}
@@ -364,6 +529,248 @@
             {% endif %}
         </div>
 
+        <!-- Game Review Section -->
+        {% if game_review and game_review.has_content %}
+        <div class="game-review">
+            <!-- Visual Event Badges Banner -->
+            <div class="review-visual-banner">
+                {% for event in game_review.detected_events %}
+                    {% if event == 'century_game' %}
+                        <div class="event-badge century">💯 CENTURY CLUB</div>
+                    {% elif event == 'blowout' %}
+                        <div class="event-badge blowout">💥 BLOWOUT</div>
+                    {% elif event == 'star_performance' %}
+                        <div class="event-badge star">⭐ STAR PLAYER</div>
+                    {% elif event == 'nail_biter' %}
+                        <div class="event-badge nail-biter">💓 NAIL-BITER</div>
+                    {% elif event == 'technical_fouls' %}
+                        <div class="event-badge tech-foul">⚠️ TECH FOUL</div>
+                    {% elif event == 'fouled_out' %}
+                        <div class="event-badge fouled-out">🚫 FOULED OUT</div>
+                    {% elif event == 'comeback' %}
+                        <div class="event-badge comeback">🔄 COMEBACK</div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            
+            <div class="review-header">
+                <div class="review-icon">📰</div>
+                <h2 class="review-headline">{{ game_review.headline }}</h2>
+            </div>
+            <div class="review-body">
+                {{ game_review.body }}
+            </div>
+            <div class="review-footer">
+                🎙️ FLBB Press Review - Multilingual Basketball Commentary
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Game Recommendations (for upcoming games) -->
+        {% if game.basic_info.is_future and game.recommendations %}
+        <div class="section" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border-left: 5px solid #4CAF50;">
+            <h2 style="color: #2e7d32;">🎯 Strategic Recommendations & Analysis</h2>
+            
+            <!-- General Insights -->
+            {% if game.recommendations.general_insights %}
+            <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h3 style="color: #2e7d32; margin-bottom: 15px;">📊 Matchup Overview</h3>
+                {% for insight in game.recommendations.general_insights %}
+                <p style="margin: 10px 0; padding: 10px; background: #f1f8f4; border-left: 3px solid #4CAF50; border-radius: 5px;">
+                    {{ insight }}
+                </p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Team Recommendations Grid -->
+            <div class="teams-grid" style="margin-top: 20px;">
+                <!-- Home Team Recommendations -->
+                <div style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h3 style="color: #2980b9; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #2980b9;">
+                        🏠 {{ game.recommendations.home_team.name }}
+                    </h3>
+                    
+                    <!-- Key Players -->
+                    {% if game.recommendations.home_team.key_players %}
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: #34495e; margin-bottom: 10px;">⭐ Key Players to Watch</h4>
+                        {% for player in game.recommendations.home_team.key_players %}
+                        <div style="background: #f8f9fa; padding: 12px; margin: 8px 0; border-radius: 8px; border-left: 4px solid #2980b9;">
+                            <strong style="color: #2980b9;">{{ player.name }}</strong>
+                            {% if player.is_multi_team %}
+                            <span style="background: #FFA500; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.8em; margin-left: 5px;">
+                                Multi-Team
+                            </span>
+                            {% endif %}
+                            <br>
+                            <small style="color: #666;">
+                                {{ player.role }} • {{ "%.1f"|format(player.avg_points) }} pts/game ({{ player.games_played }} games)
+                            </small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Strengths -->
+                    {% if game.recommendations.home_team.strengths %}
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: #27ae60; margin-bottom: 10px;">💪 Strengths</h4>
+                        {% for strength in game.recommendations.home_team.strengths %}
+                        <div style="background: #e8f5e9; padding: 10px; margin: 5px 0; border-radius: 5px; border-left: 3px solid #27ae60;">
+                            ✓ {{ strength }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Weaknesses -->
+                    {% if game.recommendations.home_team.weaknesses %}
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: #e74c3c; margin-bottom: 10px;">⚠️ Areas to Improve</h4>
+                        {% for weakness in game.recommendations.home_team.weaknesses %}
+                        <div style="background: #ffebee; padding: 10px; margin: 5px 0; border-radius: 5px; border-left: 3px solid #e74c3c;">
+                            • {{ weakness }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Strategy Tips -->
+                    {% if game.recommendations.home_team.strategy_tips %}
+                    <div>
+                        <h4 style="color: #9b59b6; margin-bottom: 10px;">🎯 Strategic Tips</h4>
+                        {% for tip in game.recommendations.home_team.strategy_tips %}
+                        <div style="background: #f3e5f5; padding: 10px; margin: 5px 0; border-radius: 5px; border-left: 3px solid #9b59b6;">
+                            {{ tip }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Away Team Recommendations -->
+                <div style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h3 style="color: #e67e22; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e67e22;">
+                        ✈️ {{ game.recommendations.away_team.name }}
+                    </h3>
+                    
+                    <!-- Key Players -->
+                    {% if game.recommendations.away_team.key_players %}
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: #34495e; margin-bottom: 10px;">⭐ Key Players to Watch</h4>
+                        {% for player in game.recommendations.away_team.key_players %}
+                        <div style="background: #f8f9fa; padding: 12px; margin: 8px 0; border-radius: 8px; border-left: 4px solid #e67e22;">
+                            <strong style="color: #e67e22;">{{ player.name }}</strong>
+                            {% if player.is_multi_team %}
+                            <span style="background: #FFA500; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.8em; margin-left: 5px;">
+                                Multi-Team
+                            </span>
+                            {% endif %}
+                            <br>
+                            <small style="color: #666;">
+                                {{ player.role }} • {{ "%.1f"|format(player.avg_points) }} pts/game ({{ player.games_played }} games)
+                            </small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Strengths -->
+                    {% if game.recommendations.away_team.strengths %}
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: #27ae60; margin-bottom: 10px;">💪 Strengths</h4>
+                        {% for strength in game.recommendations.away_team.strengths %}
+                        <div style="background: #e8f5e9; padding: 10px; margin: 5px 0; border-radius: 5px; border-left: 3px solid #27ae60;">
+                            ✓ {{ strength }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Weaknesses -->
+                    {% if game.recommendations.away_team.weaknesses %}
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: #e74c3c; margin-bottom: 10px;">⚠️ Areas to Improve</h4>
+                        {% for weakness in game.recommendations.away_team.weaknesses %}
+                        <div style="background: #ffebee; padding: 10px; margin: 5px 0; border-radius: 5px; border-left: 3px solid #e74c3c;">
+                            • {{ weakness }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Strategy Tips -->
+                    {% if game.recommendations.away_team.strategy_tips %}
+                    <div>
+                        <h4 style="color: #9b59b6; margin-bottom: 10px;">🎯 Strategic Tips</h4>
+                        {% for tip in game.recommendations.away_team.strategy_tips %}
+                        <div style="background: #f3e5f5; padding: 10px; margin: 5px 0; border-radius: 5px; border-left: 3px solid #9b59b6;">
+                            {{ tip }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Multi-Team Player Insights -->
+            {% if game.recommendations.multi_team_insights %}
+            <div style="background: white; padding: 20px; border-radius: 10px; margin-top: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h3 style="color: #f39c12; margin-bottom: 15px;">🔄 Multi-Team Player Insights</h3>
+                <p style="margin-bottom: 15px; color: #666;">
+                    These players bring experience from multiple teams, offering versatile skills and diverse playing styles:
+                </p>
+                {% for insight in game.recommendations.multi_team_insights %}
+                <div style="background: #fff8e1; padding: 12px; margin: 8px 0; border-radius: 8px; border-left: 4px solid #f39c12;">
+                    <strong style="color: #f39c12;">{{ insight.player }}</strong> ({{ insight.team }})
+                    <br>
+                    <small style="color: #666;">
+                        Also plays for: {{ insight.also_plays_for|join(', ') }} • {{ "%.1f"|format(insight.avg_points) }} pts/game
+                    </small>
+                    <br>
+                    <em style="color: #888; font-size: 0.9em;">{{ insight.insight }}</em>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Head-to-Head Analysis -->
+            {% if game.recommendations.head_to_head and (game.recommendations.head_to_head.home_points > 0 or game.recommendations.head_to_head.away_points > 0) %}
+            <div style="background: white; padding: 20px; border-radius: 10px; margin-top: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h3 style="color: #8e44ad; margin-bottom: 15px;">⚔️ Head-to-Head History</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 0.9em; color: #666;">{{ game.basic_info.home_team }}</div>
+                        <div style="font-size: 2em; font-weight: bold; color: #2980b9; margin: 10px 0;">
+                            {{ game.recommendations.head_to_head.home_points }}
+                        </div>
+                        <div style="font-size: 0.8em; color: #888;">League Points</div>
+                        <div style="font-size: 1.2em; font-weight: bold; color: {% if game.recommendations.head_to_head.home_diff > 0 %}#27ae60{% elif game.recommendations.head_to_head.home_diff < 0 %}#e74c3c{% else %}#888{% endif %}; margin-top: 5px;">
+                            {% if game.recommendations.head_to_head.home_diff > 0 %}+{% endif %}{{ game.recommendations.head_to_head.home_diff }}
+                        </div>
+                        <div style="font-size: 0.8em; color: #888;">Point Differential</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 0.9em; color: #666;">{{ game.basic_info.away_team }}</div>
+                        <div style="font-size: 2em; font-weight: bold; color: #e67e22; margin: 10px 0;">
+                            {{ game.recommendations.head_to_head.away_points }}
+                        </div>
+                        <div style="font-size: 0.8em; color: #888;">League Points</div>
+                        <div style="font-size: 1.2em; font-weight: bold; color: {% if game.recommendations.head_to_head.away_diff > 0 %}#27ae60{% elif game.recommendations.head_to_head.away_diff < 0 %}#e74c3c{% else %}#888{% endif %}; margin-top: 5px;">
+                            {% if game.recommendations.head_to_head.away_diff > 0 %}+{% endif %}{{ game.recommendations.head_to_head.away_diff }}
+                        </div>
+                        <div style="font-size: 0.8em; color: #888;">Point Differential</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div style="margin-top: 20px; padding: 15px; background: rgba(255, 255, 255, 0.8); border-radius: 8px; text-align: center; font-size: 0.9em; color: #666;">
+                💡 These recommendations are based on historical player statistics, recent team performance, and strategic analysis.
+            </div>
+        </div>
+        {% endif %}
 
 
         <!-- Game Statistics -->

@@ -58,6 +58,11 @@
         transform: translateY(-2px);
         box-shadow: 0 4px 8px rgba(108, 117, 125, 0.4);
     }
+    
+    .h2h-info {
+        font-size: 0.85em;
+        color: #666;
+    }
 </style>
 {% endblock %}
 
@@ -88,7 +93,7 @@
                             <th class="col-optional">Points For</th>
                             <th class="col-optional">Points Against</th>
                             <th class="col-important">Points Diff</th>
-                            <th class="col-important">League Points</th>
+                            <th class="col-important" title="League Points (H2H: head-to-head points/difference shown for tied teams)">League Points</th>
                             <th class="col-extra">Last 5</th>
                         </tr>
                     </thead>
@@ -113,7 +118,14 @@
                             <td class="col-optional">{{ row['F'] }}</td>
                             <td class="col-optional">{{ row['A'] }}</td>
                             <td class="col-important">{{ row['Points Diff'] }}</td>
-                            <td class="col-important">{{ row['Points'] }}</td>
+                            <td class="col-important">
+                                {{ row['Points'] }}
+                                {% if row['H2H Points']|int > 0 %}
+                                    <span class="h2h-info">
+                                        (H2H: {{ row['H2H Points']|int }}/{% if row['H2H Diff']|int > 0 %}+{% endif %}{{ row['H2H Diff']|int }})
+                                    </span>
+                                {% endif %}
+                            </td>
                             <td class="last-five-cell col-extra">
                                 {% if row['Last 5 Games'] %}
                                     {% for game in row['Last 5 Games'] %}

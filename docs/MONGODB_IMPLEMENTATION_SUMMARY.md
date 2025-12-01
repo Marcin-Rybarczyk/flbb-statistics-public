@@ -34,7 +34,7 @@ This document summarizes the MongoDB integration implementation for the FLBB Sta
    - Basic usage demonstration
    - References to comprehensive docs
 
-5. **`examples/README.md`**
+5. **`docs/EXAMPLES.md`**
    - Examples directory documentation
 
 ### Files Modified
@@ -111,7 +111,7 @@ MONGODB_DATABASE=flbb-statistics
 
 ✅ **games Collection**
 - Stores individual game records
-- Indexes: GameId (unique), GameDivisionName, SeasonId
+- Indexes: GameId + SeasonId (composite unique - primary key), GameId (non-unique), GameDivisionName, SeasonId
 - Automatic metadata: _stored_at timestamp
 
 ### Testing

@@ -291,7 +291,8 @@ Stores individual game records with the following structure:
 ```
 
 **Indexes:**
-- `GameId` (unique) - Fast lookup by game ID
+- `GameId + SeasonId` (composite unique) - Primary key for game identification
+- `GameId` (non-unique) - Fast lookup by game ID alone
 - `GameDivisionName` - Query games by division
 - `SeasonId` - Query games by season
 

@@ -5,6 +5,9 @@ Add-Type -Path "$ROOT\Net40\HtmlAgilityPack.dll"
 # Import cache helper functions
 . "$ROOT\cache_helper.ps1"
 
+# Import MongoDB helper functions (optional - only used if MongoDB is enabled)
+. "$ROOT\mongodb_helper.ps1"
+
 # Load configuration from config.json
 $CONFIG_FILEPATH = "$ROOT/config.json"
 if (Test-Path $CONFIG_FILEPATH) {
@@ -186,10 +189,34 @@ function ChunkBy($items, [int]$size) {
 function Invoke-MultipleDownloadRawHtml($appConfig, $urls, $forceToDownload = $false) {
     $chunks = ChunkBy -items $urls -size $appConfig.NumberOfParallelDownloads
     $downloads = 0
+    $skipped = 0
+    
     foreach ($chunk in $chunks) {
         foreach ($url in $chunk) {
             $filepath = Get-FilepathBy -appConfig $appConfig -url $url
+            
+            # Check if we should skip this download
+            $shouldDownload = $false
+            
+            # First check: file doesn't exist or force download
             if (-not (Test-Path $filepath) -or $forceToDownload) {
+                $shouldDownload = $true
+                
+                # Second check: MongoDB deduplication (if enabled)
+                # Extract game ID from URL to check MongoDB
+                if ($url -match $PATTERN_GAME_URL) {
+                    $gameId = $Matches[1]
+                    
+                    # Check if game already exists in MongoDB with status 'finished'
+                    if (Test-GameInMongoDB -GameId $gameId -Status "finished") {
+                        Write-Host "  Skipping game $gameId - already finished in MongoDB" -ForegroundColor Yellow
+                        $shouldDownload = $false
+                        $skipped++
+                    }
+                }
+            }
+            
+            if ($shouldDownload) {
                 Write-Debug "Downloading $url"
                 $divisionName = $url.Split("/")[-1]
                 $fullGameStatsRawDivisionDirectory = "$($appConfig.FullGameStatsRawDirectory)/$divisionName"
@@ -206,6 +233,10 @@ function Invoke-MultipleDownloadRawHtml($appConfig, $urls, $forceToDownload = $f
         Get-Job | Remove-Job
         $downloads += $chunk.Count
         Write-Host "Downloaded $([System.Math]::Round($downloads/$urls.Count *100,0))% ($downloads out of $($urls.Count))"
+    }
+    
+    if ($skipped -gt 0) {
+        Write-Host "Skipped $skipped games already finished in MongoDB" -ForegroundColor Green
     }
 }
 function Get-GameTimeFromMatchNode($matchNode) {

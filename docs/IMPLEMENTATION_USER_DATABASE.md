@@ -146,7 +146,7 @@ python3 scripts/generate_password.py --delete-user <username>
   - Troubleshooting
   - Best practices
 
-- `scripts/README_PASSWORD.md` - Password script guide
+- `docs/README_PASSWORD.md` - Password script guide
   - Quick start examples
   - Command reference
   - Security best practices

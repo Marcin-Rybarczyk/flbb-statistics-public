@@ -17,16 +17,17 @@ from .utils import (calculate_standings_by_division, get_highest_scoring_games,
                    get_top_foulers, get_referee_statistics, get_referee_fouls_per_game,
                    get_referees_least_fouls_per_game, get_biggest_wins, get_biggest_leads,
                    get_most_tie_scores, get_most_lead_changes, get_longest_duration_games,
-                   get_player_shooting_efficiency,
+                   get_player_shooting_efficiency, get_biggest_scoring_streaks,
                    get_starting_five_vs_bench_stats, get_double_digit_scorers, get_consistent_scorers,
                    get_player_game_impact_analysis, get_player_foul_impact_analysis,
                    get_best_player_combinations, get_referee_game_impact_analysis, get_all_fixtures_data,
                    get_fixtures_matrix_data, get_data_source_info, get_season_info, 
                    get_website_config, list_available_archives, import_season_archive, export_season_archive,
-                   get_all_players_list, get_player_detail_stats, get_game_details, get_referee_detail_stats,
+                   get_all_players_list, get_player_detail_stats, get_game_details, generate_game_review, get_referee_detail_stats,
                    get_team_detail_stats, get_all_referees_list, get_all_games_list,
                    get_player_hover_stats, get_team_hover_stats, get_referee_hover_stats, get_game_hover_stats,
-                   get_division_hover_stats, calculate_referee_performance_index, get_closest_games_by_team, CSV_FILEPATH)
+                   get_division_hover_stats, calculate_referee_performance_index, get_closest_games_by_team,
+                   extract_age_sex_group_from_division, get_team_name_with_group_suffix, CSV_FILEPATH)
 from .version import get_version_info
 from .user_database import (authenticate_user, get_user_preferences, update_user_preferences,
                             create_user, list_users, update_user_password, delete_user, update_user_level)
@@ -257,11 +258,12 @@ def get_team_logo_url(team_name):
     normalized_name = normalize_team_name(team_name)
     logos_dir = "logos"
     
-    # Check for PNG files (our standard format)
-    png_file = f"{normalized_name}.png"
-    png_path = os.path.join(logos_dir, png_file)
-    if os.path.exists(png_path):
-        return f"/logos/{png_file}"
+    # Check for PNG files (our standard format) - check both .png and .PNG
+    for png_ext in ['.png', '.PNG']:
+        png_file = f"{normalized_name}{png_ext}"
+        png_path = os.path.join(logos_dir, png_file)
+        if os.path.exists(png_path):
+            return f"/logos/{png_file}"
     
     # Check for other formats
     for ext in ['.jpg', '.jpeg', '.gif', '.svg']:
@@ -280,6 +282,12 @@ def get_team_logo_url(team_name):
 
 # Make logo function available to templates
 app.jinja_env.globals.update(get_team_logo_url=get_team_logo_url)
+
+# Make age/sex group functions available to templates
+app.jinja_env.globals.update(
+    extract_age_sex_group_from_division=extract_age_sex_group_from_division,
+    get_team_name_with_group_suffix=get_team_name_with_group_suffix
+)
 
 # Load and process the data
 data = load_game_data()
@@ -343,6 +351,7 @@ def statistics():
     highest_games = get_highest_scoring_games(data, 10, division=selected_division)
     biggest_wins = get_biggest_wins(data, 10, division=selected_division)
     biggest_leads = get_biggest_leads(data, 10, division=selected_division)
+    biggest_streaks = get_biggest_scoring_streaks(data, 10, division=selected_division)
     most_ties = get_most_tie_scores(data, 10, division=selected_division)
     most_lead_changes = get_most_lead_changes(data, 10, division=selected_division)
     longest_duration_games = get_longest_duration_games(data, 20, division=selected_division)
@@ -351,6 +360,7 @@ def statistics():
                          highest_games=highest_games,
                          biggest_wins=biggest_wins,
                          biggest_leads=biggest_leads,
+                         biggest_streaks=biggest_streaks,
                          most_ties=most_ties,
                          most_lead_changes=most_lead_changes,
                          longest_duration_games=longest_duration_games,
@@ -655,10 +665,14 @@ def game_detail(game_id):
     if not game_details:
         return render_template('game_detail.html', error=f"Game {game_id} not found", all_games=all_games, game_id=game_id, data_source_info=data_source_info)
     
+    # Generate funny game review
+    game_review = generate_game_review(game_details)
+    
     return render_template('game_detail.html',
                          game=game_details,
                          all_games=all_games,
                          game_id=game_id,
+                         game_review=game_review,
                          data_source_info=data_source_info)
 
 @app.route('/game-details')

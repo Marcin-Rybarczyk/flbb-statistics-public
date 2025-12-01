@@ -4,6 +4,9 @@ $DATA_ROOT = Join-Path -Path $PARENT_ROOT -ChildPath "data"
 
 Add-Type -Path "$ROOT\Net40\HtmlAgilityPack.dll"
 
+# Import MongoDB helper functions (optional - only used if MongoDB is enabled)
+. "$ROOT\mongodb_helper.ps1"
+
 # Load configuration from config.json
 $CONFIG_FILEPATH = "$ROOT/config.json"
 if (Test-Path $CONFIG_FILEPATH) {
@@ -638,6 +641,15 @@ function Invoke-CreateGameStatsJson($appConfig, $game, $forceToProcess = $false)
     #  $json = New-FullGameStatsJsonWithMeasurement -content $content -gameId $($game.gameId) -appConfig $appConfig
     Set-Content -Path $outputFilepath -Value $json -Encoding utf8 -NoNewline
     Write-Host "Game $($game.gameId) processed"
+    
+    # Store in MongoDB if enabled
+    # This allows for deduplication in future runs and enables parallel CSV generation
+    if (Test-MongoDBEnabled) {
+        $storeSuccess = Set-GameInMongoDB -GameId $($game.gameId) -JsonFilePath $outputFilepath -Status "finished" -CsvGenerated $false
+        if ($storeSuccess) {
+            Write-Debug "Game $($game.gameId) stored in MongoDB"
+        }
+    }
 }
 function Main ($appConfig) {
     #    $games = $appConfig.GamesDb | Where-Object { $_.gameDivisionName -eq "division1-hommes" -and $_.GameStatus -eq "Finished" }

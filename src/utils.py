@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import json
+import re
 from collections import defaultdict
 import zipfile
 import tempfile
@@ -8,6 +9,8 @@ from datetime import datetime
 import html
 import unicodedata
 import ast
+import random
+import logging
 
 
 FULL_GAME_STATS_OUTPUT_DIR = "full-game-stats-output"
@@ -307,6 +310,80 @@ def load_data_from_directories(root_dir):
 
 # data.to_csv(CSV_FILEPATH)
 
+def calculate_head_to_head(df, teams):
+    """
+    Calculate head-to-head (H2H) records between a group of teams.
+    
+    Parameters:
+    df (DataFrame): The game data
+    teams (list): List of team names to calculate H2H for
+    
+    Returns:
+    dict: Dictionary mapping team names to their H2H stats
+          {'team_name': {'h2h_points': int, 'h2h_diff': int}}
+    """
+    h2h_stats = {team: {'h2h_points': 0, 'h2h_diff': 0} for team in teams}
+    
+    # Filter games to only those between the specified teams
+    h2h_games = df[
+        (df['HomeTeamName'].isin(teams)) & 
+        (df['AwayTeamName'].isin(teams))
+    ]
+    
+    # Calculate H2H points and score differences
+    for _, row in h2h_games.iterrows():
+        home_team = row['HomeTeamName']
+        away_team = row['AwayTeamName']
+        home_score = row['FinalHomeScore']
+        away_score = row['FinalAwayScore']
+        
+        # Update score differences
+        h2h_stats[home_team]['h2h_diff'] += (home_score - away_score)
+        h2h_stats[away_team]['h2h_diff'] += (away_score - home_score)
+        
+        # Check if this is a forfeit game
+        is_forfeit = False
+        forfeiting_team = None
+        game_events = row.get('GameEvents', '')
+        if game_events:
+            try:
+                if isinstance(game_events, str):
+                    events_data = ast.literal_eval(game_events)
+                else:
+                    events_data = game_events
+                
+                if isinstance(events_data, list):
+                    for event in events_data:
+                        if isinstance(event, dict) and event.get('EventAction') == 'Forfeit':
+                            is_forfeit = True
+                            location = str(row.get('GameLocation', ''))
+                            if 'FORFAIT' in location.upper():
+                                parts = location.split('FORFAIT')
+                                if len(parts) > 1:
+                                    forfeit_info = parts[1].strip()
+                                    if home_team in forfeit_info:
+                                        forfeiting_team = home_team
+                                    elif away_team in forfeit_info:
+                                        forfeiting_team = away_team
+                            break
+            except (ValueError, SyntaxError):
+                pass
+        
+        # Update H2H points
+        if is_forfeit and forfeiting_team:
+            # Use league points from the data for forfeit games
+            h2h_stats[home_team]['h2h_points'] += row.get('HomeTeamLeaguePoints', 1)
+            h2h_stats[away_team]['h2h_points'] += row.get('AwayTeamLeaguePoints', 1)
+        elif home_score > away_score:
+            h2h_stats[home_team]['h2h_points'] += 2
+            h2h_stats[away_team]['h2h_points'] += 1
+        else:
+            h2h_stats[home_team]['h2h_points'] += 1
+            h2h_stats[away_team]['h2h_points'] += 2
+    
+    return h2h_stats
+
+
 # Function to calculate standings
 def calculate_standings(df):
     standings = defaultdict(lambda: {
@@ -418,9 +495,35 @@ def calculate_standings(df):
         games = list(reversed(games))  # Reverse to show most recent first
         last_five_games.append(games)
     standings_df['Last 5 Games'] = last_five_games
+    
+    # Calculate head-to-head records for tiebreaking
+    # Initialize H2H columns
+    standings_df['H2H Points'] = 0
+    standings_df['H2H Diff'] = 0
+    
+    # Group teams by points to identify ties
+    points_groups = standings_df.groupby('Points')['Team Name'].apply(list).to_dict()
+    
+    # For each group of teams with same points (2 or more teams), calculate H2H
+    for points, teams in points_groups.items():
+        if len(teams) >= 2:
+            # Calculate head-to-head stats for this group
+            h2h_stats = calculate_head_to_head(df, teams)
+            
+            # Update the standings dataframe with H2H stats
+            for team in teams:
+                mask = standings_df['Team Name'] == team
+                standings_df.loc[mask, 'H2H Points'] = h2h_stats[team]['h2h_points']
+                standings_df.loc[mask, 'H2H Diff'] = h2h_stats[team]['h2h_diff']
 
-    # Sort by Points, then Points Diff
-    standings_df.sort_values(by=['Points', 'Points Diff'], ascending=[False, False], inplace=True)
+    # Sort by Points, then H2H Points (for tied teams), then H2H Diff (for tied teams), then overall Points Diff
+    # Note: Pandas sort_values() applies columns hierarchically - H2H stats only affect ranking
+    # when Points are equal, so teams with different Points won't be compared on H2H values
+    standings_df.sort_values(
+        by=['Points', 'H2H Points', 'H2H Diff', 'Points Diff'], 
+        ascending=[False, False, False, False], 
+        inplace=True
+    )
     standings_df.reset_index(drop=True, inplace=True)
     standings_df.index += 1
     standings_df.index.name = 'Rank'
@@ -1768,6 +1871,16 @@ def analyze_game_events(data):
         current_advantage = 0
         previous_leader = None
         
+        # Variables for tracking scoring streaks
+        prev_home_score = 0
+        prev_away_score = 0
+        current_streak_team = None
+        current_streak_points = 0
+        max_streak_points = 0
+        max_streak_team = None
+        max_streak_home_points = 0
+        max_streak_away_points = 0
+        
         for event in sorted_events:
             if not isinstance(event, dict):
                 continue
@@ -1797,10 +1910,84 @@ def analyze_game_events(data):
                     
                 if current_leader is not None:
                     previous_leader = current_leader
+            
+            # Calculate scoring streaks
+            event_score = event.get('EventScore', '')
+            if event_score and ':' in str(event_score):
+                try:
+                    # Parse score "HomeScore : AwayScore"
+                    scores = str(event_score).split(':')
+                    if len(scores) == 2:
+                        home_score = int(scores[0].strip())
+                        away_score = int(scores[1].strip())
+                        
+                        # Determine which team scored and how many points
+                        home_points_scored = home_score - prev_home_score
+                        away_points_scored = away_score - prev_away_score
+                        
+                        # Validate point differences are non-negative (handle score corrections)
+                        # Skip events where scores decreased (likely data issues or corrections)
+                        if home_points_scored < 0 or away_points_scored < 0:
+                            # Update scores but don't count this for streaks
+                            prev_home_score = home_score
+                            prev_away_score = away_score
+                            continue
+                        
+                        if home_points_scored > 0 and away_points_scored == 0:
+                            # Home team scored
+                            if current_streak_team == 'home':
+                                current_streak_points += home_points_scored
+                            else:
+                                current_streak_team = 'home'
+                                current_streak_points = home_points_scored
+                        elif away_points_scored > 0 and home_points_scored == 0:
+                            # Away team scored
+                            if current_streak_team == 'away':
+                                current_streak_points += away_points_scored
+                            else:
+                                current_streak_team = 'away'
+                                current_streak_points = away_points_scored
+                        elif home_points_scored > 0 and away_points_scored > 0:
+                            # Both teams scored (unusual event, likely simultaneous scoring)
+                            # End current streak and start new one for team that scored more
+                            if home_points_scored > away_points_scored:
+                                current_streak_team = 'home'
+                                current_streak_points = home_points_scored
+                            elif away_points_scored > home_points_scored:
+                                current_streak_team = 'away'
+                                current_streak_points = away_points_scored
+                            else:
+                                # Equal points, reset streak
+                                current_streak_team = None
+                                current_streak_points = 0
+                        
+                        # Update max streak if current is larger
+                        if current_streak_points > max_streak_points:
+                            max_streak_points = current_streak_points
+                            max_streak_team = current_streak_team
+                            if current_streak_team == 'home':
+                                max_streak_home_points = current_streak_points
+                                max_streak_away_points = 0
+                            elif current_streak_team == 'away':
+                                max_streak_home_points = 0
+                                max_streak_away_points = current_streak_points
+                        
+                        # Update previous scores
+                        prev_home_score = home_score
+                        prev_away_score = away_score
+                except (ValueError, IndexError):
+                    pass
         
         # Calculate biggest win margin
         win_margin = abs(final_home_score - final_away_score)
         winner = home_team if final_home_score > final_away_score else away_team
+        
+        # Determine which team had the biggest streak
+        streak_team_name = None
+        if max_streak_team == 'home':
+            streak_team_name = home_team
+        elif max_streak_team == 'away':
+            streak_team_name = away_team
         
         game_analysis = {
             'GameId': game_id,
@@ -1814,7 +2001,11 @@ def analyze_game_events(data):
             'MaxAwayLead': max_away_lead,
             'BiggestLead': max(max_home_lead, max_away_lead),
             'WinMargin': win_margin,
-            'Winner': winner
+            'Winner': winner,
+            'BiggestStreak': max_streak_points,
+            'StreakTeam': streak_team_name,
+            'StreakHomePoints': max_streak_home_points,
+            'StreakAwayPoints': max_streak_away_points
         }
         
         game_analyses.append(game_analysis)
@@ -1912,6 +2103,30 @@ def get_biggest_wins(data, top_n=10, division=None):
         return pd.DataFrame()
     
     return game_analysis.nlargest(top_n, 'WinMargin')
+
+def get_biggest_scoring_streaks(data, top_n=10, division=None):
+    """
+    Get games with the biggest scoring streaks (consecutive points by one team).
+    
+    Parameters:
+    data (DataFrame): The game data
+    top_n (int): Number of games to return
+    division (str): Optional division filter
+    
+    Returns:
+    DataFrame: Games with biggest scoring streaks
+    """
+    # Filter by division if specified
+    if division:
+        data = data[data['GameDivisionDisplay'] == division]
+    
+    game_analysis = analyze_game_events(data)
+    
+    if game_analysis.empty:
+        return pd.DataFrame()
+    
+    return game_analysis.nlargest(top_n, 'BiggestStreak')
+
 
 def get_longest_duration_games(data, top_n=20, division=None):
     """
@@ -3113,6 +3328,127 @@ def normalize_name_for_matching(name):
         if unicodedata.category(c) != 'Mn'
     )
     return normalized
+
+
+def extract_age_sex_group_from_division(division_name):
+    """
+    Extract age and sex group information from division name.
+    
+    Analyzes the division name to determine the age and/or sex group category.
+    Common patterns:
+    - M-* : Men's/Adult Men
+    - W-* or Damen-* : Women's
+    - U18, U16, U14, etc. : Youth age groups
+    - Mixed combinations possible
+    
+    Parameters:
+    division_name (str): The division name to analyze (e.g., "M-Division 1", "W-Nationale 1", "U18-Division")
+    
+    Returns:
+    dict: Dictionary with 'sex' (M/W/Mixed), 'age_group' (Adult/U18/U16/etc.), and 'raw_group' (original indicator)
+    """
+    if not division_name or not isinstance(division_name, str):
+        return {'sex': None, 'age_group': 'Adult', 'raw_group': None}
+    
+    division_upper = division_name.upper()
+    
+    # Default values
+    sex = None
+    age_group = 'Adult'
+    raw_group = None
+    
+    # Check for sex indicators (check women first to avoid 'DAMEN' matching 'MEN')
+    if division_upper.startswith('W-') or 'WOMEN' in division_upper or 'DAMEN' in division_upper or 'DAMES' in division_upper:
+        sex = 'W'
+        raw_group = 'W'
+    elif division_upper.startswith('M-') or 'MEN' in division_upper or 'MESSIEURS' in division_upper:
+        sex = 'M'
+        raw_group = 'M'
+    
+    # Check for age group indicators (U18, U16, U14, U12, etc.)
+    age_match = re.search(r'U(\d{2})', division_upper)
+    if age_match:
+        age_num = age_match.group(1)
+        age_group = f'U{age_num}'
+        raw_group = age_group
+    
+    # Check for other age categories
+    if 'CADET' in division_upper:
+        age_group = 'Cadets'
+        raw_group = 'Cadets'
+    elif 'MINIM' in division_upper:
+        age_group = 'Minimes'
+        raw_group = 'Minimes'
+    elif 'JUNIOR' in division_upper:
+        age_group = 'Juniors'
+        raw_group = 'Juniors'
+    elif 'SENIOR' in division_upper:
+        age_group = 'Seniors'
+        raw_group = 'Seniors'
+    elif 'ESPOIR' in division_upper:
+        age_group = 'Espoirs'
+        raw_group = 'Espoirs'
+    
+    return {
+        'sex': sex,
+        'age_group': age_group,
+        'raw_group': raw_group
+    }
+
+
+def get_team_name_with_group_suffix(team_name, division_name, include_default=False):
+    """
+    Add age/sex group suffix to team name based on division.
+    
+    The main group (Adult Men) remains without suffix by default, unless include_default=True.
+    Other groups get appropriate suffixes for clarity:
+    - Women's teams: "(Women)"
+    - Youth teams: "(U18)", "(U16)", etc.
+    - Youth with sex: "(U18 Boys)", "(U16 Girls)", etc.
+    - Special categories: "(Cadets)", "(Juniors)", etc.
+    
+    Parameters:
+    team_name (str): The base team name
+    division_name (str): The division name to extract group from
+    include_default (bool): If True, also add suffix for default group (Adult Men)
+    
+    Returns:
+    str: Team name with appropriate group suffix
+    """
+    if not team_name:
+        return team_name
+    
+    # Extract group information
+    group_info = extract_age_sex_group_from_division(division_name)
+    
+    # Determine suffix based on group type
+    suffix = None
+    
+    # Check if we have a youth/age group (not Adult)
+    if group_info['age_group'] != 'Adult':
+        # If we also have sex information, combine them
+        if group_info['sex'] == 'M':
+            suffix = f"{group_info['age_group']} Boys"
+        elif group_info['sex'] == 'W':
+            suffix = f"{group_info['age_group']} Girls"
+        else:
+            # Age group only, no sex specified
+            suffix = group_info['age_group']
+    # Adult divisions
+    elif group_info['sex'] == 'W':
+        # Women's adult teams
+        suffix = 'Women'
+    elif group_info['sex'] == 'M' and include_default:
+        # Men's adult teams (only if explicitly requested)
+        suffix = 'Men'
+    # Default case (Adult Men): no suffix unless include_default=True
+    # This is already handled by the elif above
+    
+    # Add suffix if determined
+    if suffix:
+        return f"{team_name} ({suffix})"
+    
+    return team_name
 
 
 def normalize_team_name_for_matching(team_name):
@@ -5024,16 +5360,242 @@ def predict_starting_five(players):
     return players
 
 
-def get_future_game_details(game_id, game):
+def generate_game_recommendations(data, home_team, away_team, home_players, away_players):
+    """
+    Generate strategic recommendations for an upcoming game based on:
+    - Recent team performance (last 5 games)
+    - Key players and their recent form
+    - Multi-team players and their advantages
+    - Head-to-head history
+    
+    Parameters:
+    data (DataFrame): The game data (finished games)
+    home_team (str): Home team name
+    away_team (str): Away team name
+    home_players (list): List of home team players with statistics
+    away_players (list): List of away team players with statistics
+    
+    Returns:
+    dict: Dictionary containing recommendations for both teams
+    """
+    import pandas as pd
+    
+    recommendations = {
+        'home_team': {
+            'name': home_team,
+            'key_players': [],
+            'strengths': [],
+            'weaknesses': [],
+            'strategy_tips': []
+        },
+        'away_team': {
+            'name': away_team,
+            'key_players': [],
+            'strengths': [],
+            'weaknesses': [],
+            'strategy_tips': []
+        },
+        'multi_team_insights': [],
+        'head_to_head': None,
+        'general_insights': []
+    }
+    
+    # Identify multi-team players
+    multi_team_players = _get_multi_team_players(data)
+    
+    # Analyze home team
+    home_analysis = _analyze_team_for_recommendations(
+        data, home_team, home_players, multi_team_players, is_home=True
+    )
+    recommendations['home_team'].update(home_analysis)
+    
+    # Analyze away team
+    away_analysis = _analyze_team_for_recommendations(
+        data, away_team, away_players, multi_team_players, is_home=False
+    )
+    recommendations['away_team'].update(away_analysis)
+    
+    # Multi-team player insights
+    home_multi = [p for p in home_players if p.get('Player Name') in multi_team_players]
+    away_multi = [p for p in away_players if p.get('Player Name') in multi_team_players]
+    
+    for player in home_multi:
+        player_name = player.get('Player Name')
+        teams = multi_team_players.get(player_name, [])
+        recommendations['multi_team_insights'].append({
+            'team': home_team,
+            'player': player_name,
+            'also_plays_for': [t for t in teams if t != home_team],
+            'avg_points': player.get('Avg Points Per Game', 0),
+            'insight': f"{player_name} plays for multiple teams and brings versatile experience"
+        })
+    
+    for player in away_multi:
+        player_name = player.get('Player Name')
+        teams = multi_team_players.get(player_name, [])
+        recommendations['multi_team_insights'].append({
+            'team': away_team,
+            'player': player_name,
+            'also_plays_for': [t for t in teams if t != away_team],
+            'avg_points': player.get('Avg Points Per Game', 0),
+            'insight': f"{player_name} plays for multiple teams and brings versatile experience"
+        })
+    
+    # Head-to-head analysis
+    h2h = calculate_head_to_head(data, [home_team, away_team])
+    if h2h:
+        home_h2h = h2h.get(home_team, {})
+        away_h2h = h2h.get(away_team, {})
+        recommendations['head_to_head'] = {
+            'home_points': home_h2h.get('h2h_points', 0),
+            'away_points': away_h2h.get('h2h_points', 0),
+            'home_diff': home_h2h.get('h2h_diff', 0),
+            'away_diff': away_h2h.get('h2h_diff', 0)
+        }
+        
+        # Add head-to-head insight
+        if home_h2h.get('h2h_points', 0) > away_h2h.get('h2h_points', 0):
+            recommendations['general_insights'].append(
+                f"{home_team} has historically dominated this matchup"
+            )
+        elif away_h2h.get('h2h_points', 0) > home_h2h.get('h2h_points', 0):
+            recommendations['general_insights'].append(
+                f"{away_team} has the edge in historical matchups"
+            )
+        else:
+            recommendations['general_insights'].append(
+                "This matchup has been evenly contested historically"
+            )
+    
+    # Overall matchup insight
+    home_avg = _calculate_team_avg_points(home_players)
+    away_avg = _calculate_team_avg_points(away_players)
+    
+    if home_avg > away_avg * 1.1:
+        recommendations['general_insights'].append(
+            f"{home_team} averages significantly more points ({home_avg:.1f} vs {away_avg:.1f})"
+        )
+    elif away_avg > home_avg * 1.1:
+        recommendations['general_insights'].append(
+            f"{away_team} averages significantly more points ({away_avg:.1f} vs {home_avg:.1f})"
+        )
+    else:
+        recommendations['general_insights'].append(
+            f"Evenly matched teams in scoring ({home_avg:.1f} vs {away_avg:.1f} avg points)"
+        )
+    
+    return recommendations
+
+
+def _analyze_team_for_recommendations(data, team_name, players, multi_team_players, is_home=True):
+    """
+    Analyze a team and generate strategic recommendations.
+    
+    Returns:
+    dict: Analysis results with key players, strengths, weaknesses, and strategy tips
+    """
+    if not players:
+        return {
+            'key_players': [],
+            'strengths': [],
+            'weaknesses': [],
+            'strategy_tips': []
+        }
+    
+    # Identify key players (top scorers)
+    sorted_players = sorted(
+        players,
+        key=lambda p: p.get('Avg Points Per Game', 0),
+        reverse=True
+    )
+    
+    key_players = []
+    for i, player in enumerate(sorted_players[:3]):  # Top 3 players
+        key_players.append({
+            'name': player.get('Player Name', 'Unknown'),
+            'avg_points': player.get('Avg Points Per Game', 0),
+            'total_points': player.get('Total Points', 0),
+            'games_played': player.get('Games Played', 0),
+            'is_multi_team': player.get('Player Name') in multi_team_players,
+            'role': 'Primary Scorer' if i == 0 else 'Key Contributor'
+        })
+    
+    # Analyze strengths and weaknesses
+    strengths = []
+    weaknesses = []
+    strategy_tips = []
+    
+    # Calculate team statistics
+    total_3p = sum(p.get('3P Made Shots', 0) for p in players)
+    total_2p = sum(p.get('2P Made Shots', 0) for p in players)
+    total_games = max((p.get('Games Played', 1) for p in players), default=1)
+    avg_3p_per_game = total_3p / total_games if total_games > 0 else 0
+    avg_2p_per_game = total_2p / total_games if total_games > 0 else 0
+    
+    # 3-point shooting analysis
+    if avg_3p_per_game > 6:
+        strengths.append(f"Strong 3-point shooting ({avg_3p_per_game:.1f} 3-pointers/game)")
+        strategy_tips.append("🎯 Defend the perimeter aggressively")
+    elif avg_3p_per_game < 3:
+        weaknesses.append(f"Limited 3-point threat ({avg_3p_per_game:.1f} 3-pointers/game)")
+        strategy_tips.append("📊 Focus on inside defense")
+    
+    # Depth analysis
+    players_with_minutes = [p for p in players if p.get('Games Played', 0) > 2]
+    if len(players_with_minutes) > 8:
+        strengths.append(f"Deep bench with {len(players_with_minutes)} active players")
+    elif len(players_with_minutes) < 6:
+        weaknesses.append(f"Limited rotation with only {len(players_with_minutes)} regular players")
+        strategy_tips.append("⏱️ Push the pace to tire their starters")
+    
+    # Star player dependency
+    if key_players:
+        team_avg = _calculate_team_avg_points(players)
+        top_scorer_pct = (key_players[0]['avg_points'] / team_avg) * 100 if team_avg > 0 else 0
+        if top_scorer_pct > 35:
+            weaknesses.append(f"Heavy reliance on {key_players[0]['name']} ({top_scorer_pct:.0f}% of scoring)")
+            strategy_tips.append(f"🛡️ Double-team {key_players[0]['name']} to disrupt their offense")
+        else:
+            strengths.append("Balanced scoring across multiple players")
+    
+    # Home court advantage consideration
+    if is_home:
+        strategy_tips.append("🏠 Leverage home court advantage and crowd support")
+    else:
+        strategy_tips.append("✈️ Stay focused despite playing away from home")
+    
+    return {
+        'key_players': key_players,
+        'strengths': strengths,
+        'weaknesses': weaknesses,
+        'strategy_tips': strategy_tips
+    }
+
+
+def _calculate_team_avg_points(players):
+    """Calculate team average points per game from player list."""
+    if not players:
+        return 0.0
+    
+    # Use the maximum games played to calculate team average
+    games_played_list = [p.get('Games Played', 0) for p in players if p.get('Games Played', 0) > 0]
+    max_games = max(games_played_list, default=1)
+    total_points = sum(p.get('Total Points', 0) for p in players)
+    
+    return total_points / max_games if max_games > 0 else 0.0
+
+
+def get_future_game_details(game_id, game, data=None):
     """
     Get comprehensive details for a future game.
     
     Parameters:
     game_id (str): The game ID
     game (dict): Future game data from gamesDB.json
+    data (DataFrame): Optional game data for generating recommendations
     
     Returns:
-    dict: Dictionary containing future game details with predicted starting lineups
+    dict: Dictionary containing future game details with predicted starting lineups and recommendations
     """
     from datetime import datetime
     
@@ -5138,13 +5700,26 @@ def get_future_game_details(game_id, game):
         }
     ]
     
+    # Generate game recommendations if data is available
+    recommendations = None
+    if data is not None and not data.empty:
+        try:
+            recommendations = generate_game_recommendations(
+                data, home_team, away_team, home_players, away_players
+            )
+        except Exception as e:
+            # If recommendation generation fails, log but don't break
+            logging.warning(f"Failed to generate recommendations: {e}")
+            recommendations = None
+    
     return {
         'basic_info': basic_info,
         'teams': teams_data,
         'events': [],
         'score_evolution': [],
         'game_stats': None,
-        'referees': []
+        'referees': [],
+        'recommendations': recommendations
     }
 
 
@@ -5176,7 +5751,7 @@ def get_game_details(data, game_id):
         for game in future_games:
             if str(game.get('GameId')) == game_id:
                 # Found a future game - use the future game details function
-                return get_future_game_details(game_id, game)
+                return get_future_game_details(game_id, game, data)
     
     # Find the game in finished games
     game_row = data[data['GameId'].astype(str) == game_id]
@@ -6354,4 +6929,526 @@ def get_division_hover_stats(data, division_name):
         'division_name': division_name,
         'top_teams': top_teams,
         'top_scorers': top_scorers
+    }
+
+
+def _generate_game_flow_narrative(game_details, home_team, away_team, winner, home_score, away_score, detected_events, top_scorers):
+    """
+    Generate a detailed narrative describing the flow of the game based on events and statistics.
+    
+    Parameters:
+    game_details (dict): Complete game details
+    home_team (str): Home team name
+    away_team (str): Away team name
+    winner (str): Winner team name
+    home_score (int): Final home team score
+    away_score (int): Final away team score
+    detected_events (list): List of detected event types
+    top_scorers (list): List of top scoring players
+    
+    Returns:
+    str: Detailed game flow narrative
+    """
+    narrative_parts = []
+    score_evolution = game_details.get('score_evolution', [])
+    game_stats = game_details.get('game_stats', {})
+    teams = game_details.get('teams', [])
+    quarter_durations = game_details.get('quarter_durations', {})
+    
+    # Get team totals
+    home_team_data = next((t for t in teams if t.get('name') == home_team), None)
+    away_team_data = next((t for t in teams if t.get('name') == away_team), None)
+    
+    # Opening paragraph - set the scene
+    opening_phrases = [
+        f"📰 **Press Review:** What a match we witnessed today between {home_team} and {away_team}!",
+        f"📰 **Game Report:** The showdown between {home_team} and {away_team} had it all!",
+        f"📰 **Match Analysis:** {home_team} faced off against {away_team} in an unforgettable encounter!",
+        f"📰 **Press Conference:** Let's break down the thriller between {home_team} and {away_team}!",
+    ]
+    narrative_parts.append(random.choice(opening_phrases))
+    
+    # Analyze quarter-by-quarter flow if score evolution data is available
+    if score_evolution and len(score_evolution) > 0:
+        quarter_analysis = _analyze_quarters(score_evolution, home_team, away_team, quarter_durations)
+        if quarter_analysis:
+            narrative_parts.append(quarter_analysis)
+    
+    # Team performance analysis
+    if home_team_data and away_team_data:
+        team_analysis = _analyze_team_performance(
+            home_team_data, 
+            away_team_data, 
+            home_team, 
+            away_team,
+            winner,
+            home_score,
+            away_score
+        )
+        if team_analysis:
+            narrative_parts.append(team_analysis)
+    
+    # Key player performances
+    player_analysis = _analyze_key_players(teams, top_scorers, home_team, away_team)
+    if player_analysis:
+        narrative_parts.append(player_analysis)
+    
+    # Game-deciding moments
+    if game_stats.get('lead_changes', 0) > 0 or game_stats.get('tied_scores', 0) > 0:
+        momentum_analysis = _analyze_momentum_shifts(game_stats, winner, detected_events)
+        if momentum_analysis:
+            narrative_parts.append(momentum_analysis)
+    
+    # Final verdict
+    loser = away_team if winner == home_team else home_team
+    score_diff = abs(home_score - away_score)
+    
+    verdict_phrases = [
+        f"In the end, {winner} prevailed with a {score_diff}-point margin. {loser} fought hard but couldn't find the answer.",
+        f"The final whistle confirmed {winner}'s superiority, leaving {loser} wondering what could have been.",
+        f"{winner} walked away victorious, {score_diff} points clear of a resilient {loser} side.",
+        f"Despite {loser}'s efforts, {winner} proved too strong, closing out with a {score_diff}-point advantage.",
+    ]
+    narrative_parts.append(random.choice(verdict_phrases))
+    
+    return "\n\n".join(narrative_parts)
+
+
+def _analyze_quarters(score_evolution, home_team, away_team, quarter_durations):
+    """Analyze quarter-by-quarter performance"""
+    analysis_parts = []
+    
+    # Group scoring events by quarter
+    quarters_data = {}
+    for point in score_evolution:
+        quarter = point.get('quarter', 1)
+        if quarter not in quarters_data:
+            quarters_data[quarter] = {
+                'points': [],
+                'home_score_start': 0,
+                'away_score_start': 0,
+                'home_score_end': 0,
+                'away_score_end': 0
+            }
+        quarters_data[quarter]['points'].append(point)
+    
+    # Set start and end scores for each quarter
+    for quarter in sorted(quarters_data.keys()):
+        points = quarters_data[quarter]['points']
+        if points:
+            quarters_data[quarter]['home_score_start'] = points[0].get('home_score', 0)
+            quarters_data[quarter]['away_score_start'] = points[0].get('away_score', 0)
+            quarters_data[quarter]['home_score_end'] = points[-1].get('home_score', 0)
+            quarters_data[quarter]['away_score_end'] = points[-1].get('away_score', 0)
+    
+    # Find the most significant quarter
+    max_scoring_quarter = None
+    max_total_points = 0
+    
+    for quarter, data in quarters_data.items():
+        home_pts = data['home_score_end'] - data['home_score_start']
+        away_pts = data['away_score_end'] - data['away_score_start']
+        total_pts = home_pts + away_pts
+        
+        if total_pts > max_total_points:
+            max_total_points = total_pts
+            max_scoring_quarter = quarter
+    
+    if max_scoring_quarter and max_total_points > 30:
+        q_data = quarters_data[max_scoring_quarter]
+        home_q_pts = q_data['home_score_end'] - q_data['home_score_start']
+        away_q_pts = q_data['away_score_end'] - q_data['away_score_start']
+        
+        phrases = [
+            f"The game exploded in Q{max_scoring_quarter} with {max_total_points} combined points! "
+            f"{home_team} added {home_q_pts} while {away_team} countered with {away_q_pts}. Absolute fireworks! 🎆",
+            
+            f"Quarter {max_scoring_quarter} was pure chaos - {max_total_points} points scored! "
+            f"Both teams went berserk: {home_team} ({home_q_pts}), {away_team} ({away_q_pts}). Mamma mia!",
+            
+            f"Q{max_scoring_quarter} became a scoring festival with {max_total_points} points! "
+            f"{home_team} dropped {home_q_pts}, {away_team} answered with {away_q_pts}. Unbelievable! 🔥",
+        ]
+        analysis_parts.append(random.choice(phrases))
+    
+    # Check for dominant quarter by one team
+    for quarter, data in quarters_data.items():
+        home_q_pts = data['home_score_end'] - data['home_score_start']
+        away_q_pts = data['away_score_end'] - data['away_score_start']
+        diff = abs(home_q_pts - away_q_pts)
+        
+        if diff >= 10:
+            dominant_team = home_team if home_q_pts > away_q_pts else away_team
+            dominant_pts = max(home_q_pts, away_q_pts)
+            weak_pts = min(home_q_pts, away_q_pts)
+            
+            phrases = [
+                f"Q{quarter} belonged to {dominant_team}! They outscored their opponents {dominant_pts}-{weak_pts}. Dominanz pur!",
+                f"In the {quarter}. Quarter, {dominant_team} took control with a {dominant_pts}-{weak_pts} run. Statement made! 💪",
+                f"Quarter {quarter}: {dominant_team} went on a rampage, crushing them {dominant_pts}-{weak_pts}! Brutal!",
+            ]
+            analysis_parts.append(random.choice(phrases))
+            break  # Only report one dominant quarter to avoid redundancy
+    
+    if analysis_parts:
+        return " ".join(analysis_parts)
+    return None
+
+
+def _analyze_team_performance(home_data, away_data, home_team, away_team, winner, home_score, away_score):
+    """Analyze overall team performance"""
+    analysis = []
+    
+    home_totals = home_data.get('totals', {})
+    away_totals = away_data.get('totals', {})
+    
+    winner_data = home_data if winner == home_team else away_data
+    winner_totals = winner_data.get('totals', {})
+    
+    # Analyze shooting performance
+    winner_3p = winner_totals.get('3p', 0)
+    if winner_3p >= 8:
+        phrases = [
+            f"{winner} rained {winner_3p} three-pointers! The arc was on fire! 🎯",
+            f"From downtown: {winner} nailed {winner_3p} triples! Splash city! 💦",
+            f"{winner} bombed {winner_3p} threes! Long-range artillery at its finest! 🚀",
+        ]
+        analysis.append(random.choice(phrases))
+    
+    # Check fouls differential
+    home_fouls = home_totals.get('fouls', 0)
+    away_fouls = away_totals.get('fouls', 0)
+    foul_diff = abs(home_fouls - away_fouls)
+    
+    if foul_diff >= 5:
+        more_fouls_team = home_team if home_fouls > away_fouls else away_team
+        fewer_fouls_team = away_team if home_fouls > away_fouls else home_team
+        phrases = [
+            f"{more_fouls_team} struggled with discipline - {max(home_fouls, away_fouls)} fouls! "
+            f"{fewer_fouls_team} played it smart with only {min(home_fouls, away_fouls)}.",
+            
+            f"Foul trouble hit {more_fouls_team} hard ({max(home_fouls, away_fouls)} fouls) while "
+            f"{fewer_fouls_team} kept it clean ({min(home_fouls, away_fouls)}). Scheiße!",
+        ]
+        analysis.append(random.choice(phrases))
+    
+    if analysis:
+        return " ".join(analysis)
+    return None
+
+
+def _analyze_key_players(teams, top_scorers, home_team, away_team):
+    """Analyze key individual performances"""
+    analysis = []
+    
+    # Get top scorers from each team
+    home_players = []
+    away_players = []
+    
+    for team in teams:
+        team_name = team.get('name', '')
+        for player in team.get('players', []):
+            points = int(player.get('Total Points', 0))
+            if points >= 15:  # Significant contribution
+                player_info = {
+                    'name': player.get('Player Name', 'Unknown'),
+                    'points': points,
+                    'fouls': int(player.get('Total Fouls', 0)),
+                    'team': team_name
+                }
+                if team_name == home_team:
+                    home_players.append(player_info)
+                else:
+                    away_players.append(player_info)
+    
+    # Sort by points
+    home_players.sort(key=lambda x: x['points'], reverse=True)
+    away_players.sort(key=lambda x: x['points'], reverse=True)
+    
+    # Highlight top performers from each team
+    if home_players:
+        top_home = home_players[0]
+        if len(home_players) > 1:
+            phrases = [
+                f"For {home_team}, {top_home['name']} led the charge with {top_home['points']} points, "
+                f"supported by {home_players[1]['name']}'s {home_players[1]['points']}. Teamwork! 🤝",
+                
+                f"{top_home['name']} spearheaded {home_team}'s offense with {top_home['points']} points, "
+                f"while {home_players[1]['name']} chipped in {home_players[1]['points']}. Bella combinazione!",
+            ]
+            analysis.append(random.choice(phrases))
+        else:
+            phrases = [
+                f"{top_home['name']} carried {home_team} with {top_home['points']} points. One-man show! ⭐",
+                f"{home_team}'s offense ran through {top_home['name']} ({top_home['points']} pts). Solo mission!",
+            ]
+            analysis.append(random.choice(phrases))
+    
+    if away_players:
+        top_away = away_players[0]
+        if len(away_players) > 1:
+            phrases = [
+                f"On the other side, {top_away['name']} paced {away_team} with {top_away['points']} points, "
+                f"with {away_players[1]['name']} adding {away_players[1]['points']}.",
+                
+                f"{away_team} countered through {top_away['name']}'s {top_away['points']} points "
+                f"and {away_players[1]['name']}'s {away_players[1]['points']}. Great effort!",
+            ]
+            analysis.append(random.choice(phrases))
+    
+    if analysis:
+        return " ".join(analysis)
+    return None
+
+
+def _analyze_momentum_shifts(game_stats, winner, detected_events):
+    """Analyze momentum and lead changes"""
+    analysis = []
+    
+    lead_changes = game_stats.get('lead_changes', 0)
+    tied_scores = game_stats.get('tied_scores', 0)
+    
+    if lead_changes >= 5:
+        phrases = [
+            f"The momentum swung back and forth {lead_changes} times! "
+            f"Neither team could establish control. What drama! 🎭",
+            
+            f"With {lead_changes} lead changes, this was a proper battle! "
+            f"Both sides traded blows like prizefighters. Che lotta!",
+            
+            f"{lead_changes} times the lead changed hands! "
+            f"Edge-of-your-seat stuff from start to finish! Wahnsinn!",
+        ]
+        analysis.append(random.choice(phrases))
+    
+    if tied_scores >= 5:
+        phrases = [
+            f"The score was knotted {tied_scores} times! Deadlocked wie verrückt!",
+            f"Teams were tied {tied_scores} times - nobody wanted to give an inch! Incroyable!",
+        ]
+        analysis.append(random.choice(phrases))
+    
+    if analysis:
+        return " ".join(analysis)
+    return None
+
+
+def generate_game_review(game_details):
+    """
+    Generate a funny, multilingual review based on game events and statistics.
+    
+    Parameters:
+    game_details (dict): Complete game details from get_game_details()
+    
+    Returns:
+    dict: Review information including headline, body, and detected events
+    """
+    if not game_details or game_details.get('basic_info', {}).get('is_future'):
+        return None
+    
+    basic_info = game_details.get('basic_info', {})
+    game_stats = game_details.get('game_stats', {})
+    teams = game_details.get('teams', [])
+    events = game_details.get('events', [])
+    
+    home_team = basic_info.get('home_team', 'Home')
+    away_team = basic_info.get('away_team', 'Away')
+    home_score = basic_info.get('home_score', 0)
+    away_score = basic_info.get('away_score', 0)
+    winner = basic_info.get('winner', '')
+    
+    review_parts = []
+    detected_events = []
+    headline = ""
+    
+    # Calculate score difference
+    score_diff = abs(home_score - away_score)
+    
+    # 1. Check for 100+ point game
+    if home_score >= 100 or away_score >= 100:
+        detected_events.append("century_game")
+        high_scorer = home_team if home_score >= 100 else away_team
+        phrases = [
+            f"🎯 {high_scorer} broke the century! Basketball nie był gotowy na taką demolkę!",
+            f"💯 SECOLO! {high_scorer} pokazał jak się robi show! Fantastisch!",
+            f"🔥 One hunnit! {high_scorer} went absolutely bonkers! C'est magnifique!",
+            f"⚡ {high_scorer} scored 100+ points! Die anderen konnten nur zuschauen! Madonna!",
+            f"🎪 {high_scorer} arranged a basketball carnival! Verdammt, what a spectacle!"
+        ]
+        review_parts.append(random.choice(phrases))
+    
+    # 2. Check for technical fouls
+    tech_fouls = []
+    for event in events:
+        if event.get('EventAction', '').lower() in ['technical foul', 'technische foul', 'faute technique']:
+            tech_fouls.append(event)
+    
+    if tech_fouls:
+        detected_events.append("technical_fouls")
+        phrases = [
+            f"⚠️ {len(tech_fouls)} technical foul(s)! Referees were not messing around! Kurwa, tensions were high!",
+            f"🟥 {len(tech_fouls)} technische(s)! The emotions went through the roof! Mamma mia!",
+            f"😤 {len(tech_fouls)} tech(s)! Someone woke up on the wrong side! Putain, quel drama!",
+            f"⛔ {len(tech_fouls)} technical(s)! Nerves were on fire! Verdammt nochmal!",
+            f"🎭 Drama alert! {len(tech_fouls)} technical foul(s) - Hollywood couldn't script this better!"
+        ]
+        review_parts.append(random.choice(phrases))
+    
+    # 3. Check for players with 5 fouls (fouled out)
+    fouled_out_players = []
+    for team in teams:
+        for player in team.get('players', []):
+            if int(player.get('Total Fouls', 0)) >= 5:
+                fouled_out_players.append({
+                    'name': player.get('Player Name', 'Unknown'),
+                    'team': team.get('name', ''),
+                    'fouls': player.get('Total Fouls', 0)
+                })
+    
+    if fouled_out_players:
+        detected_events.append("fouled_out")
+        player_names = ", ".join([p['name'] for p in fouled_out_players[:2]])
+        phrases = [
+            f"🚫 {player_names} fouled out! Early shower time! Pech gehabt!",
+            f"👋 {player_names} said goodbye early! Five fouls and you're out! Peccato!",
+            f"🛁 {player_names} took an early bath! Kurwa, too aggressive today!",
+            f"⛔ {player_names} collected all 5! Game over for them! Scheiße!",
+            f"🎫 {player_names} got the exit ticket! C'est fini pour eux!"
+        ]
+        review_parts.append(random.choice(phrases))
+    
+    # 4. Check for big score difference (blowout > 30 points)
+    if score_diff > 30:
+        detected_events.append("blowout")
+        phrases = [
+            f"💥 {score_diff}-point demolition! {winner} absolutely destroyed the opposition! Brutal!",
+            f"🌊 {winner} unleashed a tsunami! {score_diff}-point massacre! Mamma mia che disastro!",
+            f"⚡ {score_diff}-point annihilation! {winner} showed no mercy! Kurwa, that was savage!",
+            f"🔨 {winner} with a {score_diff}-point hammer blow! Absolut zerstört!",
+            f"💣 {score_diff}-point bomb! {winner} left nothing but ruins! Quelle destruction!"
+        ]
+        review_parts.append(random.choice(phrases))
+    
+    # 5. Check for comeback (based on lead changes and final result)
+    elif game_stats.get('lead_changes', 0) >= 8 and score_diff <= 10:
+        detected_events.append("comeback")
+        phrases = [
+            f"🎢 {game_stats.get('lead_changes', 0)} lead changes! Roller coaster pur! What a thriller!",
+            f"🔄 Back and forth {game_stats.get('lead_changes', 0)} times! Heart attack material! Madonna!",
+            f"🎪 {game_stats.get('lead_changes', 0)} lead changes! Absolute madness! Kurwa, my heart!",
+            f"⚡ {winner} with the ultimate comeback! {game_stats.get('lead_changes', 0)} lead changes! Incroyable!",
+            f"🎯 {game_stats.get('lead_changes', 0)} lead changes! Edge-of-your-seat action! Wahnsinn!"
+        ]
+        review_parts.append(random.choice(phrases))
+    
+    # 6. Check for outstanding player performance (30+ points)
+    top_scorers = []
+    for team in teams:
+        for player in team.get('players', []):
+            points = int(player.get('Total Points', 0))
+            if points >= 30:
+                top_scorers.append({
+                    'name': player.get('Player Name', 'Unknown'),
+                    'points': points,
+                    'team': team.get('name', '')
+                })
+    
+    if top_scorers:
+        detected_events.append("star_performance")
+        top_scorer = max(top_scorers, key=lambda x: x['points'])
+        phrases = [
+            f"⭐ {top_scorer['name']} went nuclear with {top_scorer['points']} points! Unstoppable! Che fenomeno!",
+            f"🔥 {top_scorer['name']} dropped {top_scorer['points']} bombs! On fire! Kurwa, what a show!",
+            f"👑 {top_scorer['name']} dominated with {top_scorer['points']} points! King/Queen of the court! Fantastisch!",
+            f"💎 {top_scorer['name']} with {top_scorer['points']} points! Pure class! Magnifique!",
+            f"🎯 {top_scorer['name']} scored {top_scorer['points']} points! Sniper mode activated! Unglaublich!"
+        ]
+        review_parts.append(random.choice(phrases))
+    
+    # 7. Check for close game (score difference <= 5)
+    if 0 < score_diff <= 5 and "comeback" not in detected_events:
+        detected_events.append("nail_biter")
+        phrases = [
+            f"😱 {score_diff}-point game! Nail-biter till the end! Che tensione!",
+            f"🫣 Down to the wire! {score_diff}-point thriller! Kurwa, close call!",
+            f"💓 Heart-stopper! Only {score_diff} points separated them! Incroyable!",
+            f"⚡ {score_diff}-point edge! Every possession mattered! Wahnsinn!",
+            f"🎯 Razor-thin {score_diff}-point margin! Too close to call! Mamma mia!"
+        ]
+        review_parts.append(random.choice(phrases))
+    
+    # Generate headline based on main event
+    if "century_game" in detected_events:
+        headline_options = [
+            f"🎯 CENTURY CLUB: {winner} Breaks the 100-Point Barrier!",
+            f"💯 SECOLO: {winner} Reaches Basketball Heaven!",
+            f"🔥 HUNDERT: {winner} Lights Up the Scoreboard!"
+        ]
+    elif "blowout" in detected_events:
+        headline_options = [
+            f"💥 DEMOLITION: {winner} Wins by {score_diff}!",
+            f"🌊 TSUNAMI: {winner} Crushes Opposition {score_diff} Points!",
+            f"⚡ ANNIHILATION: {winner} Shows No Mercy!"
+        ]
+    elif "comeback" in detected_events or "nail_biter" in detected_events:
+        headline_options = [
+            f"🎢 THRILLER: {winner} Survives {game_stats.get('lead_changes', 0)} Lead Changes!",
+            f"💓 HEART-STOPPER: {winner} Edges Out Victory!",
+            f"⚡ DRAMA: {winner} Wins in Spectacular Fashion!"
+        ]
+    elif "star_performance" in detected_events:
+        top_scorer = max(top_scorers, key=lambda x: x['points'])
+        headline_options = [
+            f"⭐ SUPERSTAR: {top_scorer['name']} Drops {top_scorer['points']} in {winner}'s Win!",
+            f"🔥 ON FIRE: {top_scorer['name']} Dominates with {top_scorer['points']} Points!",
+            f"👑 KING/QUEEN: {top_scorer['name']} Rules the Court!"
+        ]
+    else:
+        headline_options = [
+            f"🏀 GAME DAY: {winner} Takes the W!",
+            f"🎯 VICTORY: {winner} Gets It Done!",
+            f"⚡ WIN: {winner} Comes Out On Top!"
+        ]
+    
+    headline = random.choice(headline_options)
+    
+    # Generate detailed game flow narrative
+    game_flow_narrative = _generate_game_flow_narrative(
+        game_details, 
+        home_team, 
+        away_team, 
+        winner, 
+        home_score, 
+        away_score,
+        detected_events,
+        top_scorers if top_scorers else []
+    )
+    
+    # Combine review parts with game flow narrative
+    if review_parts:
+        review_body = " ".join(review_parts) + "\n\n" + game_flow_narrative
+    else:
+        review_body = game_flow_narrative
+    
+    # Add final spicy closing line
+    closing_lines = [
+        "Basketball at its finest! 🏀",
+        "That's how we do it! 💪",
+        "FLBB delivers again! 🔥",
+        "What a show! 🎪",
+        "Pure basketball magic! ✨",
+        "Spectacular! 🌟",
+        "Unforgettable! 🎯",
+        "Che spettacolo! 🎭",
+        "Quel match! 🏆",
+        "Wahnsinnig! ⚡"
+    ]
+    
+    review_body += "\n\n" + random.choice(closing_lines)
+    
+    return {
+        'headline': headline,
+        'body': review_body,
+        'detected_events': detected_events,
+        'has_content': len(detected_events) > 0
     }

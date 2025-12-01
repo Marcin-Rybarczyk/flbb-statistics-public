@@ -135,6 +135,7 @@
             <div class="tab" onclick="showTab('tie-scores')">⚖️ Tie Scores</div>
             <div class="tab" onclick="showTab('lead-changes')">🔄 Lead Changes</div>
             <div class="tab" onclick="showTab('biggest-leads')">📈 Biggest Leads</div>
+            <div class="tab" onclick="showTab('scoring-streaks')">🔥 Scoring Streaks</div>
             <div class="tab" onclick="showTab('win-margins')">💪 Win Margins</div>
             <div class="tab" onclick="showTab('longest-duration')">⏱️ Longest Duration</div>
         </div>
@@ -341,6 +342,74 @@
             </table></div>
                 {% else %}
                 <p><em>No biggest lead data available.</em></p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Games with Biggest Scoring Streaks Tab -->
+        <div id="scoring-streaks" class="tab-content">
+            <div class="stats-section">
+                <h2>Games with Biggest Scoring Streaks</h2>
+                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                    A scoring streak is consecutive points scored by one team without the opponent scoring.
+                </p>
+            {% if biggest_streaks is defined and not biggest_streaks.empty %}
+            <div class="table-container"><table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Game ID</th>
+                        <th>Home Team</th>
+                        <th>Away Team</th>
+                        <th>Final Score</th>
+                        <th>Biggest Streak</th>
+                        <th>Team</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for index, row in biggest_streaks.iterrows() %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><a href="/game-detail/{{ row['GameId'] }}" class="game-link hoverable-item" data-type="game" data-id="{{ row['GameId'] }}">{{ row['GameId'] }}</a></td>
+                        <td>
+                            <span class="team-name-container">
+                            {% set home_logo_url = get_team_logo_url(row['HomeTeam']) %}
+                            {% if home_logo_url %}
+                                <img src="{{ home_logo_url }}" alt="{{ row['HomeTeam'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                            {% endif %}
+                            <a href="/team-detail?team={{ row['HomeTeam'] | urlencode }}" class="team-link hoverable-item" data-type="team" data-id="{{ row['HomeTeam'] }}">{{ row['HomeTeam'] }}</a>
+                            </span>
+                        </td>
+                        <td>
+                            <span class="team-name-container">
+                            {% set away_logo_url = get_team_logo_url(row['AwayTeam']) %}
+                            {% if away_logo_url %}
+                                <img src="{{ away_logo_url }}" alt="{{ row['AwayTeam'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                            {% endif %}
+                            <a href="/team-detail?team={{ row['AwayTeam'] | urlencode }}" class="team-link hoverable-item" data-type="team" data-id="{{ row['AwayTeam'] }}">{{ row['AwayTeam'] }}</a>
+                            </span>
+                        </td>
+                        <td>{{ row['FinalHomeScore'] }} - {{ row['FinalAwayScore'] }}</td>
+                        <td><strong style="color: #e74c3c;">{{ row['BiggestStreak'] }} pts</strong></td>
+                        <td>
+                            {% if row['StreakTeam'] %}
+                            <span class="team-name-container">
+                            {% set streak_logo_url = get_team_logo_url(row['StreakTeam']) %}
+                            {% if streak_logo_url %}
+                                <img src="{{ streak_logo_url }}" alt="{{ row['StreakTeam'] }} logo" class="team-logo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle; margin-right: 6px;">
+                            {% endif %}
+                            <a href="/team-detail?team={{ row['StreakTeam'] | urlencode }}" class="team-link hoverable-item" data-type="team" data-id="{{ row['StreakTeam'] }}">{{ row['StreakTeam'] }}</a>
+                            </span>
+                            {% else %}
+                            N/A
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table></div>
+                {% else %}
+                <p><em>No scoring streak data available.</em></p>
                 {% endif %}
             </div>
         </div>
