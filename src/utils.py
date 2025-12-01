@@ -10,6 +10,7 @@ import html
 import unicodedata
 import ast
 import random
+import logging
 
 
 FULL_GAME_STATS_OUTPUT_DIR = "full-game-stats-output"
@@ -5247,16 +5248,242 @@ def predict_starting_five(players):
     return players
 
 
-def get_future_game_details(game_id, game):
+def generate_game_recommendations(data, home_team, away_team, home_players, away_players):
+    """
+    Generate strategic recommendations for an upcoming game based on:
+    - Recent team performance (last 5 games)
+    - Key players and their recent form
+    - Multi-team players and their advantages
+    - Head-to-head history
+    
+    Parameters:
+    data (DataFrame): The game data (finished games)
+    home_team (str): Home team name
+    away_team (str): Away team name
+    home_players (list): List of home team players with statistics
+    away_players (list): List of away team players with statistics
+    
+    Returns:
+    dict: Dictionary containing recommendations for both teams
+    """
+    import pandas as pd
+    
+    recommendations = {
+        'home_team': {
+            'name': home_team,
+            'key_players': [],
+            'strengths': [],
+            'weaknesses': [],
+            'strategy_tips': []
+        },
+        'away_team': {
+            'name': away_team,
+            'key_players': [],
+            'strengths': [],
+            'weaknesses': [],
+            'strategy_tips': []
+        },
+        'multi_team_insights': [],
+        'head_to_head': None,
+        'general_insights': []
+    }
+    
+    # Identify multi-team players
+    multi_team_players = _get_multi_team_players(data)
+    
+    # Analyze home team
+    home_analysis = _analyze_team_for_recommendations(
+        data, home_team, home_players, multi_team_players, is_home=True
+    )
+    recommendations['home_team'].update(home_analysis)
+    
+    # Analyze away team
+    away_analysis = _analyze_team_for_recommendations(
+        data, away_team, away_players, multi_team_players, is_home=False
+    )
+    recommendations['away_team'].update(away_analysis)
+    
+    # Multi-team player insights
+    home_multi = [p for p in home_players if p.get('Player Name') in multi_team_players]
+    away_multi = [p for p in away_players if p.get('Player Name') in multi_team_players]
+    
+    for player in home_multi:
+        player_name = player.get('Player Name')
+        teams = multi_team_players.get(player_name, [])
+        recommendations['multi_team_insights'].append({
+            'team': home_team,
+            'player': player_name,
+            'also_plays_for': [t for t in teams if t != home_team],
+            'avg_points': player.get('Avg Points Per Game', 0),
+            'insight': f"{player_name} plays for multiple teams and brings versatile experience"
+        })
+    
+    for player in away_multi:
+        player_name = player.get('Player Name')
+        teams = multi_team_players.get(player_name, [])
+        recommendations['multi_team_insights'].append({
+            'team': away_team,
+            'player': player_name,
+            'also_plays_for': [t for t in teams if t != away_team],
+            'avg_points': player.get('Avg Points Per Game', 0),
+            'insight': f"{player_name} plays for multiple teams and brings versatile experience"
+        })
+    
+    # Head-to-head analysis
+    h2h = calculate_head_to_head(data, [home_team, away_team])
+    if h2h:
+        home_h2h = h2h.get(home_team, {})
+        away_h2h = h2h.get(away_team, {})
+        recommendations['head_to_head'] = {
+            'home_points': home_h2h.get('h2h_points', 0),
+            'away_points': away_h2h.get('h2h_points', 0),
+            'home_diff': home_h2h.get('h2h_diff', 0),
+            'away_diff': away_h2h.get('h2h_diff', 0)
+        }
+        
+        # Add head-to-head insight
+        if home_h2h.get('h2h_points', 0) > away_h2h.get('h2h_points', 0):
+            recommendations['general_insights'].append(
+                f"{home_team} has historically dominated this matchup"
+            )
+        elif away_h2h.get('h2h_points', 0) > home_h2h.get('h2h_points', 0):
+            recommendations['general_insights'].append(
+                f"{away_team} has the edge in historical matchups"
+            )
+        else:
+            recommendations['general_insights'].append(
+                "This matchup has been evenly contested historically"
+            )
+    
+    # Overall matchup insight
+    home_avg = _calculate_team_avg_points(home_players)
+    away_avg = _calculate_team_avg_points(away_players)
+    
+    if home_avg > away_avg * 1.1:
+        recommendations['general_insights'].append(
+            f"{home_team} averages significantly more points ({home_avg:.1f} vs {away_avg:.1f})"
+        )
+    elif away_avg > home_avg * 1.1:
+        recommendations['general_insights'].append(
+            f"{away_team} averages significantly more points ({away_avg:.1f} vs {home_avg:.1f})"
+        )
+    else:
+        recommendations['general_insights'].append(
+            f"Evenly matched teams in scoring ({home_avg:.1f} vs {away_avg:.1f} avg points)"
+        )
+    
+    return recommendations
+
+
+def _analyze_team_for_recommendations(data, team_name, players, multi_team_players, is_home=True):
+    """
+    Analyze a team and generate strategic recommendations.
+    
+    Returns:
+    dict: Analysis results with key players, strengths, weaknesses, and strategy tips
+    """
+    if not players:
+        return {
+            'key_players': [],
+            'strengths': [],
+            'weaknesses': [],
+            'strategy_tips': []
+        }
+    
+    # Identify key players (top scorers)
+    sorted_players = sorted(
+        players,
+        key=lambda p: p.get('Avg Points Per Game', 0),
+        reverse=True
+    )
+    
+    key_players = []
+    for i, player in enumerate(sorted_players[:3]):  # Top 3 players
+        key_players.append({
+            'name': player.get('Player Name', 'Unknown'),
+            'avg_points': player.get('Avg Points Per Game', 0),
+            'total_points': player.get('Total Points', 0),
+            'games_played': player.get('Games Played', 0),
+            'is_multi_team': player.get('Player Name') in multi_team_players,
+            'role': 'Primary Scorer' if i == 0 else 'Key Contributor'
+        })
+    
+    # Analyze strengths and weaknesses
+    strengths = []
+    weaknesses = []
+    strategy_tips = []
+    
+    # Calculate team statistics
+    total_3p = sum(p.get('3P Made Shots', 0) for p in players)
+    total_2p = sum(p.get('2P Made Shots', 0) for p in players)
+    total_games = max((p.get('Games Played', 1) for p in players), default=1)
+    avg_3p_per_game = total_3p / total_games if total_games > 0 else 0
+    avg_2p_per_game = total_2p / total_games if total_games > 0 else 0
+    
+    # 3-point shooting analysis
+    if avg_3p_per_game > 6:
+        strengths.append(f"Strong 3-point shooting ({avg_3p_per_game:.1f} 3-pointers/game)")
+        strategy_tips.append("🎯 Defend the perimeter aggressively")
+    elif avg_3p_per_game < 3:
+        weaknesses.append(f"Limited 3-point threat ({avg_3p_per_game:.1f} 3-pointers/game)")
+        strategy_tips.append("📊 Focus on inside defense")
+    
+    # Depth analysis
+    players_with_minutes = [p for p in players if p.get('Games Played', 0) > 2]
+    if len(players_with_minutes) > 8:
+        strengths.append(f"Deep bench with {len(players_with_minutes)} active players")
+    elif len(players_with_minutes) < 6:
+        weaknesses.append(f"Limited rotation with only {len(players_with_minutes)} regular players")
+        strategy_tips.append("⏱️ Push the pace to tire their starters")
+    
+    # Star player dependency
+    if key_players:
+        team_avg = _calculate_team_avg_points(players)
+        top_scorer_pct = (key_players[0]['avg_points'] / team_avg) * 100 if team_avg > 0 else 0
+        if top_scorer_pct > 35:
+            weaknesses.append(f"Heavy reliance on {key_players[0]['name']} ({top_scorer_pct:.0f}% of scoring)")
+            strategy_tips.append(f"🛡️ Double-team {key_players[0]['name']} to disrupt their offense")
+        else:
+            strengths.append("Balanced scoring across multiple players")
+    
+    # Home court advantage consideration
+    if is_home:
+        strategy_tips.append("🏠 Leverage home court advantage and crowd support")
+    else:
+        strategy_tips.append("✈️ Stay focused despite playing away from home")
+    
+    return {
+        'key_players': key_players,
+        'strengths': strengths,
+        'weaknesses': weaknesses,
+        'strategy_tips': strategy_tips
+    }
+
+
+def _calculate_team_avg_points(players):
+    """Calculate team average points per game from player list."""
+    if not players:
+        return 0.0
+    
+    # Use the maximum games played to calculate team average
+    games_played_list = [p.get('Games Played', 0) for p in players if p.get('Games Played', 0) > 0]
+    max_games = max(games_played_list, default=1)
+    total_points = sum(p.get('Total Points', 0) for p in players)
+    
+    return total_points / max_games if max_games > 0 else 0.0
+
+
+def get_future_game_details(game_id, game, data=None):
     """
     Get comprehensive details for a future game.
     
     Parameters:
     game_id (str): The game ID
     game (dict): Future game data from gamesDB.json
+    data (DataFrame): Optional game data for generating recommendations
     
     Returns:
-    dict: Dictionary containing future game details with predicted starting lineups
+    dict: Dictionary containing future game details with predicted starting lineups and recommendations
     """
     from datetime import datetime
     
@@ -5361,13 +5588,26 @@ def get_future_game_details(game_id, game):
         }
     ]
     
+    # Generate game recommendations if data is available
+    recommendations = None
+    if data is not None and not data.empty:
+        try:
+            recommendations = generate_game_recommendations(
+                data, home_team, away_team, home_players, away_players
+            )
+        except Exception as e:
+            # If recommendation generation fails, log but don't break
+            logging.warning(f"Failed to generate recommendations: {e}")
+            recommendations = None
+    
     return {
         'basic_info': basic_info,
         'teams': teams_data,
         'events': [],
         'score_evolution': [],
         'game_stats': None,
-        'referees': []
+        'referees': [],
+        'recommendations': recommendations
     }
 
 
@@ -5399,7 +5639,7 @@ def get_game_details(data, game_id):
         for game in future_games:
             if str(game.get('GameId')) == game_id:
                 # Found a future game - use the future game details function
-                return get_future_game_details(game_id, game)
+                return get_future_game_details(game_id, game, data)
     
     # Find the game in finished games
     game_row = data[data['GameId'].astype(str) == game_id]
