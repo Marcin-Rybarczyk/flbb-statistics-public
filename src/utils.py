@@ -5206,7 +5206,7 @@ def get_team_next_games(team_name, limit=5, gamesdb_path='data/gamesDB.json'):
     return team_future_games[:limit]
 
 
-def get_current_season_player_stats(data, team_name, division=None):
+def get_current_season_player_stats(data, team_name, division=None, season_days=365):
     """
     Calculate current season player statistics for a team from recent game data.
     This ensures player stats shown for upcoming games reflect current season performance.
@@ -5215,6 +5215,7 @@ def get_current_season_player_stats(data, team_name, division=None):
     data (DataFrame): The game data
     team_name (str): Team name to get players for
     division (str): Optional division filter to match stats to same division
+    season_days (int): Number of days to look back for current season (default: 365)
     
     Returns:
     list: List of player dictionaries with current season statistics
@@ -5227,10 +5228,10 @@ def get_current_season_player_stats(data, team_name, division=None):
     # Normalize team name for matching
     team_name_normalized = normalize_team_name_for_display(team_name)
     
-    # Filter games to current season (last 12 months)
-    # This is a practical way to define "current season" without explicit season IDs
+    # Filter games to current season (configurable days back)
+    # Default 365 days is a practical way to define "current season"
     current_date = datetime.now()
-    season_start = current_date - timedelta(days=365)
+    season_start = current_date - timedelta(days=season_days)
     
     # Convert DateTime to datetime if needed
     data_copy = data.copy()
@@ -5239,9 +5240,9 @@ def get_current_season_player_stats(data, team_name, division=None):
             data_copy['DateTime'] = pd.to_datetime(data_copy['DateTime'])
             # Filter to current season games
             data_copy = data_copy[data_copy['DateTime'] >= season_start]
-        except:
-            # If date parsing fails, use all data
-            pass
+        except (ValueError, TypeError, pd.errors.ParserError) as e:
+            # If date parsing fails, use all data and log warning
+            logging.warning(f"Failed to parse dates for season filtering: {e}")
     
     # Filter by division if specified
     if division and 'GameDivisionDisplay' in data_copy.columns:
@@ -5263,7 +5264,7 @@ def get_current_season_player_stats(data, team_name, division=None):
     
     # Aggregate statistics for each player (similar to create_players_database)
     player_aggregations = {
-        'PlayerNumber': lambda x: x.mode()[0] if not x.mode().empty else x.iloc[0],
+        'PlayerNumber': lambda x: x.mode()[0] if not x.mode().empty and len(x) > 0 else (x.iloc[0] if len(x) > 0 else 0),
         'GameId': 'count',  # Total games played
         'TotalPoints': 'sum',
         '1PMadeShots': 'sum',
@@ -5333,7 +5334,6 @@ def get_team_player_stats_for_future_game(team_name, players_db_path='data/playe
         try:
             return get_current_season_player_stats(data, team_name, division)
         except Exception as e:
-            import logging
             logging.warning(f"Failed to calculate current season stats for {team_name}, falling back to database: {e}")
             # Fall through to database method
     
@@ -5381,8 +5381,6 @@ def get_team_player_stats_for_future_game(team_name, players_db_path='data/playe
         
         return players
     except Exception as e:
-        # Use logging for better error tracking
-        import logging
         logging.warning(f"Error loading player stats for team {team_name}: {e}")
         return []
 
