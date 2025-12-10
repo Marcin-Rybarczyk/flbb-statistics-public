@@ -5206,18 +5206,138 @@ def get_team_next_games(team_name, limit=5, gamesdb_path='data/gamesDB.json'):
     return team_future_games[:limit]
 
 
-def get_team_player_stats_for_future_game(team_name, players_db_path='data/players-database.csv'):
+def get_current_season_player_stats(data, team_name, division=None):
     """
-    Get player statistics for a team from the players database.
-    Used for future games to show historical player performance.
+    Calculate current season player statistics for a team from recent game data.
+    This ensures player stats shown for upcoming games reflect current season performance.
+    
+    Parameters:
+    data (DataFrame): The game data
+    team_name (str): Team name to get players for
+    division (str): Optional division filter to match stats to same division
+    
+    Returns:
+    list: List of player dictionaries with current season statistics
+    """
+    from datetime import datetime, timedelta
+    
+    if data.empty:
+        return []
+    
+    # Normalize team name for matching
+    team_name_normalized = normalize_team_name_for_display(team_name)
+    
+    # Filter games to current season (last 12 months)
+    # This is a practical way to define "current season" without explicit season IDs
+    current_date = datetime.now()
+    season_start = current_date - timedelta(days=365)
+    
+    # Convert DateTime to datetime if needed
+    data_copy = data.copy()
+    if 'DateTime' in data_copy.columns:
+        try:
+            data_copy['DateTime'] = pd.to_datetime(data_copy['DateTime'])
+            # Filter to current season games
+            data_copy = data_copy[data_copy['DateTime'] >= season_start]
+        except:
+            # If date parsing fails, use all data
+            pass
+    
+    # Filter by division if specified
+    if division and 'GameDivisionDisplay' in data_copy.columns:
+        data_copy = data_copy[data_copy['GameDivisionDisplay'] == division]
+    
+    # Extract player stats from filtered games
+    player_stats = extract_all_player_stats(data_copy)
+    
+    if player_stats.empty:
+        return []
+    
+    # Filter for this team
+    team_player_stats = player_stats[
+        player_stats['Team'].apply(normalize_team_name_for_display) == team_name_normalized
+    ]
+    
+    if team_player_stats.empty:
+        return []
+    
+    # Aggregate statistics for each player (similar to create_players_database)
+    player_aggregations = {
+        'PlayerNumber': lambda x: x.mode()[0] if not x.mode().empty else x.iloc[0],
+        'GameId': 'count',  # Total games played
+        'TotalPoints': 'sum',
+        '1PMadeShots': 'sum',
+        '2PMadeShots': 'sum',
+        '3PMadeShots': 'sum',
+        'TotalFouls': 'sum',
+        'StartingFive': 'sum'  # Count how many games they started
+    }
+    
+    players_agg = team_player_stats.groupby('PlayerName').agg(player_aggregations).reset_index()
+    
+    # Rename columns
+    players_agg.rename(columns={
+        'GameId': 'GamesPlayed',
+        'StartingFive': 'GamesStarted'
+    }, inplace=True)
+    
+    # Calculate derived statistics
+    players_agg['AvgPointsPerGame'] = (players_agg['TotalPoints'] / players_agg['GamesPlayed']).round(2)
+    players_agg['StartingPercentage'] = ((players_agg['GamesStarted'] / players_agg['GamesPlayed']) * 100).round(1)
+    
+    # Sort by StartingPercentage and TotalPoints (same as database method)
+    players_agg = players_agg.sort_values(
+        by=['StartingPercentage', 'TotalPoints'], 
+        ascending=[False, False]
+    )
+    
+    # Convert to list of dictionaries matching expected format
+    players = []
+    for _, player in players_agg.iterrows():
+        player_dict = {
+            'Player Name': player['PlayerName'],
+            'Player Number': int(player['PlayerNumber']) if pd.notna(player['PlayerNumber']) else 0,
+            'Total Points': int(player['TotalPoints']) if pd.notna(player['TotalPoints']) else 0,
+            '1P Made Shots': int(player['1PMadeShots']) if pd.notna(player['1PMadeShots']) else 0,
+            '2P Made Shots': int(player['2PMadeShots']) if pd.notna(player['2PMadeShots']) else 0,
+            '3P Made Shots': int(player['3PMadeShots']) if pd.notna(player['3PMadeShots']) else 0,
+            'Total Fouls': int(player['TotalFouls']) if pd.notna(player['TotalFouls']) else 0,
+            'Games Played': int(player['GamesPlayed']) if pd.notna(player['GamesPlayed']) else 0,
+            'Games Started': int(player['GamesStarted']) if pd.notna(player['GamesStarted']) else 0,
+            'Starting Percentage': float(player['StartingPercentage']) if pd.notna(player['StartingPercentage']) else 0.0,
+            'Avg Points Per Game': float(player['AvgPointsPerGame']) if pd.notna(player['AvgPointsPerGame']) else 0.0,
+            'Starting Five': 'false'  # Will be set by predict_starting_five
+        }
+        players.append(player_dict)
+    
+    return players
+
+
+def get_team_player_stats_for_future_game(team_name, players_db_path='data/players-database.csv', division=None, data=None):
+    """
+    Get player statistics for a team from the players database or calculate from recent games.
+    Used for future games to show current season player performance.
     
     Parameters:
     team_name (str): Team name to get players for
     players_db_path (str): Path to the players database CSV
+    division (str): Optional division filter to show stats for same division only
+    data (DataFrame): Optional game data to calculate current season stats directly
     
     Returns:
     list: List of player dictionaries with statistics
     """
+    # PRIORITY 1: If game data is provided, calculate current season stats directly
+    # This ensures the most up-to-date and accurate statistics
+    if data is not None and not data.empty:
+        try:
+            return get_current_season_player_stats(data, team_name, division)
+        except Exception as e:
+            import logging
+            logging.warning(f"Failed to calculate current season stats for {team_name}, falling back to database: {e}")
+            # Fall through to database method
+    
+    # PRIORITY 2: Fall back to players database (may be outdated)
     if not os.path.exists(players_db_path):
         return []
     
@@ -5628,8 +5748,9 @@ def get_future_game_details(game_id, game, data=None):
     }
     
     # Get player statistics for both teams
-    home_players = get_team_player_stats_for_future_game(home_team)
-    away_players = get_team_player_stats_for_future_game(away_team)
+    # Pass division and game data to get current season stats
+    home_players = get_team_player_stats_for_future_game(home_team, division=division, data=data)
+    away_players = get_team_player_stats_for_future_game(away_team, division=division, data=data)
     
     # Predict starting five for each team
     home_players = predict_starting_five(home_players)
