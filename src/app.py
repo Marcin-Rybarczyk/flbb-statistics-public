@@ -787,8 +787,9 @@ def login():
                 session['preferred_team'] = user_data['team_name']
             
             # Redirect to next URL if provided, otherwise to index (or admin for admins)
-            # Check both URL parameters (from GET) and form data (from POST with hidden field)
-            next_url = request.args.get('next') or request.form.get('next')
+            # Check URL parameters first (from GET redirect), then form data (from POST with hidden field)
+            # Use 'or' to handle None or empty string from either source
+            next_url = request.args.get('next') or request.form.get('next') or None
             if next_url and next_url.startswith('/'):
                 return redirect(next_url)
             elif user_data.get('user_level') == 'admin':

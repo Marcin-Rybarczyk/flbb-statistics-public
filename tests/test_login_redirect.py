@@ -170,7 +170,6 @@ def run_all_tests():
         test_login_redirect_flow()
         
         # Clean up test database
-        import os
         db_file = Path(__file__).parent.parent / 'data' / 'users.db'
         if db_file.exists():
             os.remove(db_file)
