@@ -16,12 +16,17 @@ from pathlib import Path
 from werkzeug.security import generate_password_hash, check_password_hash
 from typing import Optional, Dict, List, Tuple
 import logging
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 # Database file location - stored in data directory
 DB_DIR = Path(__file__).parent.parent / 'data'
 DB_FILE = DB_DIR / 'users.db'
+
+# Log file location - stored in logs directory
+LOG_DIR = Path(__file__).parent.parent / 'logs'
+LOGIN_LOG_FILE = LOG_DIR / 'user_logins.log'
 
 
 def get_db_connection():
@@ -44,6 +49,56 @@ def get_db_connection():
     return conn
 
 
+def setup_login_logging():
+    """
+    Setup file-based logging for user logins.
+    
+    Creates logs directory if it doesn't exist and configures a file handler
+    for login events.
+    """
+    # Ensure logs directory exists
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    
+    # Create a dedicated logger for login events
+    login_logger = logging.getLogger('user_login')
+    login_logger.setLevel(logging.INFO)
+    
+    # Check if handler already exists to avoid duplicates
+    if not login_logger.handlers:
+        # Create file handler
+        file_handler = logging.FileHandler(LOGIN_LOG_FILE)
+        file_handler.setLevel(logging.INFO)
+        
+        # Create formatter
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        
+        # Add handler to logger
+        login_logger.addHandler(file_handler)
+    
+    return login_logger
+
+
+def log_user_login(username: str, ip_address: str = None, user_agent: str = None):
+    """
+    Log a user login event to file.
+    
+    Args:
+        username: Username that logged in
+        ip_address: IP address of the user (optional)
+        user_agent: User agent string (optional)
+    """
+    login_logger = setup_login_logging()
+    
+    log_message = f"User '{username}' logged in"
+    if ip_address:
+        log_message += f" from IP: {ip_address}"
+    if user_agent:
+        log_message += f" | User-Agent: {user_agent}"
+    
+    login_logger.info(log_message)
+
+
 def init_database():
     """
     Initialize the user database with the required schema.
@@ -57,6 +112,9 @@ def init_database():
     - team_name: Preferred team (nullable)
     - created_at: Timestamp when user was created
     - updated_at: Timestamp when user was last updated
+    - last_login_at: Timestamp of the last login (nullable)
+    
+    Also creates a login_logs table for detailed login history.
     
     Returns:
         bool: True if successful, False otherwise
@@ -76,13 +134,36 @@ def init_database():
                 division_name TEXT,
                 team_name TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_login_at TIMESTAMP
+            )
+        ''')
+        
+        # Create login_logs table for detailed login history
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS login_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                username TEXT NOT NULL,
+                login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                ip_address TEXT,
+                user_agent TEXT,
+                FOREIGN KEY (user_id) REFERENCES users(id)
             )
         ''')
         
         # Create index on username for faster lookups
         cursor.execute('''
             CREATE INDEX IF NOT EXISTS idx_username ON users(username)
+        ''')
+        
+        # Create index on login_logs for faster queries
+        cursor.execute('''
+            CREATE INDEX IF NOT EXISTS idx_login_logs_user_id ON login_logs(user_id)
+        ''')
+        
+        cursor.execute('''
+            CREATE INDEX IF NOT EXISTS idx_login_logs_login_time ON login_logs(login_time DESC)
         ''')
         
         # Migrate existing tables to add user_level column if it doesn't exist
@@ -95,6 +176,19 @@ def init_database():
             ''')
             conn.commit()
             logger.info("user_level column added successfully")
+            
+            # Refresh columns list after schema change
+            cursor.execute("PRAGMA table_info(users)")
+            columns = [column[1] for column in cursor.fetchall()]
+        
+        # Migrate existing tables to add last_login_at column if it doesn't exist
+        if 'last_login_at' not in columns:
+            logger.info("Adding last_login_at column to existing users table")
+            cursor.execute('''
+                ALTER TABLE users ADD COLUMN last_login_at TIMESTAMP
+            ''')
+            conn.commit()
+            logger.info("last_login_at column added successfully")
         
         conn.commit()
         logger.info(f"Database initialized successfully at {DB_FILE}")
@@ -169,13 +263,15 @@ def create_user(username: str, password: str, user_level: str = 'user',
             conn.close()
 
 
-def authenticate_user(username: str, password: str) -> Tuple[bool, Optional[Dict]]:
+def authenticate_user(username: str, password: str, ip_address: str = None, user_agent: str = None) -> Tuple[bool, Optional[Dict]]:
     """
     Authenticate a user with username and password.
     
     Args:
         username: Username to authenticate
         password: Plain text password to verify
+        ip_address: IP address of the user (optional, for logging)
+        user_agent: User agent string (optional, for logging)
         
     Returns:
         Tuple[bool, Optional[Dict]]: (Success status, User data dict if successful)
@@ -199,6 +295,26 @@ def authenticate_user(username: str, password: str) -> Tuple[bool, Optional[Dict
         
         # Verify password
         if check_password_hash(user['password_hash'], password):
+            user_id = user['id']
+            
+            # Update last_login_at timestamp
+            cursor.execute('''
+                UPDATE users
+                SET last_login_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (user_id,))
+            
+            # Insert login log entry
+            cursor.execute('''
+                INSERT INTO login_logs (user_id, username, ip_address, user_agent)
+                VALUES (?, ?, ?, ?)
+            ''', (user_id, username, ip_address, user_agent))
+            
+            conn.commit()
+            
+            # Log to file
+            log_user_login(username, ip_address, user_agent)
+            
             # Return user data (without password hash)
             user_data = {
                 'id': user['id'],
@@ -442,7 +558,7 @@ def list_users() -> List[Dict]:
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT id, username, user_level, division_name, team_name, created_at, updated_at
+            SELECT id, username, user_level, division_name, team_name, created_at, updated_at, last_login_at
             FROM users
             ORDER BY username
         ''')
@@ -456,7 +572,8 @@ def list_users() -> List[Dict]:
                 'division_name': row['division_name'],
                 'team_name': row['team_name'],
                 'created_at': row['created_at'],
-                'updated_at': row['updated_at']
+                'updated_at': row['updated_at'],
+                'last_login_at': row['last_login_at'] if 'last_login_at' in row else None
             })
         
         return users
@@ -543,6 +660,161 @@ def ensure_default_admin() -> bool:
     except Exception as e:
         logger.error(f"Failed to ensure default admin: {e}")
         return False
+    finally:
+        if conn:
+            conn.close()
+
+
+def get_users_with_login_info() -> List[Dict]:
+    """
+    Get all users with their last login information.
+    
+    Returns:
+        List[Dict]: List of user dictionaries including last login time
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id, username, user_level, division_name, team_name, 
+                   created_at, updated_at, last_login_at
+            FROM users
+            ORDER BY last_login_at DESC NULLS LAST, username
+        ''')
+        
+        users = []
+        for row in cursor.fetchall():
+            users.append({
+                'id': row['id'],
+                'username': row['username'],
+                'user_level': row['user_level'] if row['user_level'] else 'user',
+                'division_name': row['division_name'],
+                'team_name': row['team_name'],
+                'created_at': row['created_at'],
+                'updated_at': row['updated_at'],
+                'last_login_at': row['last_login_at']
+            })
+        
+        return users
+        
+    except Exception as e:
+        logger.error(f"Error getting users with login info: {e}")
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def get_recent_login_logs(limit: int = 50) -> List[Dict]:
+    """
+    Get recent login logs from the database.
+    
+    Args:
+        limit: Maximum number of login records to return (default: 50)
+        
+    Returns:
+        List[Dict]: List of login log entries
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id, user_id, username, login_time, ip_address, user_agent
+            FROM login_logs
+            ORDER BY login_time DESC
+            LIMIT ?
+        ''', (limit,))
+        
+        logs = []
+        for row in cursor.fetchall():
+            logs.append({
+                'id': row['id'],
+                'user_id': row['user_id'],
+                'username': row['username'],
+                'login_time': row['login_time'],
+                'ip_address': row['ip_address'],
+                'user_agent': row['user_agent']
+            })
+        
+        return logs
+        
+    except Exception as e:
+        logger.error(f"Error getting recent login logs: {e}")
+        return []
+    finally:
+        if conn:
+            conn.close()
+
+
+def get_login_statistics() -> Dict:
+    """
+    Get login statistics for the admin dashboard.
+    
+    Returns:
+        Dict: Dictionary with login statistics
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Total login count
+        cursor.execute('SELECT COUNT(*) as count FROM login_logs')
+        total_logins = cursor.fetchone()['count']
+        
+        # Unique users who have logged in
+        cursor.execute('SELECT COUNT(DISTINCT user_id) as count FROM login_logs')
+        unique_users = cursor.fetchone()['count']
+        
+        # Logins in last 24 hours
+        cursor.execute('''
+            SELECT COUNT(*) as count FROM login_logs
+            WHERE login_time >= datetime('now', '-1 day')
+        ''')
+        logins_24h = cursor.fetchone()['count']
+        
+        # Logins in last 7 days
+        cursor.execute('''
+            SELECT COUNT(*) as count FROM login_logs
+            WHERE login_time >= datetime('now', '-7 days')
+        ''')
+        logins_7d = cursor.fetchone()['count']
+        
+        # Most active user
+        cursor.execute('''
+            SELECT username, COUNT(*) as login_count
+            FROM login_logs
+            GROUP BY username
+            ORDER BY login_count DESC
+            LIMIT 1
+        ''')
+        most_active_row = cursor.fetchone()
+        most_active_user = most_active_row['username'] if most_active_row else None
+        most_active_count = most_active_row['login_count'] if most_active_row else 0
+        
+        return {
+            'total_logins': total_logins,
+            'unique_users': unique_users,
+            'logins_24h': logins_24h,
+            'logins_7d': logins_7d,
+            'most_active_user': most_active_user,
+            'most_active_count': most_active_count
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting login statistics: {e}")
+        return {
+            'total_logins': 0,
+            'unique_users': 0,
+            'logins_24h': 0,
+            'logins_7d': 0,
+            'most_active_user': None,
+            'most_active_count': 0
+        }
     finally:
         if conn:
             conn.close()
