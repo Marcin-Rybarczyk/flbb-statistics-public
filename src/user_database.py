@@ -176,6 +176,10 @@ def init_database():
             ''')
             conn.commit()
             logger.info("user_level column added successfully")
+            
+            # Refresh columns list after schema change
+            cursor.execute("PRAGMA table_info(users)")
+            columns = [column[1] for column in cursor.fetchall()]
         
         # Migrate existing tables to add last_login_at column if it doesn't exist
         if 'last_login_at' not in columns:
@@ -569,7 +573,7 @@ def list_users() -> List[Dict]:
                 'team_name': row['team_name'],
                 'created_at': row['created_at'],
                 'updated_at': row['updated_at'],
-                'last_login_at': row['last_login_at'] if 'last_login_at' in row.keys() else None
+                'last_login_at': row['last_login_at'] if 'last_login_at' in row else None
             })
         
         return users
