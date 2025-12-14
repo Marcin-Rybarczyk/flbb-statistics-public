@@ -192,7 +192,7 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not is_admin_authenticated():
-            return redirect(url_for('login'))
+            return redirect(url_for('login', next=request.url))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -787,7 +787,9 @@ def login():
                 session['preferred_team'] = user_data['team_name']
             
             # Redirect to next URL if provided, otherwise to index (or admin for admins)
-            next_url = request.args.get('next')
+            # Check URL parameters first (from GET redirect), then form data (from POST with hidden field)
+            # Use 'or' to handle None or empty string from either source
+            next_url = request.args.get('next') or request.form.get('next') or None
             if next_url and next_url.startswith('/'):
                 return redirect(next_url)
             elif user_data.get('user_level') == 'admin':
@@ -796,8 +798,11 @@ def login():
                 return redirect(url_for('index'))
         
         # Authentication failed
+        # Preserve the next parameter in case of failed login
+        next_url = request.args.get('next') or request.form.get('next', '')
         return render_template('login.html', 
-                             error='Invalid username or password. Please try again.')
+                             error='Invalid username or password. Please try again.',
+                             next=next_url)
     
     # GET request - show login form
     # If already authenticated, redirect appropriately
@@ -806,7 +811,9 @@ def login():
             return redirect(url_for('admin'))
         return redirect(url_for('index'))
     
-    return render_template('login.html')
+    # Pass the next parameter to the template so it can be preserved in the form
+    next_url = request.args.get('next', '')
+    return render_template('login.html', next=next_url)
 
 # Keep old routes for backward compatibility (redirect to new unified login)
 @app.route('/user/login', methods=['GET', 'POST'])
