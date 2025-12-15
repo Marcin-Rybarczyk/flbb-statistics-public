@@ -30,7 +30,8 @@ from .utils import (calculate_standings_by_division, get_highest_scoring_games,
                    extract_age_sex_group_from_division, get_team_name_with_group_suffix, CSV_FILEPATH)
 from .version import get_version_info
 from .user_database import (authenticate_user, get_user_preferences, update_user_preferences,
-                            create_user, list_users, update_user_password, delete_user, update_user_level)
+                            create_user, list_users, update_user_password, delete_user, update_user_level,
+                            get_users_with_login_info, get_recent_login_logs, get_login_statistics)
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
 
@@ -192,7 +193,7 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not is_admin_authenticated():
-            return redirect(url_for('login'))
+            return redirect(url_for('login', next=request.url))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -771,8 +772,12 @@ def login():
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
         
-        # Try database authentication
-        auth_success, user_data = authenticate_user(username, password)
+        # Get IP address and user agent for logging
+        ip_address = request.remote_addr
+        user_agent = request.headers.get('User-Agent', '')
+        
+        # Try database authentication with logging info
+        auth_success, user_data = authenticate_user(username, password, ip_address, user_agent)
         
         if auth_success:
             # Database authentication successful
@@ -787,7 +792,9 @@ def login():
                 session['preferred_team'] = user_data['team_name']
             
             # Redirect to next URL if provided, otherwise to index (or admin for admins)
-            next_url = request.args.get('next')
+            # Check URL parameters first (from GET redirect), then form data (from POST with hidden field)
+            # Use 'or' to handle None or empty string from either source
+            next_url = request.args.get('next') or request.form.get('next') or None
             if next_url and next_url.startswith('/'):
                 return redirect(next_url)
             elif user_data.get('user_level') == 'admin':
@@ -796,8 +803,11 @@ def login():
                 return redirect(url_for('index'))
         
         # Authentication failed
+        # Preserve the next parameter in case of failed login
+        next_url = request.args.get('next') or request.form.get('next', '')
         return render_template('login.html', 
-                             error='Invalid username or password. Please try again.')
+                             error='Invalid username or password. Please try again.',
+                             next=next_url)
     
     # GET request - show login form
     # If already authenticated, redirect appropriately
@@ -806,7 +816,9 @@ def login():
             return redirect(url_for('admin'))
         return redirect(url_for('index'))
     
-    return render_template('login.html')
+    # Pass the next parameter to the template so it can be preserved in the form
+    next_url = request.args.get('next', '')
+    return render_template('login.html', next=next_url)
 
 # Keep old routes for backward compatibility (redirect to new unified login)
 @app.route('/user/login', methods=['GET', 'POST'])
@@ -936,6 +948,11 @@ def admin():
     # List available season archives
     available_archives = list_available_archives()
     
+    # Get user login statistics
+    login_stats = get_login_statistics()
+    users_with_login = get_users_with_login_info()
+    recent_logins = get_recent_login_logs(limit=20)
+    
     return render_template('admin.html',
                          data_stats=data_stats,
                          file_stats=file_stats,
@@ -943,7 +960,10 @@ def admin():
                          divisions=divisions,
                          season_info=season_info,
                          website_config=website_config,
-                         available_archives=available_archives)
+                         available_archives=available_archives,
+                         login_stats=login_stats,
+                         users_with_login=users_with_login,
+                         recent_logins=recent_logins)
 
 @app.route('/admin/import-season', methods=['POST'])
 @admin_required

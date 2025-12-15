@@ -22,6 +22,112 @@
         </div>
         {% endif %}
 
+        {% if is_admin_authenticated %}
+        <div class="stats-section">
+            <h2>👤 User Login Activity</h2>
+            
+            <!-- Login Statistics Summary -->
+            <div class="stat-summary">
+                <div class="stat-card">
+                    <h3>Total Logins</h3>
+                    <p>{{ login_stats.total_logins }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Unique Users</h3>
+                    <p>{{ login_stats.unique_users }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Logins (24h)</h3>
+                    <p>{{ login_stats.logins_24h }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Logins (7d)</h3>
+                    <p>{{ login_stats.logins_7d }}</p>
+                </div>
+            </div>
+            
+            <!-- Users with Last Login Time -->
+            <div style="background: white; border-radius: 10px; padding: 20px; margin-top: 20px;">
+                <h3>Users - Last Login</h3>
+                {% if users_with_login %}
+                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                    <thead>
+                        <tr style="background: #f8f9fa;">
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Username</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">User Level</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Last Login</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users_with_login %}
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #dee2e6;">{{ user.username }}</td>
+                            <td style="padding: 10px; border: 1px solid #dee2e6;">
+                                {% if user.user_level == 'admin' %}
+                                    <span style="color: #dc3545; font-weight: bold;">👑 Admin</span>
+                                {% elif user.user_level == 'user' %}
+                                    <span style="color: #28a745;">👤 User</span>
+                                {% else %}
+                                    <span style="color: #6c757d;">👁️ Guest</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 10px; border: 1px solid #dee2e6;">
+                                {% if user.last_login_at %}
+                                    {{ user.last_login_at }}
+                                {% else %}
+                                    <span style="color: #6c757d; font-style: italic;">Never logged in</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 10px; border: 1px solid #dee2e6;">
+                                {% if user.last_login_at %}
+                                    <span style="color: #28a745;">✓ Active</span>
+                                {% else %}
+                                    <span style="color: #ffc107;">⚠ Inactive</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p style="margin-top: 10px; color: #6c757d;">No users found.</p>
+                {% endif %}
+            </div>
+            
+            <!-- Recent Login Activity -->
+            <div style="background: white; border-radius: 10px; padding: 20px; margin-top: 20px;">
+                <h3>Recent Login Activity (Last 20)</h3>
+                {% if recent_logins %}
+                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                    <thead>
+                        <tr style="background: #f8f9fa;">
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Time</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">Username</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">IP Address</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6; text-align: left;">User Agent</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for login in recent_logins %}
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #dee2e6; white-space: nowrap;">{{ login.login_time }}</td>
+                            <td style="padding: 10px; border: 1px solid #dee2e6;">{{ login.username }}</td>
+                            <td style="padding: 10px; border: 1px solid #dee2e6;">{{ login.ip_address or 'N/A' }}</td>
+                            <td style="padding: 10px; border: 1px solid #dee2e6; font-size: 0.85em; max-width: 300px; overflow: hidden; text-overflow: ellipsis;">
+                                {{ login.user_agent or 'N/A' }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p style="margin-top: 10px; color: #6c757d;">No login activity recorded yet.</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
         <div class="stats-section">
             <h2>📊 Data Overview</h2>
             <div class="stat-summary">

@@ -16,6 +16,10 @@
     {% endif %}
     
     <form method="POST" action="{{ url_for('login') }}">
+        {% if next %}
+        <input type="hidden" name="next" value="{{ next }}">
+        {% endif %}
+        
         <div style="margin-bottom: 20px;">
             <label for="username" style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">
                 Username:
