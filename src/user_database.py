@@ -166,6 +166,38 @@ def init_database():
             CREATE INDEX IF NOT EXISTS idx_login_logs_login_time ON login_logs(login_time DESC)
         ''')
         
+        # Create foul_weights table for storing admin-configured foul weights
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS foul_weights (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                foul_type TEXT UNIQUE NOT NULL,
+                weight REAL NOT NULL DEFAULT 1.0,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Insert default foul weights if table is empty
+        cursor.execute('SELECT COUNT(*) FROM foul_weights')
+        if cursor.fetchone()[0] == 0:
+            logger.info("Initializing default foul weights")
+            default_weights = [
+                ('P', 1.0),
+                ('P1', 1.0),
+                ('P2', 1.0),
+                ('P3', 1.0),
+                ('T1', 2.0),
+                ('U1', 2.0),
+                ('U2', 2.0),
+                ('U3', 2.0),
+                ('GD', 5.0)
+            ]
+            cursor.executemany(
+                'INSERT INTO foul_weights (foul_type, weight) VALUES (?, ?)',
+                default_weights
+            )
+            conn.commit()
+            logger.info("Default foul weights initialized")
+        
         # Migrate existing tables to add user_level column if it doesn't exist
         cursor.execute("PRAGMA table_info(users)")
         columns = [column[1] for column in cursor.fetchall()]
@@ -815,6 +847,86 @@ def get_login_statistics() -> Dict:
             'most_active_user': None,
             'most_active_count': 0
         }
+    finally:
+        if conn:
+            conn.close()
+
+
+def get_foul_weights() -> Dict[str, float]:
+    """
+    Get all foul weights from the database.
+    
+    Returns:
+        Dict[str, float]: Dictionary mapping foul type to weight value
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT foul_type, weight FROM foul_weights ORDER BY foul_type')
+        rows = cursor.fetchall()
+        
+        return {row['foul_type']: row['weight'] for row in rows}
+        
+    except Exception as e:
+        logger.error(f"Error getting foul weights: {e}")
+        # Return default weights if database error
+        return {
+            'P': 1.0, 'P1': 1.0, 'P2': 1.0, 'P3': 1.0,
+            'T1': 2.0, 'U1': 2.0, 'U2': 2.0, 'U3': 2.0,
+            'GD': 5.0
+        }
+    finally:
+        if conn:
+            conn.close()
+
+
+def update_foul_weights(weights: Dict[str, float]) -> Tuple[bool, str]:
+    """
+    Update foul weights in the database.
+    
+    Args:
+        weights: Dictionary mapping foul type to weight value
+        
+    Returns:
+        Tuple[bool, str]: (success, message)
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Validate that all expected foul types are present
+        expected_types = ['P', 'P1', 'P2', 'P3', 'T1', 'U1', 'U2', 'U3', 'GD']
+        for foul_type in expected_types:
+            if foul_type not in weights:
+                return False, f"Missing weight for foul type: {foul_type}"
+        
+        # Validate that all weights are non-negative numbers
+        for foul_type, weight in weights.items():
+            try:
+                weight_float = float(weight)
+                if weight_float < 0:
+                    return False, f"Weight for {foul_type} must be non-negative"
+            except (ValueError, TypeError):
+                return False, f"Invalid weight value for {foul_type}: {weight}"
+        
+        # Update each foul weight
+        for foul_type, weight in weights.items():
+            cursor.execute('''
+                UPDATE foul_weights 
+                SET weight = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE foul_type = ?
+            ''', (float(weight), foul_type))
+        
+        conn.commit()
+        logger.info(f"Foul weights updated successfully")
+        return True, "Foul weights updated successfully"
+        
+    except Exception as e:
+        logger.error(f"Error updating foul weights: {e}")
+        return False, f"Error updating foul weights: {str(e)}"
     finally:
         if conn:
             conn.close()

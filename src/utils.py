@@ -1322,20 +1322,21 @@ def get_top_foulers(data, top_n=10, division=None, team=None):
     foul_stats.rename(columns={'GameId': 'GamesPlayed'}, inplace=True)
     foul_stats['AvgFoulsPerGame'] = (foul_stats['TotalFouls'] / foul_stats['GamesPlayed']).round(1)
     
-    # Calculate weighted total fouls
-    # P, P1, P2, P3 = weight 1
-    # T1, U1, U2, U3 = weight 2
-    # GD = weight 5
+    # Calculate weighted total fouls using weights from database
+    # Import here to avoid circular dependency
+    from .user_database import get_foul_weights
+    weights = get_foul_weights()
+    
     foul_stats['WeightedTotalFouls'] = (
-        foul_stats['PFouls'] * 1 +
-        foul_stats['P1Fouls'] * 1 +
-        foul_stats['P2Fouls'] * 1 +
-        foul_stats['P3Fouls'] * 1 +
-        foul_stats['T1Fouls'] * 2 +
-        foul_stats['U1Fouls'] * 2 +
-        foul_stats['U2Fouls'] * 2 +
-        foul_stats['U3Fouls'] * 2 +
-        foul_stats['GDFouls'] * 5
+        foul_stats['PFouls'] * weights.get('P', 1.0) +
+        foul_stats['P1Fouls'] * weights.get('P1', 1.0) +
+        foul_stats['P2Fouls'] * weights.get('P2', 1.0) +
+        foul_stats['P3Fouls'] * weights.get('P3', 1.0) +
+        foul_stats['T1Fouls'] * weights.get('T1', 2.0) +
+        foul_stats['U1Fouls'] * weights.get('U1', 2.0) +
+        foul_stats['U2Fouls'] * weights.get('U2', 2.0) +
+        foul_stats['U3Fouls'] * weights.get('U3', 2.0) +
+        foul_stats['GDFouls'] * weights.get('GD', 5.0)
     )
     
     # Create foul details string
@@ -1419,8 +1420,8 @@ def get_top_foulers(data, top_n=10, division=None, team=None):
     
     foul_stats['FoulDetails'] = foul_stats.apply(create_foul_details, axis=1)
     
-    # Sort by total fouls and return top N
-    return foul_stats.sort_values('TotalFouls', ascending=False).head(top_n).reset_index(drop=True)
+    # Sort by weighted total fouls and return top N
+    return foul_stats.sort_values('WeightedTotalFouls', ascending=False).head(top_n).reset_index(drop=True)
 
 def get_top_players_by_score(data, top_n=50):
     """

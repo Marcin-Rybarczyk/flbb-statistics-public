@@ -31,7 +31,8 @@ from .utils import (calculate_standings_by_division, get_highest_scoring_games,
 from .version import get_version_info
 from .user_database import (authenticate_user, get_user_preferences, update_user_preferences,
                             create_user, list_users, update_user_password, delete_user, update_user_level,
-                            get_users_with_login_info, get_recent_login_logs, get_login_statistics)
+                            get_users_with_login_info, get_recent_login_logs, get_login_statistics,
+                            get_foul_weights, update_foul_weights)
 
 app = Flask(__name__, template_folder='../templates', static_folder='../logos', static_url_path='/logos')
 
@@ -1162,6 +1163,54 @@ def admin_delete_user():
         })
     else:
         return jsonify({'success': False, 'error': message}), 400
+
+@app.route('/admin/foul-weights', methods=['GET'])
+@admin_required
+def admin_foul_weights():
+    """Display foul weights editor"""
+    weights = get_foul_weights()
+    return jsonify(weights)
+
+@app.route('/admin/foul-weights/update', methods=['POST'])
+@admin_required
+@limiter.limit("30 per hour")
+def admin_update_foul_weights():
+    """Update foul weights"""
+    try:
+        # Get the submitted weights from the form
+        weights = {}
+        foul_types = ['P', 'P1', 'P2', 'P3', 'T1', 'U1', 'U2', 'U3', 'GD']
+        
+        for foul_type in foul_types:
+            weight_value = request.form.get(f'weight_{foul_type}', '')
+            if not weight_value:
+                return jsonify({
+                    'success': False, 
+                    'error': f'Weight for {foul_type} is required'
+                }), 400
+            
+            try:
+                weights[foul_type] = float(weight_value)
+            except ValueError:
+                return jsonify({
+                    'success': False,
+                    'error': f'Invalid weight value for {foul_type}: {weight_value}'
+                }), 400
+        
+        # Update the weights
+        success, message = update_foul_weights(weights)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': message
+            })
+        else:
+            return jsonify({'success': False, 'error': message}), 400
+            
+    except Exception as e:
+        logger.error(f"Error updating foul weights: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/user/change-password', methods=['GET', 'POST'])
 @user_required
