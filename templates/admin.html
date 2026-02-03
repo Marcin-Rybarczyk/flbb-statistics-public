@@ -24,6 +24,169 @@
 
         {% if is_admin_authenticated %}
         <div class="stats-section">
+            <h2>⚖️ Foul Weights Configuration</h2>
+            <div style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                <p style="color: #6c757d; margin-bottom: 15px;">
+                    Configure the weight values for different types of fouls. These weights are used to calculate 
+                    the "Weighted Total Fouls" in the Player Statistics panel. Players are sorted by this weighted value.
+                </p>
+                <form id="foulWeightsForm" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;">
+                    <div style="display: flex; flex-direction: column;">
+                        <label style="font-weight: 600; margin-bottom: 5px; color: #495057;">
+                            Personal (P):
+                        </label>
+                        <input type="number" step="0.1" min="0" name="weight_P" id="weight_P" 
+                               style="padding: 8px; border: 1px solid #ced4da; border-radius: 4px;" required>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <label style="font-weight: 600; margin-bottom: 5px; color: #495057;">
+                            Personal 1 (P1):
+                        </label>
+                        <input type="number" step="0.1" min="0" name="weight_P1" id="weight_P1" 
+                               style="padding: 8px; border: 1px solid #ced4da; border-radius: 4px;" required>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <label style="font-weight: 600; margin-bottom: 5px; color: #495057;">
+                            Personal 2 (P2):
+                        </label>
+                        <input type="number" step="0.1" min="0" name="weight_P2" id="weight_P2" 
+                               style="padding: 8px; border: 1px solid #ced4da; border-radius: 4px;" required>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <label style="font-weight: 600; margin-bottom: 5px; color: #495057;">
+                            Personal 3 (P3):
+                        </label>
+                        <input type="number" step="0.1" min="0" name="weight_P3" id="weight_P3" 
+                               style="padding: 8px; border: 1px solid #ced4da; border-radius: 4px;" required>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <label style="font-weight: 600; margin-bottom: 5px; color: #FF8C00;">
+                            Technical (T1):
+                        </label>
+                        <input type="number" step="0.1" min="0" name="weight_T1" id="weight_T1" 
+                               style="padding: 8px; border: 1px solid #ced4da; border-radius: 4px;" required>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <label style="font-weight: 600; margin-bottom: 5px; color: #FF8C69;">
+                            Unsportsmanlike 1 (U1):
+                        </label>
+                        <input type="number" step="0.1" min="0" name="weight_U1" id="weight_U1" 
+                               style="padding: 8px; border: 1px solid #ced4da; border-radius: 4px;" required>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <label style="font-weight: 600; margin-bottom: 5px; color: #FF6347;">
+                            Unsportsmanlike 2 (U2):
+                        </label>
+                        <input type="number" step="0.1" min="0" name="weight_U2" id="weight_U2" 
+                               style="padding: 8px; border: 1px solid #ced4da; border-radius: 4px;" required>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <label style="font-weight: 600; margin-bottom: 5px; color: #DC143C;">
+                            Unsportsmanlike 3 (U3):
+                        </label>
+                        <input type="number" step="0.1" min="0" name="weight_U3" id="weight_U3" 
+                               style="padding: 8px; border: 1px solid #ced4da; border-radius: 4px;" required>
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <label style="font-weight: 600; margin-bottom: 5px; color: #8B0000;">
+                            Game Disqualification (GD):
+                        </label>
+                        <input type="number" step="0.1" min="0" name="weight_GD" id="weight_GD" 
+                               style="padding: 8px; border: 1px solid #ced4da; border-radius: 4px;" required>
+                    </div>
+                    <div style="grid-column: 1 / -1; display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
+                        <button type="submit" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: transform 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            💾 Save Weights
+                        </button>
+                        <button type="button" id="loadWeightsBtn" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 12px 30px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: transform 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            🔄 Load Current Weights
+                        </button>
+                    </div>
+                </form>
+                <div id="foulWeightsMessage" style="margin-top: 15px; padding: 10px; border-radius: 4px; display: none;"></div>
+            </div>
+        </div>
+
+        <script>
+        // Message display duration constant (matches backend configuration)
+        const MESSAGE_DISPLAY_DURATION_MS = 5000;
+        
+        // Load current foul weights when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFoulWeights();
+            
+            // Add event listener to load button
+            document.getElementById('loadWeightsBtn').addEventListener('click', loadFoulWeights);
+            
+            // Handle form submission
+            document.getElementById('foulWeightsForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveFoulWeights();
+            });
+        });
+
+        function loadFoulWeights() {
+            fetch('/admin/foul-weights')
+                .then(response => response.json())
+                .then(weights => {
+                    for (const [foulType, weight] of Object.entries(weights)) {
+                        const input = document.getElementById('weight_' + foulType);
+                        if (input) {
+                            input.value = weight;
+                        }
+                    }
+                    showMessage('Current weights loaded successfully', 'success');
+                })
+                .catch(error => {
+                    showMessage('Error loading weights: ' + error, 'error');
+                });
+        }
+
+        function saveFoulWeights() {
+            const formData = new FormData(document.getElementById('foulWeightsForm'));
+            
+            fetch('/admin/foul-weights/update', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage(data.message, 'success');
+                } else {
+                    showMessage(data.error || 'Error updating weights', 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('Error updating weights: ' + error, 'error');
+            });
+        }
+
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('foulWeightsMessage');
+            messageDiv.textContent = message;
+            messageDiv.style.display = 'block';
+            
+            if (type === 'success') {
+                messageDiv.style.background = '#d4edda';
+                messageDiv.style.color = '#155724';
+                messageDiv.style.border = '1px solid #c3e6cb';
+            } else {
+                messageDiv.style.background = '#f8d7da';
+                messageDiv.style.color = '#721c24';
+                messageDiv.style.border = '1px solid #f5c6cb';
+            }
+            
+            // Hide message after configured duration
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, MESSAGE_DISPLAY_DURATION_MS);
+        }
+        </script>
+        {% endif %}
+
+        {% if is_admin_authenticated %}
+        <div class="stats-section">
             <h2>👤 User Login Activity</h2>
             
             <!-- Login Statistics Summary -->
