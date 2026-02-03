@@ -39,6 +39,9 @@ app = Flask(__name__, template_folder='../templates', static_folder='../logos', 
 # Valid theme options for the application
 VALID_THEMES = ['default', 'ocean', 'sunset', 'forest', 'minimal', 'cherry']
 
+# Rate limiting constants
+FOUL_WEIGHTS_UPDATE_RATE_LIMIT = '30 per hour'
+
 # Configure logging for tracking code validation
 logger = logging.getLogger(__name__)
 
@@ -1173,7 +1176,7 @@ def admin_foul_weights():
 
 @app.route('/admin/foul-weights/update', methods=['POST'])
 @admin_required
-@limiter.limit("30 per hour")
+@limiter.limit(FOUL_WEIGHTS_UPDATE_RATE_LIMIT)
 def admin_update_foul_weights():
     """Update foul weights"""
     try:

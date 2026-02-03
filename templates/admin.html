@@ -108,6 +108,9 @@
         </div>
 
         <script>
+        // Message display duration constant
+        const MESSAGE_DISPLAY_DURATION_MS = 5000;
+        
         // Load current foul weights when page loads
         document.addEventListener('DOMContentLoaded', function() {
             loadFoulWeights();
@@ -174,10 +177,10 @@
                 messageDiv.style.border = '1px solid #f5c6cb';
             }
             
-            // Hide message after 5 seconds
+            // Hide message after configured duration
             setTimeout(() => {
                 messageDiv.style.display = 'none';
-            }, 5000);
+            }, MESSAGE_DISPLAY_DURATION_MS);
         }
         </script>
         {% endif %}

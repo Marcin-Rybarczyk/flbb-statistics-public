@@ -28,6 +28,9 @@ ISO_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'  # Format used in CSV and for display
 # Foul visualization settings
 MAX_FOUL_BLOCKS_DISPLAY = 20  # Maximum number of visual blocks (■) to display for a single foul type
 
+# Message display duration for admin UI
+MESSAGE_DISPLAY_DURATION_MS = 5000  # Duration in milliseconds to show success/error messages
+
 # Configuration file paths
 CONFIG_FILEPATH = "data/config.json"
 DEFAULT_CONFIG_FILEPATH = "config.json"
@@ -1323,7 +1326,6 @@ def get_top_foulers(data, top_n=10, division=None, team=None):
     foul_stats['AvgFoulsPerGame'] = (foul_stats['TotalFouls'] / foul_stats['GamesPlayed']).round(1)
     
     # Calculate weighted total fouls using weights from database
-    # Import here to avoid circular dependency
     from .user_database import get_foul_weights
     weights = get_foul_weights()
     
