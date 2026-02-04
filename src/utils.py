@@ -1641,6 +1641,87 @@ def get_team_fouls_stats(data, top_n=20):
         team_foul_stats['GDFouls'] * weights.get('GD', 5.0)
     )
     
+    # Create foul details string
+    def create_foul_details(row):
+        """
+        Create visual foul details with colored blocks sorted by severity.
+        
+        Args:
+            row (pandas.Series): A row from the foul statistics DataFrame containing
+                                foul counts for each type (PFouls, P1Fouls, etc.)
+        
+        Returns:
+            str: HTML string representing foul details with colored visual blocks
+                 sorted by severity (most severe first)
+        
+        Foul severity order (most severe first):
+        - GD (Game Disqualification): #8B0000 (dark red)
+        - U3, U2, U1 (Unsportsmanlike): #DC143C, #FF6347, #FF8C69 (red shades)
+        - T1 (Technical): #FF8C00 (dark orange)
+        - P3, P2, P1, P (Personal): #FFD700, #FFA500, #FFB84D, #FFE4B5 (gold/orange shades)
+        
+        Display format:
+        - For counts >= 10: Use bigger blocks (◼) for every 10 fouls and small blocks (■) for remainder
+        - For counts < 10: Use small blocks (■) only
+        """
+        # Define fouls in order of severity (most severe first)
+        foul_types = [
+            ('GD', row['GDFouls'], '#8B0000', 'Game Disqualification'),
+            ('U3', row['U3Fouls'], '#DC143C', 'Unsportsmanlike 3'),
+            ('U2', row['U2Fouls'], '#FF6347', 'Unsportsmanlike 2'),
+            ('U1', row['U1Fouls'], '#FF8C69', 'Unsportsmanlike 1'),
+            ('T1', row['T1Fouls'], '#FF8C00', 'Technical'),
+            ('P3', row['P3Fouls'], '#FFD700', 'Personal 3'),
+            ('P2', row['P2Fouls'], '#FFA500', 'Personal 2'),
+            ('P1', row['P1Fouls'], '#FFB84D', 'Personal 1'),
+            ('P', row['PFouls'], '#FFE4B5', 'Personal'),
+        ]
+        
+        details = []
+        for foul_code, count, color, title in foul_types:
+            if count > 0:
+                count = int(count)
+                
+                # When count >= 10, combine every 10 fouls into one bigger block
+                if count >= 10:
+                    big_blocks = count // 10  # Number of big blocks (each represents 10 fouls)
+                    small_blocks = count % 10  # Remaining fouls as small blocks
+                    
+                    # Limit display to reasonable amount
+                    # Note: The actual total count is always shown in the (count) text, so users
+                    # can see the full number even when the visual display is truncated
+                    if big_blocks > MAX_FOUL_BLOCKS_DISPLAY:
+                        # When truncating, calculate total remaining fouls (not displayed visually)
+                        # Example: 215 fouls = 21 big blocks + 5 small blocks
+                        #   Display: 20 big blocks + "...+15" + "(215)"
+                        #   The "...+15" represents 1 truncated big block (10 fouls) + 5 small blocks
+                        remaining_fouls = (big_blocks - MAX_FOUL_BLOCKS_DISPLAY) * 10 + small_blocks
+                        blocks = '◼' * MAX_FOUL_BLOCKS_DISPLAY + f'...+{remaining_fouls}'
+                    else:
+                        blocks = '◼' * big_blocks + '■' * small_blocks
+                else:
+                    # For counts < 10, just use small blocks
+                    blocks = '■' * count
+                
+                # Escape HTML to prevent XSS (color is a hardcoded constant, no need to escape)
+                escaped_title = html.escape(title)
+                escaped_foul_code = html.escape(foul_code)
+                escaped_blocks = html.escape(blocks)
+                
+                # Create HTML for this foul type
+                foul_html = (
+                    f'<div class="foul-card" title="{escaped_title}">'
+                    f'<span class="foul-label">{escaped_foul_code}:</span>'
+                    f'<span class="foul-blocks" style="color: {color};">{escaped_blocks}</span> '
+                    f'<span class="foul-count">({count})</span>'
+                    f'</div>'
+                )
+                details.append(foul_html)
+        
+        return ''.join(details) if details else '<span class="no-fouls">No fouls</span>'
+    
+    team_foul_stats['FoulDetails'] = team_foul_stats.apply(create_foul_details, axis=1)
+    
     # Sort by total fouls and return top N
     return team_foul_stats.sort_values('TotalFouls', ascending=False).head(top_n).reset_index(drop=True)
 

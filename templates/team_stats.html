@@ -88,13 +88,46 @@
             color: #7f8c8d;
             font-size: 0.9em;
         }
-
-        /* Mobile responsiveness */
-        @media (max-width: 768px) {
-            .tab {
-                padding: 12px 16px;
-                font-size: 0.9em;
-            }
+        
+        .foul-details-cell {
+            padding: 8px;
+            min-width: 250px;
+        }
+        
+        .foul-card {
+            display: flex;
+            align-items: center;
+            margin: 3px 0;
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 4px;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+        
+        .foul-label {
+            font-weight: bold;
+            color: #333;
+            min-width: 30px;
+            margin-right: 5px;
+        }
+        
+        .foul-blocks {
+            font-weight: bold;
+            letter-spacing: 1px;
+            flex-grow: 1;
+            font-size: 1.1em;
+        }
+        
+        .foul-count {
+            color: #666;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+        
+        .no-fouls {
+            color: #999;
+            font-style: italic;
         }
     </style>
 {% endblock %}
@@ -346,6 +379,7 @@
                             <th class="col-essential">Rank</th>
                             <th class="col-essential">Team</th>
                             <th class="col-essential">Total Fouls</th>
+                            <th class="col-extra">Foul Details</th>
                             <th class="col-optional">Weighted Total Fouls</th>
                             <th class="col-optional">Games</th>
                             <th class="col-important">Fouls per Game</th>
@@ -368,6 +402,7 @@
                                 </span>
                             </td>
                             <td class="col-essential"><strong>{{ row['TotalFouls'] }}</strong></td>
+                            <td class="foul-details-cell col-extra">{{ row['FoulDetails']|safe }}</td>
                             <td class="col-optional"><strong>{{ row['WeightedTotalFouls']|int }}</strong></td>
                             <td class="col-optional">{{ row['TotalGames'] }}</td>
                             <td class="col-important">{{ "%.1f"|format(row['AvgFoulsPerGame']) }}</td>
