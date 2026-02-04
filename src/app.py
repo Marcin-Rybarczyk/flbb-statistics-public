@@ -321,10 +321,15 @@ def filter_data_by_division(data, selected_division):
     
     Parameters:
     data (DataFrame): The game data
-    selected_division (str): The division filter (can be None, specific division, or "DIVISIONS_1_4")
+    selected_division (str): The division filter (can be None, empty string, specific division, or "DIVISIONS_1_4")
     
     Returns:
     DataFrame: Filtered data
+    
+    Behavior:
+    - None or empty string: returns all data (no filter)
+    - "DIVISIONS_1_4": returns only M-Division 1:, 2:, 3:, 4: games
+    - Specific division name: returns games from that division only
     """
     if not selected_division:
         return data
