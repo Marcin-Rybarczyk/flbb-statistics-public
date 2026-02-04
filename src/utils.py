@@ -28,6 +28,11 @@ ISO_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'  # Format used in CSV and for display
 # Foul visualization settings
 MAX_FOUL_BLOCKS_DISPLAY = 20  # Maximum number of visual blocks (■) to display for a single foul type
 
+# Consistency score calculation constant
+# Small epsilon value added to standard deviation to prevent division by zero
+# and ensure numerical stability when calculating consistency scores
+CONSISTENCY_STABILITY_EPSILON = 0.1
+
 # Message display duration for admin UI (backend configuration)
 # Note: A similar constant exists in admin.html for frontend behavior
 MESSAGE_DISPLAY_DURATION_MS = 5000  # Duration in milliseconds to show success/error messages
@@ -1067,8 +1072,8 @@ def get_starting_five_vs_bench_stats(data, division=None, team=None):
         player_stats = player_stats[player_stats['Team'] == team]
     
     # Separate starters and bench players
-    starters = player_stats[player_stats['StartingFive'] == True]
-    bench = player_stats[player_stats['StartingFive'] == False]
+    starters = player_stats[player_stats['StartingFive']]
+    bench = player_stats[~player_stats['StartingFive']]
     
     if starters.empty and bench.empty:
         return {}
@@ -1229,7 +1234,7 @@ def get_consistent_scorers(data, min_games=5, division=None, team=None):
                 'StdDevPoints': points.std().round(1),
                 'MinPoints': points.min(),
                 'MaxPoints': points.max(),
-                'ConsistencyScore': (points.mean() / (points.std() + 0.1)).round(2)  # Higher is more consistent
+                'ConsistencyScore': (points.mean() / (points.std() + CONSISTENCY_STABILITY_EPSILON)).round(2)  # Higher is more consistent
             })
     
     consistency_df = pd.DataFrame(consistency_stats)
@@ -1541,6 +1546,376 @@ def get_highest_scoring_games(data, top_n=10, division=None):
     data_copy['TotalScore'] = data_copy['FinalHomeScore'] + data_copy['FinalAwayScore']
     highest_games = data_copy.nlargest(top_n, 'TotalScore')
     return highest_games[['GameId', 'HomeTeamName', 'AwayTeamName', 'FinalHomeScore', 'FinalAwayScore', 'TotalScore', 'GameDivisionDisplay']]
+
+def get_team_three_pointers_stats(data, top_n=20):
+    """
+    Get teams with most three-pointers made.
+    
+    Parameters:
+    data (DataFrame): The game data
+    top_n (int): Number of top teams to return
+    
+    Returns:
+    DataFrame: Teams with three-pointer statistics
+    """
+    if data.empty:
+        return pd.DataFrame()
+    
+    player_stats = extract_all_player_stats(data)
+    
+    if player_stats.empty:
+        return pd.DataFrame()
+    
+    # Group by team and calculate three-point totals
+    team_three_point_stats = player_stats.groupby('Team').agg({
+        '3PMadeShots': 'sum',
+        'GameId': 'nunique',  # Unique games
+        'TotalPoints': 'sum'
+    }).reset_index()
+    
+    team_three_point_stats.rename(columns={'GameId': 'TotalGames'}, inplace=True)
+    team_three_point_stats['AvgThreePointsPerGame'] = (
+        team_three_point_stats['3PMadeShots'] / team_three_point_stats['TotalGames']
+    ).round(1)
+    
+    # Sort by total three-pointers made and return top N
+    return team_three_point_stats.sort_values('3PMadeShots', ascending=False).head(top_n).reset_index(drop=True)
+
+def get_team_fouls_stats(data, top_n=20):
+    """
+    Get teams with most fouls committed.
+    
+    Parameters:
+    data (DataFrame): The game data
+    top_n (int): Number of top teams to return
+    
+    Returns:
+    DataFrame: Teams with foul statistics including weighted totals
+    """
+    if data.empty:
+        return pd.DataFrame()
+    
+    player_stats = extract_all_player_stats(data)
+    
+    if player_stats.empty:
+        return pd.DataFrame()
+    
+    # Group by team and calculate foul totals
+    team_foul_stats = player_stats.groupby('Team').agg({
+        'TotalFouls': 'sum',
+        'PFouls': 'sum',
+        'P1Fouls': 'sum',
+        'P2Fouls': 'sum',
+        'P3Fouls': 'sum',
+        'T1Fouls': 'sum',
+        'U1Fouls': 'sum',
+        'U2Fouls': 'sum',
+        'U3Fouls': 'sum',
+        'GDFouls': 'sum',
+        'GameId': 'nunique',  # Unique games
+        'TotalPoints': 'sum'
+    }).reset_index()
+    
+    team_foul_stats.rename(columns={'GameId': 'TotalGames'}, inplace=True)
+    team_foul_stats['AvgFoulsPerGame'] = (
+        team_foul_stats['TotalFouls'] / team_foul_stats['TotalGames']
+    ).round(1)
+    
+    # Calculate weighted total fouls using weights from database
+    from .user_database import get_foul_weights
+    weights = get_foul_weights()
+    
+    team_foul_stats['WeightedTotalFouls'] = (
+        team_foul_stats['PFouls'] * weights.get('P', 1.0) +
+        team_foul_stats['P1Fouls'] * weights.get('P1', 1.0) +
+        team_foul_stats['P2Fouls'] * weights.get('P2', 1.0) +
+        team_foul_stats['P3Fouls'] * weights.get('P3', 1.0) +
+        team_foul_stats['T1Fouls'] * weights.get('T1', 2.0) +
+        team_foul_stats['U1Fouls'] * weights.get('U1', 2.0) +
+        team_foul_stats['U2Fouls'] * weights.get('U2', 2.0) +
+        team_foul_stats['U3Fouls'] * weights.get('U3', 2.0) +
+        team_foul_stats['GDFouls'] * weights.get('GD', 5.0)
+    )
+    
+    # Sort by total fouls and return top N
+    return team_foul_stats.sort_values('TotalFouls', ascending=False).head(top_n).reset_index(drop=True)
+
+def get_team_highest_single_game_scores(data, top_n=20):
+    """
+    Get teams with highest single game scores.
+    
+    Parameters:
+    data (DataFrame): The game data
+    top_n (int): Number of top scores to return
+    
+    Returns:
+    DataFrame: Teams with their highest single game scores
+    """
+    if data.empty:
+        return pd.DataFrame()
+    
+    # Create a list to store team scores from each game
+    team_scores = []
+    
+    for _, game in data.iterrows():
+        # Home team score
+        team_scores.append({
+            'Team': game['HomeTeamName'],
+            'Score': game['FinalHomeScore'],
+            'OpponentTeam': game['AwayTeamName'],
+            'OpponentScore': game['FinalAwayScore'],
+            'GameId': game['GameId'],
+            'GameDate': game.get('DateTime', 'N/A'),
+            'Division': game.get('GameDivisionDisplay', 'Unknown')
+        })
+        
+        # Away team score
+        team_scores.append({
+            'Team': game['AwayTeamName'],
+            'Score': game['FinalAwayScore'],
+            'OpponentTeam': game['HomeTeamName'],
+            'OpponentScore': game['FinalHomeScore'],
+            'GameId': game['GameId'],
+            'GameDate': game.get('DateTime', 'N/A'),
+            'Division': game.get('GameDivisionDisplay', 'Unknown')
+        })
+    
+    team_scores_df = pd.DataFrame(team_scores)
+    
+    if team_scores_df.empty:
+        return pd.DataFrame()
+    
+    # Get the highest score for each team (one entry per team showing their best game)
+    # This mirrors the player stats behavior where we show each player's highest single game
+    idx = team_scores_df.groupby('Team')['Score'].idxmax()
+    highest_scores = team_scores_df.loc[idx].nlargest(top_n, 'Score').reset_index(drop=True)
+    
+    return highest_scores
+
+def get_team_free_throw_stats(data, top_n=20):
+    """
+    Get teams with best free throw statistics.
+    
+    Parameters:
+    data (DataFrame): The game data
+    top_n (int): Number of top teams to return
+    
+    Returns:
+    DataFrame: Teams with free throw statistics
+    """
+    if data.empty:
+        return pd.DataFrame()
+    
+    player_stats = extract_all_player_stats(data)
+    
+    if player_stats.empty:
+        return pd.DataFrame()
+    
+    # Group by team and calculate free throw stats
+    team_ft_stats = player_stats.groupby('Team').agg({
+        'FTAttempts': 'sum',
+        'FTMakes': 'sum',
+        '1PMadeShots': 'sum',
+        'GameId': 'nunique',  # Unique games
+        'TotalPoints': 'sum'
+    }).reset_index()
+    
+    team_ft_stats.rename(columns={
+        'GameId': 'TotalGames',
+        '1PMadeShots': 'TotalFreeThrowsMade'
+    }, inplace=True)
+    
+    # Calculate FT percentage
+    team_ft_stats['FTPercentage'] = 0.0
+    ft_mask = team_ft_stats['FTAttempts'] > 0
+    team_ft_stats.loc[ft_mask, 'FTPercentage'] = (
+        (team_ft_stats.loc[ft_mask, 'FTMakes'] / team_ft_stats.loc[ft_mask, 'FTAttempts']) * 100
+    ).round(1)
+    
+    # Calculate average free throws per game
+    team_ft_stats['AvgFreeThrowsPerGame'] = (
+        team_ft_stats['TotalFreeThrowsMade'] / team_ft_stats['TotalGames']
+    ).round(1)
+    
+    # Filter teams with at least 5 total free throw attempts
+    team_ft_stats = team_ft_stats[team_ft_stats['FTAttempts'] >= 5]
+    
+    return team_ft_stats.sort_values('TotalFreeThrowsMade', ascending=False).head(top_n).reset_index(drop=True)
+
+def get_team_double_digit_scorers_stats(data, min_points=10):
+    """
+    Get teams with most double-digit scorer performances.
+    
+    Parameters:
+    data (DataFrame): The game data
+    min_points (int): Minimum points for double-digit game
+    
+    Returns:
+    DataFrame: Teams with double-digit scorer statistics
+    """
+    if data.empty:
+        return pd.DataFrame()
+    
+    player_stats = extract_all_player_stats(data)
+    
+    if player_stats.empty:
+        return pd.DataFrame()
+    
+    # Filter games with double-digit scoring
+    double_digit_games = player_stats[player_stats['TotalPoints'] >= min_points]
+    
+    # Count double-digit performances per team
+    team_double_digit = double_digit_games.groupby('Team').agg({
+        'PlayerName': 'count',  # Count of double-digit performances
+        'GameId': 'nunique',  # Total unique games
+        'TotalPoints': 'mean'  # Average points in double-digit games
+    }).reset_index()
+    
+    team_double_digit.rename(columns={
+        'PlayerName': 'DoubleDigitPerformances',
+        'GameId': 'TotalGames',
+        'TotalPoints': 'AvgPointsInDoubleDigitGames'
+    }, inplace=True)
+    
+    # Calculate double-digit performances per game
+    team_double_digit['DoubleDigitPerformancesPerGame'] = (
+        team_double_digit['DoubleDigitPerformances'] / team_double_digit['TotalGames']
+    ).round(1)
+    
+    team_double_digit['AvgPointsInDoubleDigitGames'] = team_double_digit['AvgPointsInDoubleDigitGames'].round(1)
+    
+    return team_double_digit.sort_values('DoubleDigitPerformances', ascending=False).head(20).reset_index(drop=True)
+
+def get_team_consistency_stats(data, min_games=5):
+    """
+    Get teams with most consistent scoring across games.
+    
+    Parameters:
+    data (DataFrame): The game data
+    min_games (int): Minimum games to be considered
+    
+    Returns:
+    DataFrame: Teams with consistency statistics
+    """
+    if data.empty:
+        return pd.DataFrame()
+    
+    # Create a list to store team scores from each game
+    team_scores = []
+    
+    for _, game in data.iterrows():
+        # Home team score
+        team_scores.append({
+            'Team': game['HomeTeamName'],
+            'Score': game['FinalHomeScore']
+        })
+        
+        # Away team score
+        team_scores.append({
+            'Team': game['AwayTeamName'],
+            'Score': game['FinalAwayScore']
+        })
+    
+    team_scores_df = pd.DataFrame(team_scores)
+    
+    if team_scores_df.empty:
+        return pd.DataFrame()
+    
+    # Group by team and calculate consistency metrics
+    consistency_stats = []
+    for team_name, group in team_scores_df.groupby('Team'):
+        if len(group) >= min_games:
+            scores = group['Score']
+            consistency_stats.append({
+                'Team': team_name,
+                'TotalGames': len(group),
+                'AvgScore': scores.mean().round(1),
+                'StdDevScore': scores.std().round(1),
+                'MinScore': scores.min(),
+                'MaxScore': scores.max(),
+                'ConsistencyScore': (scores.mean() / (scores.std() + CONSISTENCY_STABILITY_EPSILON)).round(2)  # Higher is more consistent
+            })
+    
+    consistency_df = pd.DataFrame(consistency_stats)
+    if consistency_df.empty:
+        return pd.DataFrame()
+    
+    return consistency_df.sort_values('ConsistencyScore', ascending=False).head(20).reset_index(drop=True)
+
+def get_team_starting_vs_bench_stats(data):
+    """
+    Compare starting five vs bench player statistics aggregated by team.
+    
+    Parameters:
+    data (DataFrame): The game data
+    
+    Returns:
+    DataFrame: Teams with starting five vs bench comparison
+    """
+    if data.empty:
+        return pd.DataFrame()
+    
+    player_stats = extract_all_player_stats(data)
+    
+    if player_stats.empty:
+        return pd.DataFrame()
+    
+    # Separate starters and bench players
+    starters = player_stats[player_stats['StartingFive']]
+    bench = player_stats[~player_stats['StartingFive']]
+    
+    # Calculate stats per team for starters
+    if not starters.empty:
+        starters_by_team = starters.groupby('Team').agg({
+            'TotalPoints': 'sum',
+            'GameId': 'nunique'
+        }).reset_index()
+        starters_by_team.rename(columns={
+            'TotalPoints': 'StartersPoints',
+            'GameId': 'StartersGames'
+        }, inplace=True)
+        starters_by_team['StartersAvgPointsPerGame'] = (
+            starters_by_team['StartersPoints'] / starters_by_team['StartersGames']
+        ).round(1)
+    else:
+        starters_by_team = pd.DataFrame()
+    
+    # Calculate stats per team for bench
+    if not bench.empty:
+        bench_by_team = bench.groupby('Team').agg({
+            'TotalPoints': 'sum',
+            'GameId': 'nunique'
+        }).reset_index()
+        bench_by_team.rename(columns={
+            'TotalPoints': 'BenchPoints',
+            'GameId': 'BenchGames'
+        }, inplace=True)
+        bench_by_team['BenchAvgPointsPerGame'] = (
+            bench_by_team['BenchPoints'] / bench_by_team['BenchGames']
+        ).round(1)
+    else:
+        bench_by_team = pd.DataFrame()
+    
+    # Merge starters and bench stats
+    if not starters_by_team.empty and not bench_by_team.empty:
+        team_stats = starters_by_team.merge(bench_by_team, on='Team', how='outer')
+    elif not starters_by_team.empty:
+        team_stats = starters_by_team
+    elif not bench_by_team.empty:
+        team_stats = bench_by_team
+    else:
+        return pd.DataFrame()
+    
+    # Fill NaN values with 0
+    team_stats = team_stats.fillna(0)
+    
+    # Calculate point difference
+    # Use bracket notation to access DataFrame columns
+    starters_col = team_stats['StartersAvgPointsPerGame'] if 'StartersAvgPointsPerGame' in team_stats.columns else 0
+    bench_col = team_stats['BenchAvgPointsPerGame'] if 'BenchAvgPointsPerGame' in team_stats.columns else 0
+    team_stats['PointsDifference'] = (starters_col - bench_col).round(1)
+    
+    return team_stats.sort_values('PointsDifference', ascending=False).head(20).reset_index(drop=True)
 
 def extract_referee_stats(data):
     """
@@ -2724,7 +3099,7 @@ def get_best_player_combinations(data, min_games=3):
     
     # Group by team and game to get starting fives
     for (team, game_id), group in player_stats.groupby(['Team', 'GameId']):
-        starters = group[group['StartingFive'] == True]['PlayerName'].tolist()
+        starters = group[group['StartingFive']]['PlayerName'].tolist()
         if len(starters) == 5:  # Only analyze complete starting fives
             starters_key = tuple(sorted(starters))
             
