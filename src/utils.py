@@ -1725,6 +1725,76 @@ def get_team_fouls_stats(data, top_n=20):
     # Sort by total fouls and return top N
     return team_foul_stats.sort_values('TotalFouls', ascending=False).head(top_n).reset_index(drop=True)
 
+def get_team_fouls_trend_data(data, team_names=None):
+    """
+    Get per-game foul trends for specified teams over time.
+    
+    Parameters:
+    data (DataFrame): The game data
+    team_names (list): List of team names to include. If None, returns data for all teams.
+    
+    Returns:
+    dict: Dictionary with team names as keys and list of game data as values.
+          Each game data contains: {date, game_number, total_fouls, fouls_by_type}
+    """
+    if data.empty:
+        return {}
+    
+    player_stats = extract_all_player_stats(data)
+    
+    if player_stats.empty:
+        return {}
+    
+    # Filter to specific teams if provided
+    if team_names:
+        player_stats = player_stats[player_stats['Team'].isin(team_names)]
+    
+    # Group by team and game to get per-game foul statistics
+    game_fouls = player_stats.groupby(['Team', 'GameId', 'GameDate']).agg({
+        'TotalFouls': 'sum',
+        'PFouls': 'sum',
+        'P1Fouls': 'sum',
+        'P2Fouls': 'sum',
+        'P3Fouls': 'sum',
+        'T1Fouls': 'sum',
+        'U1Fouls': 'sum',
+        'U2Fouls': 'sum',
+        'U3Fouls': 'sum',
+        'GDFouls': 'sum'
+    }).reset_index()
+    
+    # Sort by date to maintain chronological order
+    game_fouls = game_fouls.sort_values(['Team', 'GameDate'])
+    
+    # Build result dictionary
+    result = {}
+    for team_name in game_fouls['Team'].unique():
+        team_data = game_fouls[game_fouls['Team'] == team_name]
+        
+        games_list = []
+        for idx, (_, row) in enumerate(team_data.iterrows(), start=1):
+            games_list.append({
+                'game_number': idx,
+                'date': row['GameDate'],
+                'game_id': row['GameId'],
+                'total_fouls': int(row['TotalFouls']),
+                'fouls_by_type': {
+                    'P': int(row['PFouls']),
+                    'P1': int(row['P1Fouls']),
+                    'P2': int(row['P2Fouls']),
+                    'P3': int(row['P3Fouls']),
+                    'T1': int(row['T1Fouls']),
+                    'U1': int(row['U1Fouls']),
+                    'U2': int(row['U2Fouls']),
+                    'U3': int(row['U3Fouls']),
+                    'GD': int(row['GDFouls'])
+                }
+            })
+        
+        result[team_name] = games_list
+    
+    return result
+
 def get_team_highest_single_game_scores(data, top_n=20):
     """
     Get teams with highest single game scores.
