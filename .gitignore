@@ -51,5 +51,8 @@ logos/*_placeholder.txt
 
 # User database (contains sensitive user data)
 data/users.db
-test_*.py
+
+# Temporary test files (actual tests are in tests/ directory)
+/test_trend_stats.py
+/test_integration.py
 /tmp/
