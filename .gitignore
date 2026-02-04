@@ -51,3 +51,5 @@ logos/*_placeholder.txt
 
 # User database (contains sensitive user data)
 data/users.db
+test_*.py
+/tmp/
