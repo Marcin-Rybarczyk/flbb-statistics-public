@@ -328,7 +328,7 @@ def filter_data_by_division(data, selected_division):
     
     Behavior:
     - None or empty string: returns all data (no filter)
-    - "DIVISIONS_1_4": returns only M-Division 1:, 2:, 3:, 4: games
+    - "DIVISIONS_1_4": returns only games from divisions "M-Division 1:", "M-Division 2:", "M-Division 3:", and "M-Division 4:"
     - Specific division name: returns games from that division only
     """
     if not selected_division:
