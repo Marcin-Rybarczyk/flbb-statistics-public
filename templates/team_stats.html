@@ -899,7 +899,10 @@
         });
         
         document.getElementById('clearTrendButton').addEventListener('click', function() {
-            document.getElementById('teamSelect').selectedIndex = -1;
+            const selectElement = document.getElementById('teamSelect');
+            for (let i = 0; i < selectElement.options.length; i++) {
+                selectElement.options[i].selected = false;
+            }
         });
         
         document.getElementById('exportTrendButton').addEventListener('click', function() {
@@ -959,7 +962,7 @@
                         label: teamName,
                         data: totalFouls,
                         borderColor: chartColors[colorIndex % chartColors.length],
-                        backgroundColor: chartColors[colorIndex % chartColors.length] + '33', // 20% opacity
+                        backgroundColor: chartColors[colorIndex % chartColors.length] + '33', // 20% opacity (hex 33 = 51/255)
                         borderWidth: 3,
                         pointRadius: 5,
                         pointHoverRadius: 7,

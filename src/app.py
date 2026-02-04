@@ -632,13 +632,26 @@ def export_fouls_trend():
         # Create workbook
         wb = Workbook()
         
+        # Track sheet names to ensure uniqueness
+        sheet_names_used = set()
+        
         # Create a sheet for each team
         for idx, (team_name, games) in enumerate(trend_data.items()):
+            # Create unique sheet name (Excel limit: 31 chars)
+            base_name = team_name[:28]  # Leave room for potential suffix
+            sheet_name = base_name
+            counter = 1
+            while sheet_name in sheet_names_used:
+                suffix = f"_{counter}"
+                sheet_name = base_name[:31-len(suffix)] + suffix
+                counter += 1
+            sheet_names_used.add(sheet_name)
+            
             if idx == 0:
                 ws = wb.active
-                ws.title = team_name[:31]  # Excel sheet names limited to 31 chars
+                ws.title = sheet_name
             else:
-                ws = wb.create_sheet(title=team_name[:31])
+                ws = wb.create_sheet(title=sheet_name)
             
             # Header info
             ws['A1'] = f"Fouls Trend for {team_name}"

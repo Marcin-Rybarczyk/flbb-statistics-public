@@ -1775,7 +1775,7 @@ def get_team_fouls_trend_data(data, team_names=None):
         for idx, (_, row) in enumerate(team_data.iterrows(), start=1):
             games_list.append({
                 'game_number': idx,
-                'date': row['GameDate'],
+                'date': row['GameDate'].strftime('%Y-%m-%d %H:%M:%S') if hasattr(row['GameDate'], 'strftime') else str(row['GameDate']),
                 'game_id': row['GameId'],
                 'total_fouls': int(row['TotalFouls']),
                 'fouls_by_type': {
