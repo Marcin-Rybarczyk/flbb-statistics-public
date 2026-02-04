@@ -636,7 +636,11 @@ def export_fouls_trend():
         sheet_names_used = set()
         
         # Create a sheet for each team
-        for idx, (team_name, games) in enumerate(trend_data.items()):
+        for idx, (team_name, team_data) in enumerate(trend_data.items()):
+            # Handle both new and old data structure
+            games = team_data.get('games', team_data) if isinstance(team_data, dict) else team_data
+            statistics = team_data.get('statistics', {}) if isinstance(team_data, dict) else {}
+            
             # Create unique sheet name (Excel limit: 31 chars)
             base_name = team_name[:28]  # Leave room for potential suffix
             sheet_name = base_name
@@ -661,8 +665,26 @@ def export_fouls_trend():
             ws['A2'] = division_text
             ws['A2'].font = Font(bold=True, size=11)
             
-            # Column headers (starting at row 4)
-            row = 4
+            # Add statistics summary if available
+            row = 3
+            if statistics:
+                ws[f'A{row}'] = f"Statistics Summary"
+                ws[f'A{row}'].font = Font(bold=True, size=11)
+                row += 1
+                
+                stats_text = (
+                    f"Average: {statistics.get('average', 'N/A')} fouls/game | "
+                    f"Trend: {statistics.get('trend_direction', 'N/A')} {statistics.get('trend_indicator', '')} | "
+                    f"First Half Avg: {statistics.get('first_half_avg', 'N/A')} | "
+                    f"Second Half Avg: {statistics.get('second_half_avg', 'N/A')} | "
+                    f"Change: {statistics.get('change_percent', 'N/A')}%"
+                )
+                ws[f'A{row}'] = stats_text
+                ws[f'A{row}'].font = Font(size=10)
+                row += 1
+            
+            # Column headers (starting at next row)
+            row += 1
             headers = [
                 'Game #', 'Date', 'Game ID', 'Total Fouls',
                 'P', 'P1', 'P2', 'P3', 'T1', 'U1', 'U2', 'U3', 'GD'
