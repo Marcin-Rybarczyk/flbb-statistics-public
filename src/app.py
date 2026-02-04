@@ -752,6 +752,158 @@ def game_details_search():
                          divisions=divisions,
                          data_source_info=data_source_info)
 
+@app.route('/game-details/export/<game_id>')
+@user_required
+def export_game_details(game_id):
+    """Export game details to Excel file"""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill
+        from flask import send_file
+        import io
+        
+        # Get game details
+        game_details = get_game_details(data, game_id)
+        
+        if not game_details:
+            return "Game not found", 404
+        
+        # Create workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Game Statistics"
+        
+        # Game info header
+        basic_info = game_details.get('basic_info', {})
+        ws['A1'] = f"Game ID: {basic_info.get('game_id', '')}"
+        ws['A2'] = f"{basic_info.get('home_team', '')} vs {basic_info.get('away_team', '')}"
+        ws['A3'] = f"Final Score: {basic_info.get('final_score', '')}"
+        ws['A4'] = f"Date: {basic_info.get('date_time', '')}"
+        ws['A5'] = f"Division: {basic_info.get('division', '')}"
+        
+        # Style header
+        for row in range(1, 6):
+            ws[f'A{row}'].font = Font(bold=True, size=12)
+        
+        # Home team roster
+        row = 7
+        ws[f'A{row}'] = f"{basic_info.get('home_team', 'Home Team')} - Score: {basic_info.get('home_score', 0)}"
+        ws[f'A{row}'].font = Font(bold=True, size=14, color="2980b9")
+        ws[f'A{row}'].fill = PatternFill(start_color="E3F2FD", end_color="E3F2FD", fill_type="solid")
+        
+        row += 1
+        # Header row
+        headers = ['Player', 'Points', 'P', 'P1', 'P2', 'P3', 'T1', 'U1', 'U2', 'U3', 'GD', 'Total Fouls']
+        for col, header in enumerate(headers, start=1):
+            cell = ws.cell(row=row, column=col, value=header)
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill(start_color="667eea", end_color="667eea", fill_type="solid")
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.alignment = Alignment(horizontal='center')
+        
+        # Home team players
+        home_roster = game_details.get('home_team_roster', [])
+        for player in home_roster:
+            row += 1
+            player_name = player.get('player_name', '')
+            if player.get('starting_five'):
+                player_name += ' ⭐'
+            
+            values = [
+                player_name,
+                player.get('total_points', 0),
+                player.get('p_fouls', 0) or '-',
+                player.get('p1_fouls', 0) or '-',
+                player.get('p2_fouls', 0) or '-',
+                player.get('p3_fouls', 0) or '-',
+                player.get('t1_fouls', 0) or '-',
+                player.get('u1_fouls', 0) or '-',
+                player.get('u2_fouls', 0) or '-',
+                player.get('u3_fouls', 0) or '-',
+                player.get('gd_fouls', 0) or '-',
+                player.get('total_fouls', 0)
+            ]
+            
+            for col, value in enumerate(values, start=1):
+                ws.cell(row=row, column=col, value=value)
+        
+        # Away team roster
+        row += 3
+        ws[f'A{row}'] = f"{basic_info.get('away_team', 'Away Team')} - Score: {basic_info.get('away_score', 0)}"
+        ws[f'A{row}'].font = Font(bold=True, size=14, color="e67e22")
+        ws[f'A{row}'].fill = PatternFill(start_color="FFF3E0", end_color="FFF3E0", fill_type="solid")
+        
+        row += 1
+        # Header row
+        for col, header in enumerate(headers, start=1):
+            cell = ws.cell(row=row, column=col, value=header)
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill(start_color="667eea", end_color="667eea", fill_type="solid")
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.alignment = Alignment(horizontal='center')
+        
+        # Away team players
+        away_roster = game_details.get('away_team_roster', [])
+        for player in away_roster:
+            row += 1
+            player_name = player.get('player_name', '')
+            if player.get('starting_five'):
+                player_name += ' ⭐'
+            
+            values = [
+                player_name,
+                player.get('total_points', 0),
+                player.get('p_fouls', 0) or '-',
+                player.get('p1_fouls', 0) or '-',
+                player.get('p2_fouls', 0) or '-',
+                player.get('p3_fouls', 0) or '-',
+                player.get('t1_fouls', 0) or '-',
+                player.get('u1_fouls', 0) or '-',
+                player.get('u2_fouls', 0) or '-',
+                player.get('u3_fouls', 0) or '-',
+                player.get('gd_fouls', 0) or '-',
+                player.get('total_fouls', 0)
+            ]
+            
+            for col, value in enumerate(values, start=1):
+                ws.cell(row=row, column=col, value=value)
+        
+        # Add legend
+        row += 3
+        ws[f'A{row}'] = "Foul Types Legend:"
+        ws[f'A{row}'].font = Font(bold=True)
+        row += 1
+        ws[f'A{row}'] = "P=Personal, P1=Shooting Foul, P2=Flagrant 1, P3=Flagrant 2"
+        row += 1
+        ws[f'A{row}'] = "T1=Technical, U1/U2/U3=Unsportsmanlike, GD=Game Disqualification"
+        
+        # Adjust column widths
+        ws.column_dimensions['A'].width = 30
+        for col in ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']:
+            ws.column_dimensions[col].width = 12
+        
+        # Save to BytesIO
+        excel_file = io.BytesIO()
+        wb.save(excel_file)
+        excel_file.seek(0)
+        
+        # Create filename
+        home_team = basic_info.get('home_team', 'Home').replace(' ', '_')
+        away_team = basic_info.get('away_team', 'Away').replace(' ', '_')
+        filename = f"Game_{game_id}_{home_team}_vs_{away_team}.xlsx"
+        
+        return send_file(
+            excel_file,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        logger.error(f"Error exporting game details: {e}")
+        return f"Error exporting game: {str(e)}", 500
+
+
 @app.route('/preferences', methods=['GET', 'POST'])
 @user_required
 def preferences():

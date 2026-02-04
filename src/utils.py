@@ -6413,6 +6413,9 @@ def get_game_details(data, game_id):
     
     # Process teams and players
     teams_data = []
+    home_team_roster = []
+    away_team_roster = []
+    
     for team in teams:
         team_name = team.get('Team Name', '')
         team_name_short = team.get('Team Name Short', '')
@@ -6449,6 +6452,33 @@ def get_game_details(data, game_id):
             }
         }
         teams_data.append(team_info)
+        
+        # Build roster for template with foul breakdown
+        roster = []
+        for player in players:
+            player_data = {
+                'player_name': player.get('Player Name', ''),
+                'player_number': player.get('Player Number', ''),
+                'total_points': int(player.get('Total Points', 0)),
+                'total_fouls': int(player.get('Total Fouls', 0)),
+                'p_fouls': int(player.get('P Fouls', 0)),
+                'p1_fouls': int(player.get('P1 Fouls', 0)),
+                'p2_fouls': int(player.get('P2 Fouls', 0)),
+                'p3_fouls': int(player.get('P3 Fouls', 0)),
+                't1_fouls': int(player.get('T1 Fouls', 0)),
+                'u1_fouls': int(player.get('U1 Fouls', 0)),
+                'u2_fouls': int(player.get('U2 Fouls', 0)),
+                'u3_fouls': int(player.get('U3 Fouls', 0)),
+                'gd_fouls': int(player.get('GD Fouls', 0)),
+                'starting_five': player.get('Starting Five', False)
+            }
+            roster.append(player_data)
+        
+        # Assign to home or away roster based on team role
+        if team.get('Team Role', '').lower() == 'home':
+            home_team_roster = roster
+        else:
+            away_team_roster = roster
     
     # Sort events by time (most recent first for display, but we'll reverse for chronological)
     sorted_events = sorted(events, key=lambda x: x.get('EventDateTime', ''), reverse=False)
@@ -6456,6 +6486,8 @@ def get_game_details(data, game_id):
     return {
         'basic_info': basic_info,
         'teams': teams_data,
+        'home_team_roster': home_team_roster,
+        'away_team_roster': away_team_roster,
         'events': sorted_events,
         'score_evolution': score_evolution,
         'game_stats': game_stats,
