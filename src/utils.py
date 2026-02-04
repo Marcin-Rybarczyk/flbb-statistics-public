@@ -1291,6 +1291,7 @@ def get_top_foulers(data, top_n=10, division=None, team=None):
     DataFrame: Top foulers with their statistics including:
         - TotalFouls: Sum of all fouls
         - WeightedTotalFouls: Weighted sum (P/P1/P2/P3=1, T1/U1/U2/U3=2, GD=5)
+        - AvgWeightedFoulsPerGame: Average weighted fouls per game
         - FoulDetails: String describing foul type breakdown
         - Individual foul type columns (PFouls, P1Fouls, etc.)
     """
@@ -1342,6 +1343,9 @@ def get_top_foulers(data, top_n=10, division=None, team=None):
         foul_stats['U3Fouls'] * weights.get('U3', 2.0) +
         foul_stats['GDFouls'] * weights.get('GD', 5.0)
     )
+    
+    # Calculate average weighted fouls per game
+    foul_stats['AvgWeightedFoulsPerGame'] = (foul_stats['WeightedTotalFouls'] / foul_stats['GamesPlayed']).round(1)
     
     # Create foul details string
     def create_foul_details(row):
