@@ -129,6 +129,31 @@
             color: #999;
             font-style: italic;
         }
+        
+        .export-button {
+            display: inline-flex;
+            align-items: center;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);
+            border: none;
+            cursor: pointer;
+        }
+        
+        .export-button:hover {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(46, 204, 113, 0.4);
+        }
+        
+        .export-button:active {
+            transform: translateY(0);
+        }
     </style>
 {% endblock %}
 
@@ -372,7 +397,112 @@
         <div id="fouls" class="tab-content">
             {% if team_fouls is not none and not team_fouls.empty %}
             <div class="stats-section">
-                <h2>Teams with Most Fouls</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">Teams with Most Fouls</h2>
+                    <a href="/team-stats/export-fouls?division={{ selected_division or '' }}" class="export-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: middle; margin-right: 5px;">
+                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                        </svg>
+                        Export to Excel
+                    </a>
+                </div>
+                
+                <!-- Foul Distribution Summary -->
+                <div class="foul-distribution-summary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 18px;">📊 Overall Foul Distribution</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                        {% set total_p = team_fouls['PFouls'].sum() %}
+                        {% set total_p1 = team_fouls['P1Fouls'].sum() %}
+                        {% set total_p2 = team_fouls['P2Fouls'].sum() %}
+                        {% set total_p3 = team_fouls['P3Fouls'].sum() %}
+                        {% set total_t1 = team_fouls['T1Fouls'].sum() %}
+                        {% set total_u1 = team_fouls['U1Fouls'].sum() %}
+                        {% set total_u2 = team_fouls['U2Fouls'].sum() %}
+                        {% set total_u3 = team_fouls['U3Fouls'].sum() %}
+                        {% set total_gd = team_fouls['GDFouls'].sum() %}
+                        {% set grand_total = total_p + total_p1 + total_p2 + total_p3 + total_t1 + total_u1 + total_u2 + total_u3 + total_gd %}
+                        
+                        {% if total_p > 0 %}
+                        <div style="background: rgba(255, 255, 255, 0.15); padding: 12px; border-radius: 8px; backdrop-filter: blur(10px);">
+                            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">Personal (P)</div>
+                            <div style="font-size: 24px; font-weight: bold;">{{ total_p|int }}</div>
+                            <div style="font-size: 11px; opacity: 0.8;">{{ "%.1f"|format((total_p / grand_total * 100) if grand_total > 0 else 0) }}%</div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if total_p1 > 0 %}
+                        <div style="background: rgba(255, 255, 255, 0.15); padding: 12px; border-radius: 8px; backdrop-filter: blur(10px);">
+                            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">Personal 1 (P1)</div>
+                            <div style="font-size: 24px; font-weight: bold;">{{ total_p1|int }}</div>
+                            <div style="font-size: 11px; opacity: 0.8;">{{ "%.1f"|format((total_p1 / grand_total * 100) if grand_total > 0 else 0) }}%</div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if total_p2 > 0 %}
+                        <div style="background: rgba(255, 255, 255, 0.15); padding: 12px; border-radius: 8px; backdrop-filter: blur(10px);">
+                            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">Personal 2 (P2)</div>
+                            <div style="font-size: 24px; font-weight: bold;">{{ total_p2|int }}</div>
+                            <div style="font-size: 11px; opacity: 0.8;">{{ "%.1f"|format((total_p2 / grand_total * 100) if grand_total > 0 else 0) }}%</div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if total_p3 > 0 %}
+                        <div style="background: rgba(255, 255, 255, 0.15); padding: 12px; border-radius: 8px; backdrop-filter: blur(10px);">
+                            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">Personal 3 (P3)</div>
+                            <div style="font-size: 24px; font-weight: bold;">{{ total_p3|int }}</div>
+                            <div style="font-size: 11px; opacity: 0.8;">{{ "%.1f"|format((total_p3 / grand_total * 100) if grand_total > 0 else 0) }}%</div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if total_t1 > 0 %}
+                        <div style="background: rgba(255, 140, 0, 0.25); padding: 12px; border-radius: 8px; backdrop-filter: blur(10px);">
+                            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">Technical (T1)</div>
+                            <div style="font-size: 24px; font-weight: bold;">{{ total_t1|int }}</div>
+                            <div style="font-size: 11px; opacity: 0.8;">{{ "%.1f"|format((total_t1 / grand_total * 100) if grand_total > 0 else 0) }}%</div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if total_u1 > 0 %}
+                        <div style="background: rgba(255, 99, 71, 0.25); padding: 12px; border-radius: 8px; backdrop-filter: blur(10px);">
+                            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">Unsportsmanlike 1 (U1)</div>
+                            <div style="font-size: 24px; font-weight: bold;">{{ total_u1|int }}</div>
+                            <div style="font-size: 11px; opacity: 0.8;">{{ "%.1f"|format((total_u1 / grand_total * 100) if grand_total > 0 else 0) }}%</div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if total_u2 > 0 %}
+                        <div style="background: rgba(220, 20, 60, 0.25); padding: 12px; border-radius: 8px; backdrop-filter: blur(10px);">
+                            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">Unsportsmanlike 2 (U2)</div>
+                            <div style="font-size: 24px; font-weight: bold;">{{ total_u2|int }}</div>
+                            <div style="font-size: 11px; opacity: 0.8;">{{ "%.1f"|format((total_u2 / grand_total * 100) if grand_total > 0 else 0) }}%</div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if total_u3 > 0 %}
+                        <div style="background: rgba(139, 0, 0, 0.35); padding: 12px; border-radius: 8px; backdrop-filter: blur(10px);">
+                            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">Unsportsmanlike 3 (U3)</div>
+                            <div style="font-size: 24px; font-weight: bold;">{{ total_u3|int }}</div>
+                            <div style="font-size: 11px; opacity: 0.8;">{{ "%.1f"|format((total_u3 / grand_total * 100) if grand_total > 0 else 0) }}%</div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if total_gd > 0 %}
+                        <div style="background: rgba(139, 0, 0, 0.45); padding: 12px; border-radius: 8px; backdrop-filter: blur(10px); border: 2px solid rgba(255, 255, 255, 0.3);">
+                            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">Game Disqualification (GD)</div>
+                            <div style="font-size: 24px; font-weight: bold;">{{ total_gd|int }}</div>
+                            <div style="font-size: 11px; opacity: 0.8;">{{ "%.1f"|format((total_gd / grand_total * 100) if grand_total > 0 else 0) }}%</div>
+                        </div>
+                        {% endif %}
+                        
+                        <div style="background: rgba(255, 255, 255, 0.25); padding: 12px; border-radius: 8px; backdrop-filter: blur(10px); border: 2px solid rgba(255, 255, 255, 0.5);">
+                            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">Total Fouls</div>
+                            <div style="font-size: 24px; font-weight: bold;">{{ grand_total|int }}</div>
+                            <div style="font-size: 11px; opacity: 0.8;">100%</div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="table-container"><table>
                     <thead>
                         <tr>
