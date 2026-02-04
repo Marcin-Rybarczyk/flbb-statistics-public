@@ -1,0 +1,102 @@
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      TEAM FOULS TREND VISUALIZATION                         │
+│                           Enhanced Feature                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  📈 Fouls Trend Over Games                           [Export Trend to Excel]│
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Select Teams to Compare:                                                  │
+│  ┌──────────────────────────────────────────────────────────────────────┐  │
+│  │ ☐ BBC Avanti Mondorf-les-Bains 2 (368 fouls)                        │  │
+│  │ ☐ T71 Dudelange (348 fouls)                                         │  │
+│  │ ☐ Résidence Walferdange (335 fouls)                                 │  │
+│  │ ☐ AS Zolwer (330 fouls)                                             │  │
+│  │ ☐ Etzella Ettelbruck (325 fouls)                                    │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  [📊 Load Trend Chart]  [Clear Selection]                                  │
+│                                                                             │
+│  💡 Tip: Hold Ctrl (or Cmd on Mac) to select multiple teams. Max 5 teams  │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│                   Team Fouls Trend Over Games                               │
+│   Fouls                                                                     │
+│    30┤                                                                      │
+│      │     ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━●  BBC Avanti              │
+│    25┤    ╱                                    ╲                           │
+│      │   ●                                      ●                          │
+│    20┤  ╱   ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━●      T71 Dudelange         │
+│      │ ╱   ╱                                 ╲                            │
+│    15┤●   ●                                   ●                           │
+│      │                                                                     │
+│    10┤                                                                     │
+│      └───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬──▶ Game Number       │
+│          1   2   3   4   5   6   7   8   9  10  11  12                    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        TREND STATISTICS CARDS                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────┬────────────────────────────────────────────┐
+│  🔵 BBC Avanti Mondorf 2       │  🟣 T71 Dudelange                          │
+├────────────────────────────────┼────────────────────────────────────────────┤
+│                                │                                            │
+│  ┌──────────────────────────┐  │  ┌──────────────────────────────────────┐ │
+│  │  ↓ TREND: IMPROVING      │  │  │  ↑ TREND: WORSENING                 │ │
+│  └──────────────────────────┘  │  └──────────────────────────────────────┘ │
+│                                │                                            │
+│  Average Fouls/Game:    20.4   │  Average Fouls/Game:        18.9          │
+│  Total Games:           18     │  Total Games:               16            │
+│                                │                                            │
+│  Min Fouls:            15      │  Min Fouls:                 14            │
+│  Max Fouls:            26      │  Max Fouls:                 24            │
+│                                │                                            │
+│  ──────────────────────────    │  ──────────────────────────────────────   │
+│  Season Progression            │  Season Progression                        │
+│  ──────────────────────────    │  ──────────────────────────────────────   │
+│                                │                                            │
+│  First Half     ↓  Second Half │  First Half     ↑  Second Half            │
+│     22.3           18.5        │     16.8           21.0                    │
+│                                │                                            │
+│  -17.0% decrease ✓             │  +25.0% increase ⚠                         │
+│                                │                                            │
+└────────────────────────────────┴────────────────────────────────────────────┘
+
+LEGEND:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 CHART FEATURES:
+  • Interactive line chart showing fouls per game
+  • Each team has a unique color
+  • Hover shows exact values and game dates
+  • Legend shows team names
+
+📈 STATISTICS FEATURES:
+  • Trend Direction: Improving (↓), Worsening (↑), Stable (→)
+  • Color coded: Green = Improving, Red = Worsening, Gray = Stable
+  • Average fouls per game calculated
+  • Min/Max range over season
+  • First half vs Second half comparison
+  • Percentage change shown
+
+📁 EXPORT FEATURES:
+  • Excel export includes all statistics
+  • Separate sheet per team
+  • Statistics summary at top
+  • Game-by-game details
+  • Foul type breakdown
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+EXAMPLE INSIGHTS:
+
+✓ "BBC Avanti Mondorf-les-Bains 2 is improving! Their fouls decreased by 17% 
+   from the first half to second half of the season."
+
+⚠ "T71 Dudelange shows a worsening trend with a 25% increase in fouls 
+   in the second half of the season."

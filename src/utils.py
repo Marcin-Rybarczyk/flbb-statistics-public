@@ -33,6 +33,11 @@ MAX_FOUL_BLOCKS_DISPLAY = 20  # Maximum number of visual blocks (■) to display
 # and ensure numerical stability when calculating consistency scores
 CONSISTENCY_STABILITY_EPSILON = 0.1
 
+# Fouls trend analysis constants
+# Threshold for determining if a trend is stable vs improving/worsening
+# A slope less than this absolute value is considered stable (no significant change)
+STABLE_TREND_THRESHOLD = 0.1  # fouls per game change
+
 # Message display duration for admin UI (backend configuration)
 # Note: A similar constant exists in admin.html for frontend behavior
 MESSAGE_DISPLAY_DURATION_MS = 5000  # Duration in milliseconds to show success/error messages
@@ -1727,15 +1732,17 @@ def get_team_fouls_stats(data, top_n=20):
 
 def get_team_fouls_trend_data(data, team_names=None):
     """
-    Get per-game foul trends for specified teams over time.
+    Get per-game foul trends for specified teams over time with statistical analysis.
     
     Parameters:
     data (DataFrame): The game data
     team_names (list): List of team names to include. If None, returns data for all teams.
     
     Returns:
-    dict: Dictionary with team names as keys and list of game data as values.
-          Each game data contains: {date, game_number, total_fouls, fouls_by_type}
+    dict: Dictionary with team names as keys and team data as values.
+          Each team data contains:
+          - games: list of game data with {date, game_number, total_fouls, fouls_by_type}
+          - statistics: trend statistics including average, slope, trend_direction, etc.
     """
     if data.empty:
         return {}
@@ -1772,12 +1779,15 @@ def get_team_fouls_trend_data(data, team_names=None):
         team_data = game_fouls[game_fouls['Team'] == team_name]
         
         games_list = []
+        fouls_values = []
         for idx, (_, row) in enumerate(team_data.iterrows(), start=1):
+            fouls = int(row['TotalFouls'])
+            fouls_values.append(fouls)
             games_list.append({
                 'game_number': idx,
                 'date': row['GameDate'].strftime('%Y-%m-%d %H:%M:%S') if hasattr(row['GameDate'], 'strftime') else str(row['GameDate']),
                 'game_id': row['GameId'],
-                'total_fouls': int(row['TotalFouls']),
+                'total_fouls': fouls,
                 'fouls_by_type': {
                     'P': int(row['PFouls']),
                     'P1': int(row['P1Fouls']),
@@ -1791,9 +1801,109 @@ def get_team_fouls_trend_data(data, team_names=None):
                 }
             })
         
-        result[team_name] = games_list
+        # Calculate trend statistics
+        statistics = calculate_fouls_trend_statistics(fouls_values)
+        
+        result[team_name] = {
+            'games': games_list,
+            'statistics': statistics
+        }
     
     return result
+
+
+def calculate_fouls_trend_statistics(fouls_values):
+    """
+    Calculate statistical analysis for foul trend data.
+    
+    Parameters:
+    fouls_values (list): List of foul counts for each game in chronological order
+    
+    Returns:
+    dict: Statistics including average, trend direction, slope, etc.
+    """
+    if not fouls_values or len(fouls_values) == 0:
+        return {
+            'average': 0,
+            'min': 0,
+            'max': 0,
+            'slope': 0,
+            'trend_direction': 'stable',
+            'first_half_avg': 0,
+            'second_half_avg': 0,
+            'change_percent': 0
+        }
+    
+    n = len(fouls_values)
+    avg = sum(fouls_values) / n
+    min_fouls = min(fouls_values)
+    max_fouls = max(fouls_values)
+    
+    # Calculate linear regression slope
+    # Using simple linear regression: y = mx + b
+    # slope m = (n*Σxy - Σx*Σy) / (n*Σx² - (Σx)²)
+    x_values = list(range(1, n + 1))
+    sum_x = sum(x_values)
+    sum_y = sum(fouls_values)
+    sum_xy = sum(x * y for x, y in zip(x_values, fouls_values))
+    sum_x_squared = sum(x * x for x in x_values)
+    
+    denominator = n * sum_x_squared - sum_x * sum_x
+    if denominator != 0:
+        slope = (n * sum_xy - sum_x * sum_y) / denominator
+    else:
+        slope = 0
+    
+    # Determine trend direction based on slope
+    if abs(slope) < STABLE_TREND_THRESHOLD:
+        trend_direction = 'stable'
+        trend_indicator = '→'
+    elif slope < 0:
+        trend_direction = 'improving'  # Fewer fouls = improving
+        trend_indicator = '↓'
+    else:
+        trend_direction = 'worsening'  # More fouls = worsening
+        trend_indicator = '↑'
+    
+    # Calculate first half vs second half averages
+    # Using integer division for midpoint means:
+    # - For even n: split is exactly half/half (e.g., 8 games → 4+4)
+    # - For odd n: second half gets one more game (e.g., 9 games → 4+5)
+    # This is acceptable for trend comparison as the difference is minimal
+    mid_point = n // 2
+    if mid_point > 0:
+        first_half = fouls_values[:mid_point]
+        second_half = fouls_values[mid_point:]
+        first_half_avg = sum(first_half) / len(first_half)
+        second_half_avg = sum(second_half) / len(second_half)
+        
+        # Calculate percentage change from first to second half
+        # Note: If first half average is zero, we can't calculate a meaningful percentage
+        # In this edge case, we report 0% change rather than attempting to calculate
+        # change from zero (which would be infinite or undefined)
+        if first_half_avg > 0:
+            change_percent = ((second_half_avg - first_half_avg) / first_half_avg) * 100
+        else:
+            # Edge case: first half had zero fouls (very unlikely in basketball)
+            # Report 0% change since we can't calculate percentage from zero baseline
+            change_percent = 0
+    else:
+        first_half_avg = avg
+        second_half_avg = avg
+        change_percent = 0
+    
+    return {
+        'average': round(avg, 1),
+        'min': min_fouls,
+        'max': max_fouls,
+        'slope': round(slope, 3),
+        'trend_direction': trend_direction,
+        'trend_indicator': trend_indicator,
+        'first_half_avg': round(first_half_avg, 1),
+        'second_half_avg': round(second_half_avg, 1),
+        'change_percent': round(change_percent, 1),
+        'total_games': n
+    }
 
 def get_team_highest_single_game_scores(data, top_n=20):
     """
