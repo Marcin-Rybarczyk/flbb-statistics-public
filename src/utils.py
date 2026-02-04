@@ -28,6 +28,11 @@ ISO_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'  # Format used in CSV and for display
 # Foul visualization settings
 MAX_FOUL_BLOCKS_DISPLAY = 20  # Maximum number of visual blocks (■) to display for a single foul type
 
+# Consistency score calculation constant
+# Small epsilon value added to standard deviation to prevent division by zero
+# and ensure numerical stability when calculating consistency scores
+CONSISTENCY_STABILITY_EPSILON = 0.1
+
 # Message display duration for admin UI (backend configuration)
 # Note: A similar constant exists in admin.html for frontend behavior
 MESSAGE_DISPLAY_DURATION_MS = 5000  # Duration in milliseconds to show success/error messages
@@ -1067,8 +1072,8 @@ def get_starting_five_vs_bench_stats(data, division=None, team=None):
         player_stats = player_stats[player_stats['Team'] == team]
     
     # Separate starters and bench players
-    starters = player_stats[player_stats['StartingFive'] == True]
-    bench = player_stats[player_stats['StartingFive'] == False]
+    starters = player_stats[player_stats['StartingFive']]
+    bench = player_stats[~player_stats['StartingFive']]
     
     if starters.empty and bench.empty:
         return {}
@@ -1229,7 +1234,7 @@ def get_consistent_scorers(data, min_games=5, division=None, team=None):
                 'StdDevPoints': points.std().round(1),
                 'MinPoints': points.min(),
                 'MaxPoints': points.max(),
-                'ConsistencyScore': (points.mean() / (points.std() + 0.1)).round(2)  # Higher is more consistent
+                'ConsistencyScore': (points.mean() / (points.std() + CONSISTENCY_STABILITY_EPSILON)).round(2)  # Higher is more consistent
             })
     
     consistency_df = pd.DataFrame(consistency_stats)
@@ -1827,7 +1832,7 @@ def get_team_consistency_stats(data, min_games=5):
                 'StdDevScore': scores.std().round(1),
                 'MinScore': scores.min(),
                 'MaxScore': scores.max(),
-                'ConsistencyScore': (scores.mean() / (scores.std() + 0.1)).round(2)  # Higher is more consistent
+                'ConsistencyScore': (scores.mean() / (scores.std() + CONSISTENCY_STABILITY_EPSILON)).round(2)  # Higher is more consistent
             })
     
     consistency_df = pd.DataFrame(consistency_stats)
@@ -1855,8 +1860,8 @@ def get_team_starting_vs_bench_stats(data):
         return pd.DataFrame()
     
     # Separate starters and bench players
-    starters = player_stats[player_stats['StartingFive'] == True]
-    bench = player_stats[player_stats['StartingFive'] == False]
+    starters = player_stats[player_stats['StartingFive']]
+    bench = player_stats[~player_stats['StartingFive']]
     
     # Calculate stats per team for starters
     if not starters.empty:
@@ -3092,7 +3097,7 @@ def get_best_player_combinations(data, min_games=3):
     
     # Group by team and game to get starting fives
     for (team, game_id), group in player_stats.groupby(['Team', 'GameId']):
-        starters = group[group['StartingFive'] == True]['PlayerName'].tolist()
+        starters = group[group['StartingFive']]['PlayerName'].tolist()
         if len(starters) == 5:  # Only analyze complete starting fives
             starters_key = tuple(sorted(starters))
             

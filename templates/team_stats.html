@@ -122,14 +122,14 @@
 
         <!-- Tabbed Interface -->
         <div class="tabs">
-            <div class="tab active" onclick="showTab('performance')">Team Performance</div>
-            <div class="tab" onclick="showTab('three-pointers')">3-Point Leaders</div>
-            <div class="tab" onclick="showTab('fouls')">Most Fouls</div>
-            <div class="tab" onclick="showTab('single-game')">Single Game Records</div>
-            <div class="tab" onclick="showTab('free-throws')">Free Throw Leaders</div>
-            <div class="tab" onclick="showTab('double-digit')">Double-Digit Scorers</div>
-            <div class="tab" onclick="showTab('consistency')">Most Consistent</div>
-            <div class="tab" onclick="showTab('starter-bench')">Starters vs Bench</div>
+            <div class="tab active" onclick="showTab('performance', event)">Team Performance</div>
+            <div class="tab" onclick="showTab('three-pointers', event)">3-Point Leaders</div>
+            <div class="tab" onclick="showTab('fouls', event)">Most Fouls</div>
+            <div class="tab" onclick="showTab('single-game', event)">Single Game Records</div>
+            <div class="tab" onclick="showTab('free-throws', event)">Free Throw Leaders</div>
+            <div class="tab" onclick="showTab('double-digit', event)">Double-Digit Scorers</div>
+            <div class="tab" onclick="showTab('consistency', event)">Most Consistent</div>
+            <div class="tab" onclick="showTab('starter-bench', event)">Starters vs Bench</div>
         </div>
 
         <!-- Team Performance Tab -->
@@ -609,7 +609,7 @@
         {% endif %}
 
     <script>
-        function showTab(tabName) {
+        function showTab(tabName, event) {
             // Hide all tab contents
             const tabContents = document.querySelectorAll('.tab-content');
             tabContents.forEach(content => content.classList.remove('active'));
