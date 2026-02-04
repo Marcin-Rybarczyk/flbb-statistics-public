@@ -461,8 +461,8 @@ def export_team_fouls():
         # Filter data based on division selection
         filtered_data = filter_data_by_division(data, selected_division)
         
-        # Get team fouls stats (all teams, not limited to top 20)
-        team_fouls = get_team_fouls_stats(filtered_data, top_n=1000)
+        # Get team fouls stats (all teams for comprehensive export)
+        team_fouls = get_team_fouls_stats(filtered_data, top_n=500)  # Max 500 teams should cover all leagues
         
         if team_fouls.empty:
             return "No data available", 404
@@ -488,8 +488,9 @@ def export_team_fouls():
             'Weighted Total', 'Games Played', 'Total Points'
         ]
         
-        # Style header row
-        header_fill = PatternFill(start_color="667eea", end_color="667eea", fill_type="solid")
+        # Style header row (color matches app theme gradient)
+        HEADER_COLOR = "667eea"  # Primary theme color
+        header_fill = PatternFill(start_color=HEADER_COLOR, end_color=HEADER_COLOR, fill_type="solid")
         header_font = Font(bold=True, color="FFFFFF")
         border = Border(
             left=Side(style='thin'),
