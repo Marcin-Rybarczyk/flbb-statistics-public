@@ -13,6 +13,7 @@
             <form method="post">
                 <select name="division" onchange="this.form.submit()" style="padding: 8px; font-size: 16px; margin-right: 10px;">
                     <option value="">-- All Divisions --</option>
+                    <option value="DIVISIONS_1_4" {% if selected_division == 'DIVISIONS_1_4' %}selected{% endif %}>-- Division 1-4 Combined --</option>
                     {% for division in divisions %}
                     <option value="{{ division }}" {% if selected_division == division %}selected{% endif %}>{{ division }}</option>
                     {% endfor %}
@@ -20,7 +21,17 @@
                 <noscript><input type="submit" value="Filter" style="padding: 8px; font-size: 16px;"></noscript>
             </form>
             {% if selected_division %}
-            <p style="margin-top: 10px;"><em>Showing results for: <strong><span class="division-name division-link hoverable-item" data-type="division" data-id="{{ selected_division }}">{{ selected_division }}</span></strong></em></p>
+            <p style="margin-top: 10px;">
+                <em>Showing results for: 
+                    <strong>
+                        {% if selected_division == 'DIVISIONS_1_4' %}
+                            Division 1-4 Combined
+                        {% else %}
+                            <span class="division-name division-link hoverable-item" data-type="division" data-id="{{ selected_division }}">{{ selected_division }}</span>
+                        {% endif %}
+                    </strong>
+                </em>
+            </p>
             {% endif %}
         </div>
 

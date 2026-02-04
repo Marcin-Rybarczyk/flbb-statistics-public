@@ -149,6 +149,7 @@
                         <label for="division" style="display: block; margin-bottom: 5px; font-weight: 600; color: #495057;">Division:</label>
                         <select name="division" id="division" onchange="this.form.submit()" style="padding: 10px; font-size: 16px; border-radius: 8px; border: 2px solid #667eea; background: white; cursor: pointer; min-width: 250px;">
                             <option value="">-- All Divisions --</option>
+                            <option value="DIVISIONS_1_4" {% if selected_division == 'DIVISIONS_1_4' %}selected{% endif %}>-- Division 1-4 Combined --</option>
                             {% for division in divisions %}
                             <option value="{{ division }}" {% if selected_division == division %}selected{% endif %}>{{ division }}</option>
                             {% endfor %}

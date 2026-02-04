@@ -181,6 +181,7 @@
             <label for="division-filter">Filter by Division:</label>
             <select id="division-filter" onchange="filterByDivision(this.value)">
                 <option value="">All Divisions</option>
+                <option value="DIVISIONS_1_4" {% if selected_division == 'DIVISIONS_1_4' %}selected{% endif %}>Division 1-4 Combined</option>
                 {% for division in divisions %}
                     <option value="{{ division }}" 
                             {% if division == selected_division %}selected{% endif %}>
@@ -194,7 +195,11 @@
         <!-- Division Info -->
         {% if selected_division %}
         <div class="division-info">
-            📊 Showing analysis for: <strong><span class="division-name division-link hoverable-item" data-type="division" data-id="{{ selected_division }}">{{ selected_division }}</span></strong>
+            {% if selected_division == 'DIVISIONS_1_4' %}
+                📊 Showing analysis for: <strong>Division 1-4 Combined</strong>
+            {% else %}
+                📊 Showing analysis for: <strong><span class="division-name division-link hoverable-item" data-type="division" data-id="{{ selected_division }}">{{ selected_division }}</span></strong>
+            {% endif %}
         </div>
         {% else %}
         <div class="division-info">

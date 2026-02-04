@@ -315,6 +315,29 @@ else:
     divisions = []
     teams = []
 
+def filter_data_by_division(data, selected_division):
+    """
+    Filter data by division, with special handling for DIVISIONS_1_4.
+    
+    Parameters:
+    data (DataFrame): The game data
+    selected_division (str): The division filter (can be None, specific division, or "DIVISIONS_1_4")
+    
+    Returns:
+    DataFrame: Filtered data
+    """
+    if not selected_division:
+        return data
+    
+    if selected_division == "DIVISIONS_1_4":
+        # Filter to only M-Division 1:, 2:, 3:, 4:
+        return data[data['GameDivisionDisplay'].isin([
+            'M-Division 1:', 'M-Division 2:', 'M-Division 3:', 'M-Division 4:'
+        ])]
+    else:
+        # Regular single division filter
+        return data[data['GameDivisionDisplay'] == selected_division]
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     """Home page with navigation tiles"""
@@ -352,14 +375,17 @@ def statistics():
     # Get selected division from form, query parameter, or user preferences
     selected_division = request.form.get('division') or request.args.get('division') or session.get('preferred_division')
     
-    # Get game statistics with optional division filter
-    highest_games = get_highest_scoring_games(data, 10, division=selected_division)
-    biggest_wins = get_biggest_wins(data, 10, division=selected_division)
-    biggest_leads = get_biggest_leads(data, 10, division=selected_division)
-    biggest_streaks = get_biggest_scoring_streaks(data, 10, division=selected_division)
-    most_ties = get_most_tie_scores(data, 10, division=selected_division)
-    most_lead_changes = get_most_lead_changes(data, 10, division=selected_division)
-    longest_duration_games = get_longest_duration_games(data, 20, division=selected_division)
+    # Filter data based on division selection
+    filtered_data = filter_data_by_division(data, selected_division)
+    
+    # Get game statistics with filtered data
+    highest_games = get_highest_scoring_games(filtered_data, 10, division=None)
+    biggest_wins = get_biggest_wins(filtered_data, 10, division=None)
+    biggest_leads = get_biggest_leads(filtered_data, 10, division=None)
+    biggest_streaks = get_biggest_scoring_streaks(filtered_data, 10, division=None)
+    most_ties = get_most_tie_scores(filtered_data, 10, division=None)
+    most_lead_changes = get_most_lead_changes(filtered_data, 10, division=None)
+    longest_duration_games = get_longest_duration_games(filtered_data, 20, division=None)
     
     return render_template('statistics.html', 
                          highest_games=highest_games,
@@ -383,14 +409,11 @@ def team_stats():
     # Get selected division from form or user preferences
     selected_division = request.form.get('division') or session.get('preferred_division')
     
-    # Get team performance stats
-    team_performance = get_team_performance_stats(data)
+    # Filter data based on division selection
+    filtered_data = filter_data_by_division(data, selected_division)
     
-    # Filter by division if selected
-    filtered_data = data
-    if selected_division:
-        filtered_data = data[data['GameDivisionDisplay'] == selected_division]
-        team_performance = get_team_performance_stats(filtered_data)
+    # Get team performance stats from filtered data
+    team_performance = get_team_performance_stats(filtered_data)
     
     return render_template('team_stats.html', 
                          team_stats=team_performance,
@@ -435,17 +458,20 @@ def player_stats():
     selected_division = request.form.get('division')
     selected_team = request.form.get('team')
     
-    # Get comprehensive player statistics (filtered by division and team if selected)
-    top_scorers = get_top_scorers(data, 50, division=selected_division, team=selected_team)  # Get top 50 for comprehensive view
-    highest_single_scores = get_highest_single_game_score(data, 10, division=selected_division, team=selected_team)  # Now returns top 10
-    top_three_pointers = get_top_three_pointers(data, 20, division=selected_division, team=selected_team)
-    top_foulers = get_top_foulers(data, 20, division=selected_division, team=selected_team)
+    # Filter data based on division selection
+    filtered_data = filter_data_by_division(data, selected_division)
+    
+    # Get comprehensive player statistics (filtered by team if selected)
+    top_scorers = get_top_scorers(filtered_data, 50, division=None, team=selected_team)  # Get top 50 for comprehensive view
+    highest_single_scores = get_highest_single_game_score(filtered_data, 10, division=None, team=selected_team)  # Now returns top 10
+    top_three_pointers = get_top_three_pointers(filtered_data, 20, division=None, team=selected_team)
+    top_foulers = get_top_foulers(filtered_data, 20, division=None, team=selected_team)
     
     # New basketball-specific statistics
-    shooting_efficiency = get_player_shooting_efficiency(data, 20, division=selected_division, team=selected_team)
-    starter_bench_stats = get_starting_five_vs_bench_stats(data, division=selected_division, team=selected_team)
-    double_digit_scorers = get_double_digit_scorers(data, division=selected_division, team=selected_team)
-    consistent_scorers = get_consistent_scorers(data, division=selected_division, team=selected_team)
+    shooting_efficiency = get_player_shooting_efficiency(filtered_data, 20, division=None, team=selected_team)
+    starter_bench_stats = get_starting_five_vs_bench_stats(filtered_data, division=None, team=selected_team)
+    double_digit_scorers = get_double_digit_scorers(filtered_data, division=None, team=selected_team)
+    consistent_scorers = get_consistent_scorers(filtered_data, division=None, team=selected_team)
     
     return render_template('player_stats.html',
                          top_scorers=top_scorers,
@@ -583,10 +609,8 @@ def deeper_analysis():
     # Get division filter from query parameters or user preferences
     division_filter = request.args.get('division') or session.get('preferred_division')
     
-    # Apply division filter if provided
-    filtered_data = data.copy()
-    if division_filter:
-        filtered_data = filtered_data[filtered_data['GameDivisionDisplay'] == division_filter]
+    # Filter data based on division selection
+    filtered_data = filter_data_by_division(data, division_filter)
     
     # Get comprehensive deeper analysis with filtered data
     player_impact = get_player_game_impact_analysis(filtered_data, 20)
