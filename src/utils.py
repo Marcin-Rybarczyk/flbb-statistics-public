@@ -1873,10 +1873,15 @@ def calculate_fouls_trend_statistics(fouls_values):
         first_half_avg = sum(first_half) / len(first_half)
         second_half_avg = sum(second_half) / len(second_half)
         
-        # Calculate percentage change
+        # Calculate percentage change from first to second half
+        # Note: If first half average is zero, we can't calculate a meaningful percentage
+        # In this edge case, we report 0% change rather than attempting to calculate
+        # change from zero (which would be infinite or undefined)
         if first_half_avg > 0:
             change_percent = ((second_half_avg - first_half_avg) / first_half_avg) * 100
         else:
+            # Edge case: first half had zero fouls (very unlikely in basketball)
+            # Report 0% change since we can't calculate percentage from zero baseline
             change_percent = 0
     else:
         first_half_avg = avg
