@@ -796,7 +796,6 @@ def export_game_details(game_id):
         headers = ['Player', 'Points', 'P', 'P1', 'P2', 'P3', 'T1', 'U1', 'U2', 'U3', 'GD', 'Total Fouls']
         for col, header in enumerate(headers, start=1):
             cell = ws.cell(row=row, column=col, value=header)
-            cell.font = Font(bold=True)
             cell.fill = PatternFill(start_color="667eea", end_color="667eea", fill_type="solid")
             cell.font = Font(bold=True, color="FFFFFF")
             cell.alignment = Alignment(horizontal='center')
@@ -812,15 +811,15 @@ def export_game_details(game_id):
             values = [
                 player_name,
                 player.get('total_points', 0),
-                player.get('p_fouls', 0) or '-',
-                player.get('p1_fouls', 0) or '-',
-                player.get('p2_fouls', 0) or '-',
-                player.get('p3_fouls', 0) or '-',
-                player.get('t1_fouls', 0) or '-',
-                player.get('u1_fouls', 0) or '-',
-                player.get('u2_fouls', 0) or '-',
-                player.get('u3_fouls', 0) or '-',
-                player.get('gd_fouls', 0) or '-',
+                '-' if player.get('p_fouls') is None else player.get('p_fouls', 0),
+                '-' if player.get('p1_fouls') is None else player.get('p1_fouls', 0),
+                '-' if player.get('p2_fouls') is None else player.get('p2_fouls', 0),
+                '-' if player.get('p3_fouls') is None else player.get('p3_fouls', 0),
+                '-' if player.get('t1_fouls') is None else player.get('t1_fouls', 0),
+                '-' if player.get('u1_fouls') is None else player.get('u1_fouls', 0),
+                '-' if player.get('u2_fouls') is None else player.get('u2_fouls', 0),
+                '-' if player.get('u3_fouls') is None else player.get('u3_fouls', 0),
+                '-' if player.get('gd_fouls') is None else player.get('gd_fouls', 0),
                 player.get('total_fouls', 0)
             ]
             
@@ -837,7 +836,6 @@ def export_game_details(game_id):
         # Header row
         for col, header in enumerate(headers, start=1):
             cell = ws.cell(row=row, column=col, value=header)
-            cell.font = Font(bold=True)
             cell.fill = PatternFill(start_color="667eea", end_color="667eea", fill_type="solid")
             cell.font = Font(bold=True, color="FFFFFF")
             cell.alignment = Alignment(horizontal='center')
@@ -853,15 +851,15 @@ def export_game_details(game_id):
             values = [
                 player_name,
                 player.get('total_points', 0),
-                player.get('p_fouls', 0) or '-',
-                player.get('p1_fouls', 0) or '-',
-                player.get('p2_fouls', 0) or '-',
-                player.get('p3_fouls', 0) or '-',
-                player.get('t1_fouls', 0) or '-',
-                player.get('u1_fouls', 0) or '-',
-                player.get('u2_fouls', 0) or '-',
-                player.get('u3_fouls', 0) or '-',
-                player.get('gd_fouls', 0) or '-',
+                '-' if player.get('p_fouls') is None else player.get('p_fouls', 0),
+                '-' if player.get('p1_fouls') is None else player.get('p1_fouls', 0),
+                '-' if player.get('p2_fouls') is None else player.get('p2_fouls', 0),
+                '-' if player.get('p3_fouls') is None else player.get('p3_fouls', 0),
+                '-' if player.get('t1_fouls') is None else player.get('t1_fouls', 0),
+                '-' if player.get('u1_fouls') is None else player.get('u1_fouls', 0),
+                '-' if player.get('u2_fouls') is None else player.get('u2_fouls', 0),
+                '-' if player.get('u3_fouls') is None else player.get('u3_fouls', 0),
+                '-' if player.get('gd_fouls') is None else player.get('gd_fouls', 0),
                 player.get('total_fouls', 0)
             ]
             
