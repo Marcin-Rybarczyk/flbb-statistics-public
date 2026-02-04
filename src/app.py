@@ -637,9 +637,18 @@ def export_fouls_trend():
         
         # Create a sheet for each team
         for idx, (team_name, team_data) in enumerate(trend_data.items()):
-            # Handle both new and old data structure
-            games = team_data.get('games', team_data) if isinstance(team_data, dict) else team_data
-            statistics = team_data.get('statistics', {}) if isinstance(team_data, dict) else {}
+            # Extract games and statistics from team data
+            # Handles both old format (list of games) and new format (dict with 'games' and 'statistics')
+            # This backward compatibility is needed to support existing API responses
+            # until all clients are updated to expect the new format
+            if isinstance(team_data, dict) and 'games' in team_data:
+                # New format: {games: [...], statistics: {...}}
+                games = team_data['games']
+                statistics = team_data.get('statistics', {})
+            else:
+                # Old format: just a list of games
+                games = team_data
+                statistics = {}
             
             # Create unique sheet name (Excel limit: 31 chars)
             base_name = team_name[:28]  # Leave room for potential suffix

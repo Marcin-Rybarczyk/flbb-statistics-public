@@ -33,6 +33,11 @@ MAX_FOUL_BLOCKS_DISPLAY = 20  # Maximum number of visual blocks (■) to display
 # and ensure numerical stability when calculating consistency scores
 CONSISTENCY_STABILITY_EPSILON = 0.1
 
+# Fouls trend analysis constants
+# Threshold for determining if a trend is stable vs improving/worsening
+# A slope less than this absolute value is considered stable (no significant change)
+STABLE_TREND_THRESHOLD = 0.1  # fouls per game change
+
 # Message display duration for admin UI (backend configuration)
 # Note: A similar constant exists in admin.html for frontend behavior
 MESSAGE_DISPLAY_DURATION_MS = 5000  # Duration in milliseconds to show success/error messages
@@ -1850,7 +1855,7 @@ def calculate_fouls_trend_statistics(fouls_values):
         slope = 0
     
     # Determine trend direction based on slope
-    if abs(slope) < 0.1:  # Less than 0.1 fouls per game change is considered stable
+    if abs(slope) < STABLE_TREND_THRESHOLD:
         trend_direction = 'stable'
         trend_indicator = '→'
     elif slope < 0:

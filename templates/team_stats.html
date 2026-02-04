@@ -1171,7 +1171,16 @@
                                 </div>
                             </div>
                             <div style="margin-top: 8px; text-align: center; font-size: 12px; color: ${trendColor};">
-                                <strong>${Math.abs(stats.change_percent)}%</strong> ${stats.change_percent > 0 ? 'increase' : stats.change_percent < 0 ? 'decrease' : 'no change'}
+                                ${(() => {
+                                    // Determine change text based on percentage
+                                    let changeText = 'no change';
+                                    if (stats.change_percent > 0) {
+                                        changeText = 'increase';
+                                    } else if (stats.change_percent < 0) {
+                                        changeText = 'decrease';
+                                    }
+                                    return `<strong>${Math.abs(stats.change_percent)}%</strong> ${changeText}`;
+                                })()}
                             </div>
                         </div>
                     </div>
