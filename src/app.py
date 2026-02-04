@@ -28,7 +28,8 @@ from .utils import (calculate_standings_by_division, get_highest_scoring_games,
                    get_player_hover_stats, get_team_hover_stats, get_referee_hover_stats, get_game_hover_stats,
                    get_division_hover_stats, calculate_referee_performance_index, get_closest_games_by_team,
                    extract_age_sex_group_from_division, get_team_name_with_group_suffix, CSV_FILEPATH,
-                   get_team_three_pointers_stats, get_team_fouls_stats, get_team_highest_single_game_scores,
+                   get_team_three_pointers_stats, get_team_fouls_stats, get_team_fouls_trend_data,
+                   get_team_highest_single_game_scores,
                    get_team_free_throw_stats, get_team_double_digit_scorers_stats, get_team_consistency_stats,
                    get_team_starting_vs_bench_stats)
 from .version import get_version_info
@@ -576,6 +577,189 @@ def export_team_fouls():
         
     except Exception as e:
         logger.error(f"Error exporting team fouls: {str(e)}")
+        return f"Error exporting data: {str(e)}", 500
+
+@app.route('/team-stats/fouls-trend-data')
+@user_required
+def get_fouls_trend_data():
+    """API endpoint to get fouls trend data for selected teams"""
+    try:
+        # Get team names from query parameter (can be comma-separated list)
+        team_names_str = request.args.get('teams', '')
+        selected_division = request.args.get('division') or session.get('preferred_division')
+        
+        # Filter data based on division selection
+        filtered_data = filter_data_by_division(data, selected_division)
+        
+        # Parse team names
+        team_names = [name.strip() for name in team_names_str.split(',') if name.strip()]
+        
+        # Get trend data
+        trend_data = get_team_fouls_trend_data(filtered_data, team_names if team_names else None)
+        
+        return jsonify(trend_data)
+        
+    except Exception as e:
+        logger.error(f"Error getting fouls trend data: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/team-stats/export-fouls-trend')
+@user_required
+def export_fouls_trend():
+    """Export fouls trend data to Excel file"""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+        from flask import send_file
+        import io
+        
+        # Get team names from query parameter (can be comma-separated list)
+        team_names_str = request.args.get('teams', '')
+        selected_division = request.args.get('division') or session.get('preferred_division')
+        
+        # Filter data based on division selection
+        filtered_data = filter_data_by_division(data, selected_division)
+        
+        # Parse team names
+        team_names = [name.strip() for name in team_names_str.split(',') if name.strip()]
+        
+        # Get trend data
+        trend_data = get_team_fouls_trend_data(filtered_data, team_names if team_names else None)
+        
+        if not trend_data:
+            return "No data available", 404
+        
+        # Create workbook
+        wb = Workbook()
+        
+        # Track sheet names to ensure uniqueness
+        sheet_names_used = set()
+        
+        # Create a sheet for each team
+        for idx, (team_name, games) in enumerate(trend_data.items()):
+            # Create unique sheet name (Excel limit: 31 chars)
+            base_name = team_name[:28]  # Leave room for potential suffix
+            sheet_name = base_name
+            counter = 1
+            while sheet_name in sheet_names_used:
+                suffix = f"_{counter}"
+                sheet_name = base_name[:31-len(suffix)] + suffix
+                counter += 1
+            sheet_names_used.add(sheet_name)
+            
+            if idx == 0:
+                ws = wb.active
+                ws.title = sheet_name
+            else:
+                ws = wb.create_sheet(title=sheet_name)
+            
+            # Header info
+            ws['A1'] = f"Fouls Trend for {team_name}"
+            ws['A1'].font = Font(bold=True, size=14)
+            
+            division_text = f"Division: {selected_division}" if selected_division else "All Divisions"
+            ws['A2'] = division_text
+            ws['A2'].font = Font(bold=True, size=11)
+            
+            # Column headers (starting at row 4)
+            row = 4
+            headers = [
+                'Game #', 'Date', 'Game ID', 'Total Fouls',
+                'P', 'P1', 'P2', 'P3', 'T1', 'U1', 'U2', 'U3', 'GD'
+            ]
+            
+            # Style header row
+            HEADER_COLOR = "667eea"
+            header_fill = PatternFill(start_color=HEADER_COLOR, end_color=HEADER_COLOR, fill_type="solid")
+            header_font = Font(bold=True, color="FFFFFF")
+            border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+            
+            for col, header in enumerate(headers, start=1):
+                cell = ws.cell(row=row, column=col, value=header)
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+                cell.border = border
+            
+            # Data rows
+            for game in games:
+                row += 1
+                fouls = game['fouls_by_type']
+                values = [
+                    game['game_number'],
+                    game['date'],
+                    game['game_id'],
+                    game['total_fouls'],
+                    fouls.get('P', 0),
+                    fouls.get('P1', 0),
+                    fouls.get('P2', 0),
+                    fouls.get('P3', 0),
+                    fouls.get('T1', 0),
+                    fouls.get('U1', 0),
+                    fouls.get('U2', 0),
+                    fouls.get('U3', 0),
+                    fouls.get('GD', 0)
+                ]
+                
+                for col, value in enumerate(values, start=1):
+                    cell = ws.cell(row=row, column=col, value=value)
+                    cell.border = border
+                    if col == 2:  # Date
+                        cell.alignment = Alignment(horizontal='left')
+                    elif col == 3:  # Game ID
+                        cell.alignment = Alignment(horizontal='left')
+                    else:
+                        cell.alignment = Alignment(horizontal='center')
+            
+            # Add legend
+            row += 3
+            ws[f'A{row}'] = "Foul Types Legend:"
+            ws[f'A{row}'].font = Font(bold=True, size=11)
+            row += 1
+            ws[f'A{row}'] = "P=Personal, P1=Personal 1, P2=Personal 2, P3=Personal 3"
+            row += 1
+            ws[f'A{row}'] = "T1=Technical, U1=Unsportsmanlike 1, U2=Unsportsmanlike 2, U3=Unsportsmanlike 3"
+            row += 1
+            ws[f'A{row}'] = "GD=Game Disqualification"
+            
+            # Adjust column widths
+            ws.column_dimensions['A'].width = 8   # Game #
+            ws.column_dimensions['B'].width = 20  # Date
+            ws.column_dimensions['C'].width = 12  # Game ID
+            ws.column_dimensions['D'].width = 12  # Total Fouls
+            for col in ['E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M']:
+                ws.column_dimensions[col].width = 6
+        
+        # Save to BytesIO
+        excel_file = io.BytesIO()
+        wb.save(excel_file)
+        excel_file.seek(0)
+        
+        # Create filename
+        if team_names and len(team_names) == 1:
+            team_suffix = f"_{team_names[0].replace(' ', '_')}"
+        elif team_names and len(team_names) <= 3:
+            team_suffix = f"_{'_'.join([t.replace(' ', '_')[:10] for t in team_names])}"
+        else:
+            team_suffix = "_Multiple_Teams"
+        
+        division_suffix = f"_{selected_division.replace(' ', '_')}" if selected_division else ""
+        filename = f"Team_Fouls_Trend{team_suffix}{division_suffix}.xlsx"
+        
+        return send_file(
+            excel_file,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        logger.error(f"Error exporting fouls trend: {str(e)}")
         return f"Error exporting data: {str(e)}", 500
 
 @app.route('/team-detail')

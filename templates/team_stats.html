@@ -195,6 +195,12 @@
             font-size: 11px;
             opacity: 0.8;
         }
+        
+        /* Loading spinner animation */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 {% endblock %}
 
@@ -524,6 +530,57 @@
                     </tbody>
                 </table></div>
             </div>
+            
+            <!-- Fouls Trend Chart Section -->
+            <div class="stats-section" style="margin-top: 30px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">📈 Fouls Trend Over Games</h2>
+                    <button id="exportTrendButton" class="export-button" style="display: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: middle; margin-right: 5px;">
+                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                        </svg>
+                        Export Trend to Excel
+                    </button>
+                </div>
+                
+                <!-- Team Selection -->
+                <div style="margin-bottom: 20px; padding: 15px; background: rgba(102, 126, 234, 0.05); border-radius: 8px;">
+                    <label for="teamSelect" style="font-weight: 600; margin-right: 10px;">Select Teams to Compare:</label>
+                    <select id="teamSelect" multiple size="5" style="width: 100%; max-width: 500px; padding: 8px; font-size: 14px; border: 2px solid #667eea; border-radius: 5px;">
+                        {% for index, row in team_fouls.head(20).iterrows() %}
+                        <option value="{{ row['Team'] }}">{{ row['Team'] }} ({{ row['TotalFouls'] }} fouls)</option>
+                        {% endfor %}
+                    </select>
+                    <div style="margin-top: 10px;">
+                        <button id="loadTrendButton" class="export-button" style="margin-right: 10px;">
+                            📊 Load Trend Chart
+                        </button>
+                        <button id="clearTrendButton" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: 600;">
+                            Clear Selection
+                        </button>
+                    </div>
+                    <p style="margin-top: 10px; font-size: 13px; color: #666;">
+                        <em>💡 Tip: Hold Ctrl (or Cmd on Mac) to select multiple teams. Maximum 5 teams can be displayed at once.</em>
+                    </p>
+                </div>
+                
+                <!-- Chart Container -->
+                <div id="trendChartContainer" style="display: none; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <canvas id="foulsTrendChart" style="max-height: 500px;"></canvas>
+                </div>
+                
+                <!-- Loading Indicator -->
+                <div id="trendLoadingIndicator" style="display: none; text-align: center; padding: 40px;">
+                    <div style="display: inline-block; width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <p style="margin-top: 15px; color: #667eea; font-weight: 600;">Loading trend data...</p>
+                </div>
+                
+                <!-- Info Message -->
+                <div id="trendInfoMessage" style="padding: 20px; background: rgba(102, 126, 234, 0.1); border-radius: 8px; text-align: center; color: #667eea;">
+                    <p style="margin: 0; font-size: 15px;">📊 Select up to 5 teams from the dropdown above to view their fouls trend over games.</p>
+                </div>
+            </div>
             {% else %}
             <p>No foul statistics available.</p>
             {% endif %}
@@ -803,6 +860,233 @@
             
             // Scroll the active tab into view smoothly
             event.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+    </script>
+    
+    <!-- Chart.js Library for Fouls Trend Chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    
+    <script>
+        // Fouls Trend Chart functionality
+        let foulsTrendChart = null;
+        const selectedDivision = '{{ selected_division or "" }}';
+        
+        // Color palette for multiple teams
+        const chartColors = [
+            '#667eea',  // Primary theme color
+            '#764ba2',  // Secondary theme color
+            '#f093fb',  // Pink
+            '#4facfe',  // Blue
+            '#43e97b',  // Green
+        ];
+        
+        document.getElementById('loadTrendButton').addEventListener('click', function() {
+            const selectElement = document.getElementById('teamSelect');
+            const selectedOptions = Array.from(selectElement.selectedOptions);
+            
+            if (selectedOptions.length === 0) {
+                alert('Please select at least one team.');
+                return;
+            }
+            
+            if (selectedOptions.length > 5) {
+                alert('Please select a maximum of 5 teams for better readability.');
+                return;
+            }
+            
+            const selectedTeams = selectedOptions.map(option => option.value);
+            loadFoulsTrendChart(selectedTeams);
+        });
+        
+        document.getElementById('clearTrendButton').addEventListener('click', function() {
+            const selectElement = document.getElementById('teamSelect');
+            for (let i = 0; i < selectElement.options.length; i++) {
+                selectElement.options[i].selected = false;
+            }
+        });
+        
+        document.getElementById('exportTrendButton').addEventListener('click', function() {
+            const selectElement = document.getElementById('teamSelect');
+            const selectedOptions = Array.from(selectElement.selectedOptions);
+            const selectedTeams = selectedOptions.map(option => option.value);
+            
+            if (selectedTeams.length === 0) {
+                alert('Please select teams first to export their trend data.');
+                return;
+            }
+            
+            const teamsParam = selectedTeams.join(',');
+            const divisionParam = selectedDivision ? `&division=${encodeURIComponent(selectedDivision)}` : '';
+            window.location.href = `/team-stats/export-fouls-trend?teams=${encodeURIComponent(teamsParam)}${divisionParam}`;
+        });
+        
+        async function loadFoulsTrendChart(teamNames) {
+            // Show loading indicator
+            document.getElementById('trendLoadingIndicator').style.display = 'block';
+            document.getElementById('trendChartContainer').style.display = 'none';
+            document.getElementById('trendInfoMessage').style.display = 'none';
+            
+            try {
+                const teamsParam = teamNames.join(',');
+                const divisionParam = selectedDivision ? `&division=${encodeURIComponent(selectedDivision)}` : '';
+                const response = await fetch(`/team-stats/fouls-trend-data?teams=${encodeURIComponent(teamsParam)}${divisionParam}`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load trend data');
+                }
+                
+                const trendData = await response.json();
+                
+                // Hide loading indicator
+                document.getElementById('trendLoadingIndicator').style.display = 'none';
+                
+                if (Object.keys(trendData).length === 0) {
+                    document.getElementById('trendInfoMessage').innerHTML = '<p style="margin: 0; font-size: 15px; color: #e74c3c;">⚠️ No trend data available for selected teams.</p>';
+                    document.getElementById('trendInfoMessage').style.display = 'block';
+                    return;
+                }
+                
+                // Show chart container and export button
+                document.getElementById('trendChartContainer').style.display = 'block';
+                document.getElementById('exportTrendButton').style.display = 'inline-block';
+                
+                // Prepare chart data
+                const datasets = [];
+                let colorIndex = 0;
+                
+                for (const [teamName, games] of Object.entries(trendData)) {
+                    const gameNumbers = games.map(g => g.game_number);
+                    const totalFouls = games.map(g => g.total_fouls);
+                    
+                    datasets.push({
+                        label: teamName,
+                        data: totalFouls,
+                        borderColor: chartColors[colorIndex % chartColors.length],
+                        backgroundColor: chartColors[colorIndex % chartColors.length] + '33', // 20% opacity (hex 33 = 51/255)
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        tension: 0.2,
+                        fill: false
+                    });
+                    
+                    colorIndex++;
+                }
+                
+                // Find the maximum number of games for x-axis
+                const maxGames = Math.max(...Object.values(trendData).map(games => games.length));
+                const gameLabels = Array.from({length: maxGames}, (_, i) => `Game ${i + 1}`);
+                
+                // Destroy existing chart if it exists
+                if (foulsTrendChart) {
+                    foulsTrendChart.destroy();
+                }
+                
+                // Create new chart
+                const ctx = document.getElementById('foulsTrendChart').getContext('2d');
+                foulsTrendChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: gameLabels,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Team Fouls Trend Over Games',
+                                font: {
+                                    size: 18,
+                                    weight: 'bold'
+                                },
+                                color: '#333'
+                            },
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    font: {
+                                        size: 12
+                                    },
+                                    usePointStyle: true,
+                                    padding: 15
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                titleFont: {
+                                    size: 14,
+                                    weight: 'bold'
+                                },
+                                bodyFont: {
+                                    size: 13
+                                },
+                                callbacks: {
+                                    label: function(context) {
+                                        const teamName = context.dataset.label;
+                                        const fouls = context.parsed.y;
+                                        return `${teamName}: ${fouls} fouls`;
+                                    },
+                                    afterLabel: function(context) {
+                                        // Add game date if available
+                                        const teamName = context.dataset.label;
+                                        const gameIndex = context.dataIndex;
+                                        const games = trendData[teamName];
+                                        if (games && games[gameIndex]) {
+                                            return `Date: ${games[gameIndex].date}`;
+                                        }
+                                        return '';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Game Number',
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                },
+                                grid: {
+                                    display: true,
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Total Fouls',
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                },
+                                beginAtZero: true,
+                                grid: {
+                                    display: true,
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                }
+                            }
+                        }
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error loading fouls trend:', error);
+                document.getElementById('trendLoadingIndicator').style.display = 'none';
+                document.getElementById('trendInfoMessage').innerHTML = '<p style="margin: 0; font-size: 15px; color: #e74c3c;">⚠️ Error loading trend data. Please try again.</p>';
+                document.getElementById('trendInfoMessage').style.display = 'block';
+            }
         }
     </script>
 {% endblock %}
