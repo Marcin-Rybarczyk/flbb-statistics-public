@@ -1866,6 +1866,10 @@ def calculate_fouls_trend_statistics(fouls_values):
         trend_indicator = '↑'
     
     # Calculate first half vs second half averages
+    # Using integer division for midpoint means:
+    # - For even n: split is exactly half/half (e.g., 8 games → 4+4)
+    # - For odd n: second half gets one more game (e.g., 9 games → 4+5)
+    # This is acceptable for trend comparison as the difference is minimal
     mid_point = n // 2
     if mid_point > 0:
         first_half = fouls_values[:mid_point]
