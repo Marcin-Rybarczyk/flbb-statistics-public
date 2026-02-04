@@ -299,6 +299,7 @@
                             <th class="col-optional">Weighted Total Fouls</th>
                             <th class="col-optional">Games</th>
                             <th class="col-important">Fouls per Game</th>
+                            <th class="col-important">Weighted Fouls per Game</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -312,6 +313,7 @@
                             <td class="col-optional"><strong>{{ row['WeightedTotalFouls']|int }}</strong></td>
                             <td class="col-optional">{{ row['GamesPlayed'] }}</td>
                             <td class="col-important">{{ "%.1f"|format(row['AvgFoulsPerGame']) }}</td>
+                            <td class="col-important">{{ "%.1f"|format(row['AvgWeightedFoulsPerGame']) }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -750,6 +752,7 @@
                             <th>Games</th>
                             <th>Total Fouls</th>
                             <th>Avg Fouls/Game</th>
+                            <th>Weighted Fouls/Game</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -761,6 +764,7 @@
                             <td>{{ row['GamesPlayed'] }}</td>
                             <td><strong>{{ row['TotalFouls'] }}</strong></td>
                             <td>{{ "%.1f"|format(row['AvgFoulsPerGame']) }}</td>
+                            <td>{{ "%.1f"|format(row['AvgWeightedFoulsPerGame']) }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
