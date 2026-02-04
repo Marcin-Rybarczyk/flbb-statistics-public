@@ -27,7 +27,10 @@ from .utils import (calculate_standings_by_division, get_highest_scoring_games,
                    get_team_detail_stats, get_all_referees_list, get_all_games_list,
                    get_player_hover_stats, get_team_hover_stats, get_referee_hover_stats, get_game_hover_stats,
                    get_division_hover_stats, calculate_referee_performance_index, get_closest_games_by_team,
-                   extract_age_sex_group_from_division, get_team_name_with_group_suffix, CSV_FILEPATH)
+                   extract_age_sex_group_from_division, get_team_name_with_group_suffix, CSV_FILEPATH,
+                   get_team_three_pointers_stats, get_team_fouls_stats, get_team_highest_single_game_scores,
+                   get_team_free_throw_stats, get_team_double_digit_scorers_stats, get_team_consistency_stats,
+                   get_team_starting_vs_bench_stats)
 from .version import get_version_info
 from .user_database import (authenticate_user, get_user_preferences, update_user_preferences,
                             create_user, list_users, update_user_password, delete_user, update_user_level,
@@ -420,8 +423,24 @@ def team_stats():
     # Get team performance stats from filtered data
     team_performance = get_team_performance_stats(filtered_data)
     
+    # Get additional team statistics for tabs
+    team_three_pointers = get_team_three_pointers_stats(filtered_data, 20)
+    team_fouls = get_team_fouls_stats(filtered_data, 20)
+    team_highest_scores = get_team_highest_single_game_scores(filtered_data, 20)
+    team_free_throws = get_team_free_throw_stats(filtered_data, 20)
+    team_double_digit = get_team_double_digit_scorers_stats(filtered_data, 10)
+    team_consistency = get_team_consistency_stats(filtered_data, 5)
+    team_starter_bench = get_team_starting_vs_bench_stats(filtered_data)
+    
     return render_template('team_stats.html', 
                          team_stats=team_performance,
+                         team_three_pointers=team_three_pointers,
+                         team_fouls=team_fouls,
+                         team_highest_scores=team_highest_scores,
+                         team_free_throws=team_free_throws,
+                         team_double_digit=team_double_digit,
+                         team_consistency=team_consistency,
+                         team_starter_bench=team_starter_bench,
                          divisions=divisions,
                          selected_division=selected_division,
                          data_source_info=data_source_info)
