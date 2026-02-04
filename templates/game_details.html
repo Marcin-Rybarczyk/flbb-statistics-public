@@ -281,6 +281,28 @@
             font-weight: 500;
         }
 
+        .export-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .export-btn:active {
+            transform: translateY(0);
+        }
+
         .no-game-selected {
             text-align: center;
             padding: 60px 20px;
@@ -303,6 +325,15 @@
 
             .stats-grid {
                 grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .player-table {
+                font-size: 0.85em;
+            }
+            
+            .player-table th,
+            .player-table td {
+                padding: 6px 4px;
             }
         }
 {% endblock %}
@@ -382,7 +413,12 @@
 
         <!-- Team Rosters and Stats -->
         <div class="section">
-            <h2>👥 Team Rosters</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;">👥 Team Rosters</h2>
+                <button onclick="exportToExcel()" class="export-btn">
+                    📥 Export to Excel
+                </button>
+            </div>
             <div class="teams-grid">
                 <!-- Home Team -->
                 <div class="team-section">
@@ -391,12 +427,21 @@
                         {{ game.basic_info.home_score }}
                     </p>
                     {% if game.home_team_roster %}
-                    <table class="player-table">
+                    <table class="player-table" id="homeTeamTable">
                         <thead>
                             <tr>
                                 <th>Player</th>
                                 <th>Points</th>
-                                <th>Fouls</th>
+                                <th title="Personal Fouls">P</th>
+                                <th title="Personal Foul 1 (Shooting)">P1</th>
+                                <th title="Personal Foul 2 (Flagrant 1)">P2</th>
+                                <th title="Personal Foul 3 (Flagrant 2)">P3</th>
+                                <th title="Technical Foul">T1</th>
+                                <th title="Unsportsmanlike 1">U1</th>
+                                <th title="Unsportsmanlike 2">U2</th>
+                                <th title="Unsportsmanlike 3">U3</th>
+                                <th title="Game Disqualification">GD</th>
+                                <th title="Total Fouls">Total</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -407,7 +452,16 @@
                                     {% if player.starting_five %}<span style="color: #27ae60; font-weight: bold;"> ⭐</span>{% endif %}
                                 </td>
                                 <td><strong>{{ player.total_points }}</strong></td>
-                                <td>{{ player.total_fouls }}</td>
+                                <td>{{ player.p_fouls if player.p_fouls else '-' }}</td>
+                                <td>{{ player.p1_fouls if player.p1_fouls else '-' }}</td>
+                                <td>{{ player.p2_fouls if player.p2_fouls else '-' }}</td>
+                                <td>{{ player.p3_fouls if player.p3_fouls else '-' }}</td>
+                                <td>{{ player.t1_fouls if player.t1_fouls else '-' }}</td>
+                                <td>{{ player.u1_fouls if player.u1_fouls else '-' }}</td>
+                                <td>{{ player.u2_fouls if player.u2_fouls else '-' }}</td>
+                                <td>{{ player.u3_fouls if player.u3_fouls else '-' }}</td>
+                                <td>{{ player.gd_fouls if player.gd_fouls else '-' }}</td>
+                                <td><strong>{{ player.total_fouls }}</strong></td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -425,12 +479,21 @@
                         {{ game.basic_info.away_score }}
                     </p>
                     {% if game.away_team_roster %}
-                    <table class="player-table">
+                    <table class="player-table" id="awayTeamTable">
                         <thead>
                             <tr>
                                 <th>Player</th>
                                 <th>Points</th>
-                                <th>Fouls</th>
+                                <th title="Personal Fouls">P</th>
+                                <th title="Personal Foul 1 (Shooting)">P1</th>
+                                <th title="Personal Foul 2 (Flagrant 1)">P2</th>
+                                <th title="Personal Foul 3 (Flagrant 2)">P3</th>
+                                <th title="Technical Foul">T1</th>
+                                <th title="Unsportsmanlike 1">U1</th>
+                                <th title="Unsportsmanlike 2">U2</th>
+                                <th title="Unsportsmanlike 3">U3</th>
+                                <th title="Game Disqualification">GD</th>
+                                <th title="Total Fouls">Total</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -441,7 +504,16 @@
                                     {% if player.starting_five %}<span style="color: #27ae60; font-weight: bold;"> ⭐</span>{% endif %}
                                 </td>
                                 <td><strong>{{ player.total_points }}</strong></td>
-                                <td>{{ player.total_fouls }}</td>
+                                <td>{{ player.p_fouls if player.p_fouls else '-' }}</td>
+                                <td>{{ player.p1_fouls if player.p1_fouls else '-' }}</td>
+                                <td>{{ player.p2_fouls if player.p2_fouls else '-' }}</td>
+                                <td>{{ player.p3_fouls if player.p3_fouls else '-' }}</td>
+                                <td>{{ player.t1_fouls if player.t1_fouls else '-' }}</td>
+                                <td>{{ player.u1_fouls if player.u1_fouls else '-' }}</td>
+                                <td>{{ player.u2_fouls if player.u2_fouls else '-' }}</td>
+                                <td>{{ player.u3_fouls if player.u3_fouls else '-' }}</td>
+                                <td>{{ player.gd_fouls if player.gd_fouls else '-' }}</td>
+                                <td><strong>{{ player.total_fouls }}</strong></td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -452,6 +524,9 @@
                     {% endif %}
                 </div>
             </div>
+            <p style="margin-top: 15px; text-align: center; font-size: 0.9em; color: #666; font-style: italic;">
+                <strong>Foul Types:</strong> P=Personal, P1=Shooting, P2=Flagrant 1, P3=Flagrant 2, T1=Technical, U1/U2/U3=Unsportsmanlike, GD=Game Disqualification
+            </p>
         </div>
 
         <!-- Referees -->
@@ -566,5 +641,50 @@
                 }
             }
         });
+
+        // Excel export function
+        function exportToExcel() {
+            {% if game %}
+            const gameId = '{{ game.basic_info.game_id }}';
+            const homeTeam = '{{ game.basic_info.home_team }}';
+            const awayTeam = '{{ game.basic_info.away_team }}';
+            
+            // Show loading state
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '⏳ Exporting...';
+            btn.disabled = true;
+            
+            // Make request to export endpoint
+            fetch(`/game-details/export/${encodeURIComponent(gameId)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Export failed');
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    // Create download link
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Game_${gameId}_${homeTeam}_vs_${awayTeam}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    // Reset button
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                })
+                .catch(error => {
+                    console.error('Error exporting:', error);
+                    alert('Failed to export game data. Please try again.');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                });
+            {% endif %}
+        }
     </script>
 {% endblock %}
