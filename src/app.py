@@ -445,6 +445,139 @@ def team_stats():
                          selected_division=selected_division,
                          data_source_info=data_source_info)
 
+@app.route('/team-stats/export-fouls')
+@user_required
+def export_team_fouls():
+    """Export team fouls statistics to Excel file"""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+        from flask import send_file
+        import io
+        
+        # Get selected division from query parameter or user preferences
+        selected_division = request.args.get('division') or session.get('preferred_division')
+        
+        # Filter data based on division selection
+        filtered_data = filter_data_by_division(data, selected_division)
+        
+        # Get team fouls stats (all teams for comprehensive export)
+        team_fouls = get_team_fouls_stats(filtered_data, top_n=500)  # Max 500 teams should cover all leagues
+        
+        if team_fouls.empty:
+            return "No data available", 404
+        
+        # Create workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Team Fouls Statistics"
+        
+        # Header info
+        ws['A1'] = "Team Fouls Statistics"
+        ws['A1'].font = Font(bold=True, size=16)
+        
+        division_text = f"Division: {selected_division}" if selected_division else "All Divisions"
+        ws['A2'] = division_text
+        ws['A2'].font = Font(bold=True, size=12)
+        
+        # Header row (starting at row 4)
+        row = 4
+        headers = [
+            'Rank', 'Team', 'Total Fouls', 'Fouls per Game', 
+            'P', 'P1', 'P2', 'P3', 'T1', 'U1', 'U2', 'U3', 'GD',
+            'Weighted Total', 'Games Played', 'Total Points'
+        ]
+        
+        # Style header row (color matches app theme gradient)
+        HEADER_COLOR = "667eea"  # Primary theme color
+        header_fill = PatternFill(start_color=HEADER_COLOR, end_color=HEADER_COLOR, fill_type="solid")
+        header_font = Font(bold=True, color="FFFFFF")
+        border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        
+        for col, header in enumerate(headers, start=1):
+            cell = ws.cell(row=row, column=col, value=header)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.border = border
+        
+        # Data rows
+        for idx, (_, team_row) in enumerate(team_fouls.iterrows(), start=1):
+            row += 1
+            values = [
+                idx,  # Rank
+                team_row['Team'],
+                int(team_row['TotalFouls']),
+                round(team_row['AvgFoulsPerGame'], 1),
+                int(team_row['PFouls']),
+                int(team_row['P1Fouls']),
+                int(team_row['P2Fouls']),
+                int(team_row['P3Fouls']),
+                int(team_row['T1Fouls']),
+                int(team_row['U1Fouls']),
+                int(team_row['U2Fouls']),
+                int(team_row['U3Fouls']),
+                int(team_row['GDFouls']),
+                int(team_row['WeightedTotalFouls']),
+                int(team_row['TotalGames']),
+                int(team_row['TotalPoints'])
+            ]
+            
+            for col, value in enumerate(values, start=1):
+                cell = ws.cell(row=row, column=col, value=value)
+                cell.border = border
+                if col == 2:  # Team name
+                    cell.alignment = Alignment(horizontal='left')
+                else:
+                    cell.alignment = Alignment(horizontal='center')
+        
+        # Add legend
+        row += 3
+        ws[f'A{row}'] = "Foul Types Legend:"
+        ws[f'A{row}'].font = Font(bold=True, size=12)
+        row += 1
+        ws[f'A{row}'] = "P=Personal, P1=Personal 1, P2=Personal 2, P3=Personal 3"
+        row += 1
+        ws[f'A{row}'] = "T1=Technical, U1=Unsportsmanlike 1, U2=Unsportsmanlike 2, U3=Unsportsmanlike 3"
+        row += 1
+        ws[f'A{row}'] = "GD=Game Disqualification"
+        
+        # Adjust column widths
+        ws.column_dimensions['A'].width = 8   # Rank
+        ws.column_dimensions['B'].width = 30  # Team
+        ws.column_dimensions['C'].width = 14  # Total Fouls
+        ws.column_dimensions['D'].width = 15  # Fouls per Game
+        for col in ['E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M']:  # Foul types
+            ws.column_dimensions[col].width = 8
+        ws.column_dimensions['N'].width = 15  # Weighted Total
+        ws.column_dimensions['O'].width = 14  # Games
+        ws.column_dimensions['P'].width = 14  # Points
+        
+        # Save to BytesIO
+        excel_file = io.BytesIO()
+        wb.save(excel_file)
+        excel_file.seek(0)
+        
+        # Create filename
+        division_suffix = f"_{selected_division.replace(' ', '_')}" if selected_division else "_All"
+        filename = f"Team_Fouls_Statistics{division_suffix}.xlsx"
+        
+        return send_file(
+            excel_file,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        logger.error(f"Error exporting team fouls: {str(e)}")
+        return f"Error exporting data: {str(e)}", 500
+
 @app.route('/team-detail')
 @user_required
 def team_detail():

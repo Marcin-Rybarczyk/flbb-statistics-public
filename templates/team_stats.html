@@ -129,6 +129,72 @@
             color: #999;
             font-style: italic;
         }
+        
+        .export-button {
+            display: inline-flex;
+            align-items: center;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);
+            border: none;
+            cursor: pointer;
+        }
+        
+        .export-button:hover {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(46, 204, 113, 0.4);
+        }
+        
+        .export-button:active {
+            transform: translateY(0);
+        }
+        
+        .foul-dist-card {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 12px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .foul-dist-card.severe {
+            background: rgba(139, 0, 0, 0.35);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .foul-dist-card.technical {
+            background: rgba(255, 140, 0, 0.25);
+        }
+        
+        .foul-dist-card.unsportsmanlike {
+            background: rgba(220, 20, 60, 0.25);
+        }
+        
+        .foul-dist-card.total {
+            background: rgba(255, 255, 255, 0.25);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+        
+        .foul-dist-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        .foul-dist-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .foul-dist-percent {
+            font-size: 11px;
+            opacity: 0.8;
+        }
     </style>
 {% endblock %}
 
@@ -372,7 +438,53 @@
         <div id="fouls" class="tab-content">
             {% if team_fouls is not none and not team_fouls.empty %}
             <div class="stats-section">
-                <h2>Teams with Most Fouls</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">Teams with Most Fouls</h2>
+                    <a href="/team-stats/export-fouls?division={{ selected_division or '' }}" class="export-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: middle; margin-right: 5px;">
+                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                        </svg>
+                        Export to Excel
+                    </a>
+                </div>
+                
+                <!-- Foul Distribution Summary -->
+                <div class="foul-distribution-summary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 18px;">📊 Overall Foul Distribution</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                        {% set foul_types = [
+                            ('Personal (P)', 'PFouls', ''),
+                            ('Personal 1 (P1)', 'P1Fouls', ''),
+                            ('Personal 2 (P2)', 'P2Fouls', ''),
+                            ('Personal 3 (P3)', 'P3Fouls', ''),
+                            ('Technical (T1)', 'T1Fouls', 'technical'),
+                            ('Unsportsmanlike 1 (U1)', 'U1Fouls', 'unsportsmanlike'),
+                            ('Unsportsmanlike 2 (U2)', 'U2Fouls', 'unsportsmanlike'),
+                            ('Unsportsmanlike 3 (U3)', 'U3Fouls', 'severe'),
+                            ('Game Disqualification (GD)', 'GDFouls', 'severe')
+                        ] %}
+                        {% set grand_total = team_fouls['TotalFouls'].sum() %}
+                        
+                        {% for label, column, css_class in foul_types %}
+                        {% set total = team_fouls[column].sum() %}
+                        {% if total > 0 %}
+                        <div class="foul-dist-card {{ css_class }}">
+                            <div class="foul-dist-label">{{ label }}</div>
+                            <div class="foul-dist-value">{{ total|int }}</div>
+                            <div class="foul-dist-percent">{{ "%.1f"|format((total / grand_total * 100) if grand_total > 0 else 0) }}%</div>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                        
+                        <div class="foul-dist-card total">
+                            <div class="foul-dist-label">Total Fouls</div>
+                            <div class="foul-dist-value">{{ grand_total|int }}</div>
+                            <div class="foul-dist-percent">100%</div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="table-container"><table>
                     <thead>
                         <tr>
