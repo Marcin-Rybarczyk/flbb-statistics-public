@@ -1685,7 +1685,8 @@ def get_team_highest_single_game_scores(data, top_n=20):
     if team_scores_df.empty:
         return pd.DataFrame()
     
-    # Get the highest score for each team
+    # Get the highest score for each team (one entry per team showing their best game)
+    # This mirrors the player stats behavior where we show each player's highest single game
     idx = team_scores_df.groupby('Team')['Score'].idxmax()
     highest_scores = team_scores_df.loc[idx].nlargest(top_n, 'Score').reset_index(drop=True)
     
@@ -1909,9 +1910,10 @@ def get_team_starting_vs_bench_stats(data):
     team_stats = team_stats.fillna(0)
     
     # Calculate point difference
-    team_stats['PointsDifference'] = (
-        team_stats.get('StartersAvgPointsPerGame', 0) - team_stats.get('BenchAvgPointsPerGame', 0)
-    ).round(1)
+    # Use bracket notation to access DataFrame columns
+    starters_col = team_stats['StartersAvgPointsPerGame'] if 'StartersAvgPointsPerGame' in team_stats.columns else 0
+    bench_col = team_stats['BenchAvgPointsPerGame'] if 'BenchAvgPointsPerGame' in team_stats.columns else 0
+    team_stats['PointsDifference'] = (starters_col - bench_col).round(1)
     
     return team_stats.sort_values('PointsDifference', ascending=False).head(20).reset_index(drop=True)
 
