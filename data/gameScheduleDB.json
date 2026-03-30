@@ -1,51 +1,51 @@
 [
   {
-    "ExcludedFromStats": false,
-    "CategoryName": "Enovos League Hommes",
+    "SeasonId": "2025-2026",
+    "CategoryUrl": "https://www.luxembourg.basketball/c/calendrier-resultat/1101/enovos-league-hommes",
     "CategoryNameRaw": "enovos-league-hommes",
-    "SeasonId": "2025-2026",
-    "CategoryUrl": "https://www.luxembourg.basketball/c/calendrier-resultat/1101/enovos-league-hommes"
+    "ExcludedFromStats": false,
+    "CategoryName": "Enovos League Hommes"
   },
   {
-    "ExcludedFromStats": false,
-    "CategoryName": "Nationale 2 Hommes",
+    "SeasonId": "2025-2026",
+    "CategoryUrl": "https://www.luxembourg.basketball/c/calendrier-resultat/1201/nationale-2-hommes",
     "CategoryNameRaw": "nationale-2-hommes",
-    "SeasonId": "2025-2026",
-    "CategoryUrl": "https://www.luxembourg.basketball/c/calendrier-resultat/1201/nationale-2-hommes"
+    "ExcludedFromStats": false,
+    "CategoryName": "Nationale 2 Hommes"
   },
   {
-    "ExcludedFromStats": false,
-    "CategoryName": "Nationale 3 Hommes",
+    "SeasonId": "2025-2026",
+    "CategoryUrl": "https://www.luxembourg.basketball/c/calendrier-resultat/1301/nationale-3-hommes",
     "CategoryNameRaw": "nationale-3-hommes",
-    "SeasonId": "2025-2026",
-    "CategoryUrl": "https://www.luxembourg.basketball/c/calendrier-resultat/1301/nationale-3-hommes"
+    "ExcludedFromStats": false,
+    "CategoryName": "Nationale 3 Hommes"
   },
   {
-    "ExcludedFromStats": false,
-    "CategoryName": "Division 1 Hommes",
+    "SeasonId": "2025-2026",
+    "CategoryUrl": "https://www.luxembourg.basketball/c/calendrier-resultat/1501/division-1-hommes",
     "CategoryNameRaw": "division-1-hommes",
-    "SeasonId": "2025-2026",
-    "CategoryUrl": "https://www.luxembourg.basketball/c/calendrier-resultat/1501/division-1-hommes"
+    "ExcludedFromStats": false,
+    "CategoryName": "Division 1 Hommes"
   },
   {
-    "ExcludedFromStats": false,
-    "CategoryName": "Division 2 Hommes",
+    "SeasonId": "2025-2026",
+    "CategoryUrl": "https://www.luxembourg.basketball/c/calendrier-resultat/1601/division-2-hommes",
     "CategoryNameRaw": "division-2-hommes",
-    "SeasonId": "2025-2026",
-    "CategoryUrl": "https://www.luxembourg.basketball/c/calendrier-resultat/1601/division-2-hommes"
+    "ExcludedFromStats": false,
+    "CategoryName": "Division 2 Hommes"
   },
   {
-    "ExcludedFromStats": false,
-    "CategoryName": "Division 3 Hommes",
+    "SeasonId": "2025-2026",
+    "CategoryUrl": "https://www.luxembourg.basketball/c/calendrier-resultat/1701/division-3-hommes",
     "CategoryNameRaw": "division-3-hommes",
-    "SeasonId": "2025-2026",
-    "CategoryUrl": "https://www.luxembourg.basketball/c/calendrier-resultat/1701/division-3-hommes"
+    "ExcludedFromStats": false,
+    "CategoryName": "Division 3 Hommes"
   },
   {
-    "ExcludedFromStats": false,
-    "CategoryName": "Division 4 Hommes",
-    "CategoryNameRaw": "division-4-hommes",
     "SeasonId": "2025-2026",
-    "CategoryUrl": "https://www.luxembourg.basketball/c/calendrier-resultat/1801/division-4-hommes"
+    "CategoryUrl": "https://www.luxembourg.basketball/c/calendrier-resultat/1801/division-4-hommes",
+    "CategoryNameRaw": "division-4-hommes",
+    "ExcludedFromStats": false,
+    "CategoryName": "Division 4 Hommes"
   }
 ]
